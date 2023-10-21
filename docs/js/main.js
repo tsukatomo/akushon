@@ -27,13 +27,13 @@ let mapHeight = 15;
 let gridSize = 32;
 let mapData = [
   "....................",
-  "....................",
+  ".*..................",
   "....................",
   "............***.....",
-  "....................",
-  "....................",
-  "....................",
-  "....................",
+  "....*...............",
+  "........*...........",
+  "..........***.......",
+  "...............*..*.",
   ".....*..............",
   "....**..........**..",
   "******.....*********",
@@ -53,8 +53,8 @@ class CharacterObject {
     this.name = name;
     this.x = x;
     this.y = y;
-    this.ax = 0;
-    this.ay = 0;
+    this.dx = 0;
+    this.dy = 0;
     this.w= width;
     this.h = height;
     this.onLand = false;
@@ -62,7 +62,7 @@ class CharacterObject {
 };
 
 
-let playerChara;
+let plc;
 
 // get map data from coordinate
 let getMap = (x, y) => {
@@ -159,53 +159,76 @@ window.onkeyup = function (e) {
   }
 };
 
+// check if the key pressed in this loop
+let isKeyPressedNow = function(key) {
+  return (keyPressed.indexOf(key) != -1 && keyPressedPrevious.indexOf(key) === -1);
+};
+
    //=====================//
   //  Scene List         //
  //=====================//
 let sceneList = {
   "game" : {
     "init" : () => {
-      playerChara = new CharacterObject("player", 16, 16, 16, 16);
+      plc = new CharacterObject("player", 16, 16, 24, 30);
     },
     "update" : () => {
       // player character move
-      if (playerChara.onLand) {
+      plc.onLand = (getMap(plc.x, plc.y + plc.h + 0.125) === "*" || getMap(plc.x + plc.w, plc.y + plc.h + 0.125) === "*");
+      if (plc.onLand) {
+        plc.dy = 0;
         if (keyInput.indexOf("l") != -1) {
-          playerChara.ax = -2;
+          plc.dx -= 0.5;
         }
         else if (keyInput.indexOf("r") != -1) {
-          playerChara.ax = 2;
+          plc.dx += 0.5;
         }
         else {
-          playerChara.ax = Math.sign(playerChara.ax) * (Math.abs(playerChara.ax) - 0.125);
+          plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.25);
         }
-        if (keyInput.indexOf("z") != -1) {
-          playerChara.ay = -6;
-          playerChara.onLand = false;
+        if (isKeyPressedNow("z")) {
+          plc.dy = -6;
         }
       }
       else {
         if (keyInput.indexOf("l") != -1) {
-          playerChara.ax = -1;
+          plc.dx -= 0.25;
         }
         else if (keyInput.indexOf("r") != -1) {
-          playerChara.ax = 1;
+          plc.dx += 0.25;
         }
-        playerChara.ay += 0.25;
+        if (keyInput.indexOf("z") != -1) {
+          plc.dy += 0.25;
+        }
+        else {
+          plc.dy += 0.5;
+        }
       }
+      // limit speed
+      if (plc.dx > 2.5) plc.dx = 2.5;
+      if (plc.dx < -2.5) plc.dx = -2.5;
+      if (plc.dy > 12.0) plc.dy = 12.0;
       // update position
-      playerChara.x += playerChara.ax;
-      playerChara.y += playerChara.ay;
+      plc.x += plc.dx;
       // マップとの衝突
-      // 上下方向の衝突
-      while (getMap(playerChara.x, playerChara.y + playerChara.h) === "*" || getMap(playerChara.x + playerChara.w, playerChara.y + playerChara.h) === "*") {
-        playerChara.onLand = true;
-        playerChara.y -= 0.125;
+      while (getMap(plc.x, plc.y) === "*" || getMap(plc.x, plc.y + plc.h) === "*") {
+        plc.x += 0.125;
+        plc.dx = 0;
       }
-      while (getMap(playerChara.x, playerChara.y) === "*" || getMap(playerChara.x + playerChara.w, playerChara.y) === "*") {
-        playerChara.y += 0.125;
+      while (getMap(plc.x + plc.w, plc.y) === "*" || getMap(plc.x + plc.w, plc.y + plc.h) === "*") {
+        plc.x -= 0.125;
+        plc.dx = 0;
       }
-      //console.log(playerChara.x, playerChara.y);
+      plc.y += plc.dy;
+      while (getMap(plc.x, plc.y) === "*" || getMap(plc.x + plc.w, plc.y) === "*") {
+        plc.y += 0.125;
+        plc.dy = 0;
+      }
+      while (getMap(plc.x, plc.y + plc.h) === "*" || getMap(plc.x + plc.w, plc.y + plc.h) === "*") {
+        plc.y -= 0.125;
+        plc.dy = 0;
+      }
+      //console.log(plc.x, plc.y);
 
       // draw map
       for (let x = 0; x < mapWidth; x++) {
@@ -214,11 +237,15 @@ let sceneList = {
             charaCtx.fillStyle = "green";
             charaCtx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
           }
+          else if (mapData[y][x] === '-') {
+            charaCtx.fillStyle = "tomato";
+            charaCtx.fillRect(x * gridSize, y * gridSize, gridSize, 12);
+          }
         }
       }
       // draw character
-      charaCtx.fillStyle = "royalblue"
-      charaCtx.fillRect(Math.round(playerChara.x), Math.round(playerChara.y), playerChara.w, playerChara.h);
+      charaCtx.fillStyle = "pink"
+      charaCtx.fillRect(Math.round(plc.x), Math.round(plc.y), plc.w, plc.h);
     }
   },
 };
@@ -264,7 +291,7 @@ let gameLoop = () => {
 window.onload = () => {
   scene = "game";
   initFlag = true;
-  setInterval(gameLoop, 10);
+  setInterval(gameLoop, 1000/60);
 };
 
 
