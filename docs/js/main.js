@@ -14,6 +14,22 @@ const useriCtx = useriLay.getContext("2d");
 const transLay = document.getElementById("trans_lay");
 const transCtx = transLay.getContext("2d");
 
+// get image
+// player
+let imgPlayer = new Image();
+imgPlayer.src = "./img/fighter_action.png";
+
+// animation data
+let animePlayer = {
+  "stand_l": {frames: 1, dulation: 8, img: [0]},
+  "stand_r": {frames: 1, dulation: 8, img: [3]},
+  "run_l": {frames: 4, dulation: 6, img: [0, 2, 0, 1]},
+  "run_r": {frames: 4, dulation: 6, img: [3, 5, 3, 4]},
+  "jump_l": {frames: 1, dulation: 8, img: [1]},
+  "jump_r": {frames: 1, dulation: 8, img: [4]},
+  "default": {frames:1, dulation: 8, img: [0]}
+};
+
 // global variables
 // for key inputs
 let keyInput = [];
@@ -49,7 +65,7 @@ let initFlag;
 
 // character class
 class CharacterObject {
-  constructor(name, x, y, w, h, ltx, lty, rbx, rby) {
+  constructor(name, x, y, w, h, ltx, lty, rbx, rby, img, anime) {
     this.name = name;
     this.x = x;
     this.y = y;
@@ -61,10 +77,31 @@ class CharacterObject {
     // rbx, rby = right bottom of hitbox
     this.rbx = rbx;
     this.rby = rby;
+    // image and animation data
+    this.img = img;
+    this.anime = anime;
+    this.direction = "right";
+    this.anitype = "default";
+    this.anicount = 0;
+    // speed and landing flag
     this.dx = 0;
     this.dy = 0;
     this.onLand = false;
   };
+
+  changeAnime (new_anitype) {
+    if (new_anitype === this.anitype) return;
+    this.anitype = new_anitype;
+    this.anicount = 0;
+  };
+
+  drawAnime (ctx) {
+    this.anicount++;
+    let frameNumber = Math.floor(this.anicount / this.anime[this.anitype].dulation) % (this.anime[this.anitype].frames);
+    // console.log(frameNumber);
+    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h, this.x, this.y, this.w, this.h);
+  };
+
 };
 
 
@@ -177,7 +214,7 @@ let isKeyPressedNow = function(key) {
 let sceneList = {
   "game" : {
     "init" : () => {
-      plc = new CharacterObject("player", 0, 0, 32, 32, 12, 4, 24, 32);
+      plc = new CharacterObject("player", 0, 0, 32, 32, 8, 4, 24, 32, imgPlayer, animePlayer);
       console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
     },
     "update" : () => {
@@ -188,9 +225,11 @@ let sceneList = {
         coyoteTime = 6;
         if (keyInput.indexOf("l") != -1) {
           plc.dx -= 0.5;
+          plc.direction = "left";
         }
         else if (keyInput.indexOf("r") != -1) {
           plc.dx += 0.5;
+          plc.direction = "right";
         }
         else {
           plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.25);
@@ -200,9 +239,11 @@ let sceneList = {
         coyoteTime--;
         if (keyInput.indexOf("l") != -1) {
           plc.dx -= 0.25;
+          plc.direction = "left";
         }
         else if (keyInput.indexOf("r") != -1) {
           plc.dx += 0.25;
+          plc.direction = "right";
         }
         if (keyInput.indexOf("z") != -1) {
           plc.dy += 0.25;
@@ -248,6 +289,8 @@ let sceneList = {
       //console.log(plc.x, plc.y);
 
       // draw map
+      charaCtx.fillStyle = "black";
+      charaCtx.fillRect(0, 0, 640, 480);
       for (let x = 0; x < mapWidth; x++) {
         for (let y = 0; y < mapHeight; y++) {
           if (mapData[y][x] === '*') {
@@ -261,8 +304,22 @@ let sceneList = {
         }
       }
       // draw character
-      charaCtx.fillStyle = "pink"
+      if (plc.onLand) {
+        if (plc.dx === 0) {
+          plc.changeAnime(plc.direction === "left" ? "stand_l" : "stand_r");
+        }
+        else {
+          plc.changeAnime(plc.direction === "left" ? "run_l" : "run_r");
+        }
+      }
+      else {
+        plc.changeAnime(plc.direction === "left" ? "jump_l" : "jump_r");
+      }
+      /* hit box
+      charaCtx.fillStyle = "pink";
       charaCtx.fillRect(Math.round(plc.x + plc.ltx), Math.round(plc.y + plc.lty), plc.rbx - plc.ltx, plc.rby - plc.lty);
+      */
+      plc.drawAnime(charaCtx);
     }
   },
 };
