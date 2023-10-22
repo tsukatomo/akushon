@@ -49,20 +49,27 @@ let initFlag;
 
 // character class
 class CharacterObject {
-  constructor(name, x, y, width, height) {
+  constructor(name, x, y, w, h, ltx, lty, rbx, rby) {
     this.name = name;
     this.x = x;
     this.y = y;
+    this.w= w;
+    this.h = h;
+    // ltx,lty = left top of hitbox
+    this.ltx = ltx;
+    this.lty = lty;
+    // rbx, rby = right bottom of hitbox
+    this.rbx = rbx;
+    this.rby = rby;
     this.dx = 0;
     this.dy = 0;
-    this.w= width;
-    this.h = height;
     this.onLand = false;
   };
 };
 
 
 let plc;
+let coyoteTime = 0;
 
 // get map data from coordinate
 let getMap = (x, y) => {
@@ -170,13 +177,15 @@ let isKeyPressedNow = function(key) {
 let sceneList = {
   "game" : {
     "init" : () => {
-      plc = new CharacterObject("player", 16, 16, 24, 30);
+      plc = new CharacterObject("player", 0, 0, 32, 32, 12, 4, 24, 32);
+      console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
     },
     "update" : () => {
       // player character move
-      plc.onLand = (getMap(plc.x, plc.y + plc.h + 0.125) === "*" || getMap(plc.x + plc.w, plc.y + plc.h + 0.125) === "*");
+      plc.onLand = (getMap(plc.x + plc.ltx, plc.y + plc.rby + 0.125) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby + 0.125) === "*");
       if (plc.onLand) {
         plc.dy = 0;
+        coyoteTime = 6;
         if (keyInput.indexOf("l") != -1) {
           plc.dx -= 0.5;
         }
@@ -186,11 +195,9 @@ let sceneList = {
         else {
           plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.25);
         }
-        if (isKeyPressedNow("z")) {
-          plc.dy = -6;
-        }
       }
       else {
+        coyoteTime--;
         if (keyInput.indexOf("l") != -1) {
           plc.dx -= 0.25;
         }
@@ -204,27 +211,37 @@ let sceneList = {
           plc.dy += 0.5;
         }
       }
+      // jump
+      if (isKeyPressedNow("z") && coyoteTime > 0) {
+        plc.dy = -6;
+        coyoteTime = 0;
+      }
       // limit speed
       if (plc.dx > 2.5) plc.dx = 2.5;
       if (plc.dx < -2.5) plc.dx = -2.5;
       if (plc.dy > 12.0) plc.dy = 12.0;
-      // update position
+      // update x position
       plc.x += plc.dx;
       // マップとの衝突
-      while (getMap(plc.x, plc.y) === "*" || getMap(plc.x, plc.y + plc.h) === "*") {
+      // left
+      while (getMap(plc.x + plc.ltx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.ltx, plc.y + plc.rby) === "*") {
         plc.x += 0.125;
         plc.dx = 0;
       }
-      while (getMap(plc.x + plc.w, plc.y) === "*" || getMap(plc.x + plc.w, plc.y + plc.h) === "*") {
+      // right
+      while (getMap(plc.x + plc.rbx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "*") {
         plc.x -= 0.125;
         plc.dx = 0;
       }
+      // update y position
       plc.y += plc.dy;
-      while (getMap(plc.x, plc.y) === "*" || getMap(plc.x + plc.w, plc.y) === "*") {
+      // top
+      while (getMap(plc.x + plc.ltx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.lty) === "*") {
         plc.y += 0.125;
         plc.dy = 0;
       }
-      while (getMap(plc.x, plc.y + plc.h) === "*" || getMap(plc.x + plc.w, plc.y + plc.h) === "*") {
+      // bottom
+      while (getMap(plc.x + plc.ltx, plc.y + plc.rby) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "*") {
         plc.y -= 0.125;
         plc.dy = 0;
       }
@@ -245,7 +262,7 @@ let sceneList = {
       }
       // draw character
       charaCtx.fillStyle = "pink"
-      charaCtx.fillRect(Math.round(plc.x), Math.round(plc.y), plc.w, plc.h);
+      charaCtx.fillRect(Math.round(plc.x + plc.ltx), Math.round(plc.y + plc.lty), plc.rbx - plc.ltx, plc.rby - plc.lty);
     }
   },
 };
