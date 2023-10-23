@@ -18,6 +18,31 @@ const transCtx = transLay.getContext("2d");
 // player
 let imgPlayer = new Image();
 imgPlayer.src = "./img/fighter_action.png";
+imgPlayer.crossOrigin = "Anonymus";
+let imgMapchip_1 = new Image();
+imgMapchip_1.src = "./img/mapchip_1.png";
+let imgMapchip_2 = new Image();
+imgMapchip_2.src = "./img/mapchip_2.png";
+
+// shadow image
+let shadowPlayer = [];
+
+// create shadow image
+let createShadow = function(originalImg) {
+  backgCtx.clearRect(0, 0, backgLay.width, backgLay.height);
+  backgCtx.drawImage(originalImg, 0, 0);
+  const sImageData = backgCtx.getImageData(0, 0, backgLay.width, 16);
+  const data = sImageData.data;
+  for (let i = 0; i < data.length; i+=4) {
+    if (data[i + 3] === 0) continue; // ignore transparent cell
+    data[i] = 0; // red = 0
+    data[i + 1] = 0; // green = 0
+    data[i + 2] = 0; // blue = 0
+    //console.log("黒");
+  }
+  return sImageData;
+};
+
 
 // animation data
 let animePlayer = {
@@ -40,16 +65,16 @@ let buttonPressed;
 // for map
 let mapWidth = 20;
 let mapHeight = 15;
-let gridSize = 32;
+let gridSize = 16;
 let mapData = [
   "....................",
   ".*..................",
-  "....................",
+  "............*.......",
   "............***.....",
-  "....*...............",
-  "........*...........",
+  ".*.....*............",
+  "........*...*.....**",
   "..........***.......",
-  "...............*..*.",
+  ".*.............*....",
   ".....*..............",
   "....**..........**..",
   "******.....*********",
@@ -65,7 +90,7 @@ let initFlag;
 
 // character class
 class CharacterObject {
-  constructor(name, x, y, w, h, ltx, lty, rbx, rby, img, anime) {
+  constructor(name, x, y, w, h, ltx, lty, rbx, rby, img, shadow, anime) {
     this.name = name;
     this.x = x;
     this.y = y;
@@ -79,6 +104,7 @@ class CharacterObject {
     this.rby = rby;
     // image and animation data
     this.img = img;
+    this.shadow = shadow;
     this.anime = anime;
     this.direction = "right";
     this.anitype = "default";
@@ -95,12 +121,19 @@ class CharacterObject {
     this.anicount = 0;
   };
 
-  drawAnime (ctx) {
+  updateAnime () {
     this.anicount++;
-    let frameNumber = Math.floor(this.anicount / this.anime[this.anitype].dulation) % (this.anime[this.anitype].frames);
-    // console.log(frameNumber);
-    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h, this.x, this.y, this.w, this.h);
   };
+
+  drawAnime (ctx) {
+    let frameNumber = Math.floor(this.anicount / this.anime[this.anitype].dulation) % (this.anime[this.anitype].frames);
+    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h, Math.ceil(this.x), Math.ceil(this.y), this.w, this.h);
+  };
+
+  drawShadow (ctx) {
+    let frameNumber = Math.floor(this.anicount / this.anime[this.anitype].dulation) % (this.anime[this.anitype].frames);
+    ctx.putImageData(this.shadow, Math.ceil(this.x) + 1 - this.anime[this.anitype].img[frameNumber] * this.w, Math.ceil(this.y) + 1, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h);
+  }
 
 };
 
@@ -214,29 +247,15 @@ let isKeyPressedNow = function(key) {
 let sceneList = {
   "game" : {
     "init" : () => {
-      plc = new CharacterObject("player", 0, 0, 32, 32, 8, 4, 24, 32, imgPlayer, animePlayer);
+      plc = new CharacterObject("player", 0, 0, 16, 16, 4, 2, 12, 16, imgPlayer, shadowPlayer, animePlayer);
       console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
     },
     "update" : () => {
       // player character move
-      plc.onLand = (getMap(plc.x + plc.ltx, plc.y + plc.rby + 0.125) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby + 0.125) === "*");
+      plc.onLand = (getMap(plc.x + plc.ltx, plc.y + plc.rby + 0.0625) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby + 0.0625) === "*");
       if (plc.onLand) {
         plc.dy = 0;
-        coyoteTime = 6;
-        if (keyInput.indexOf("l") != -1) {
-          plc.dx -= 0.5;
-          plc.direction = "left";
-        }
-        else if (keyInput.indexOf("r") != -1) {
-          plc.dx += 0.5;
-          plc.direction = "right";
-        }
-        else {
-          plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.25);
-        }
-      }
-      else {
-        coyoteTime--;
+        coyoteTime = 7;
         if (keyInput.indexOf("l") != -1) {
           plc.dx -= 0.25;
           plc.direction = "left";
@@ -245,57 +264,96 @@ let sceneList = {
           plc.dx += 0.25;
           plc.direction = "right";
         }
+        else {
+          plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.125);
+        }
+      }
+      else {
+        coyoteTime--;
+        if (keyInput.indexOf("l") != -1) {
+          plc.dx -= 0.125;
+          plc.direction = "left";
+        }
+        else if (keyInput.indexOf("r") != -1) {
+          plc.dx += 0.125;
+          plc.direction = "right";
+        }
         if (keyInput.indexOf("z") != -1) {
-          plc.dy += 0.25;
+          plc.dy += 0.125;
         }
         else {
-          plc.dy += 0.5;
+          plc.dy += 0.25;
         }
       }
       // jump
       if (isKeyPressedNow("z") && coyoteTime > 0) {
-        plc.dy = -6;
+        plc.dy = -3.5;
         coyoteTime = 0;
       }
       // limit speed
-      if (plc.dx > 2.5) plc.dx = 2.5;
-      if (plc.dx < -2.5) plc.dx = -2.5;
-      if (plc.dy > 12.0) plc.dy = 12.0;
+      if (plc.dx > 1.25) plc.dx = 1.25;
+      if (plc.dx < -1.25) plc.dx = -1.25;
+      if (plc.dy > 6.0) plc.dy = 6.0;
       // update x position
       plc.x += plc.dx;
       // マップとの衝突
       // left
       while (getMap(plc.x + plc.ltx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.ltx, plc.y + plc.rby) === "*") {
-        plc.x += 0.125;
+        plc.x += 0.0625;
         plc.dx = 0;
       }
       // right
       while (getMap(plc.x + plc.rbx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "*") {
-        plc.x -= 0.125;
+        plc.x -= 0.0625;
         plc.dx = 0;
       }
       // update y position
       plc.y += plc.dy;
       // top
       while (getMap(plc.x + plc.ltx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.lty) === "*") {
-        plc.y += 0.125;
+        plc.y += 0.0625;
         plc.dy = 0;
       }
       // bottom
       while (getMap(plc.x + plc.ltx, plc.y + plc.rby) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "*") {
-        plc.y -= 0.125;
+        plc.y -= 0.0625;
         plc.dy = 0;
       }
       //console.log(plc.x, plc.y);
 
-      // draw map
-      charaCtx.fillStyle = "black";
-      charaCtx.fillRect(0, 0, 640, 480);
+      // update anime
+      plc.updateAnime();
+      
+      // draw sky
+      backgCtx.fillStyle = "#2a2349";
+      backgCtx.fillRect(0, 0, 320, 240);
+      
+      // draw shadow
+      plc.drawShadow(charaCtx);
       for (let x = 0; x < mapWidth; x++) {
         for (let y = 0; y < mapHeight; y++) {
           if (mapData[y][x] === '*') {
-            charaCtx.fillStyle = "green";
-            charaCtx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+            charaCtx.fillStyle = "#0d080d";
+            charaCtx.fillRect(x * gridSize + 2, y * gridSize + 2, gridSize, gridSize);
+          }
+        }
+      }
+      
+      // draw map image
+      for (let x = 0; x < mapWidth; x++) {
+        for (let y = 0; y < mapHeight; y++) {
+          if (mapData[y][x] === '*') {
+            if (y != 0) {
+              if (mapData[y - 1][x] === "*") {
+                charaCtx.drawImage(imgMapchip_2, x * gridSize, y * gridSize);
+              }
+              else {
+                charaCtx.drawImage(imgMapchip_1, x * gridSize, y * gridSize);
+              }
+            }
+            else {
+              charaCtx.drawImage(imgMapchip_2, x * gridSize, y * gridSize);
+            }
           }
           else if (mapData[y][x] === '-') {
             charaCtx.fillStyle = "tomato";
@@ -303,6 +361,7 @@ let sceneList = {
           }
         }
       }
+
       // draw character
       if (plc.onLand) {
         if (plc.dx === 0) {
@@ -327,7 +386,7 @@ let sceneList = {
    //=======================//
   //  Over Lay Scene List  //
  //=======================//
- let sceneOverLayList = {
+let sceneOverLayList = {
   "none" : () => {
     // there is no 
   }
@@ -365,6 +424,7 @@ let gameLoop = () => {
 window.onload = () => {
   scene = "game";
   initFlag = true;
+  shadowPlayer = createShadow(imgPlayer);
   setInterval(gameLoop, 1000/60);
 };
 
