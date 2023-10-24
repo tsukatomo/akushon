@@ -17,21 +17,25 @@ const transCtx = transLay.getContext("2d");
 // get image
 // player
 let imgPlayer = new Image();
+let imgPlayerShadow = new Image();
 imgPlayer.src = "./img/fighter_action.png";
-imgPlayer.crossOrigin = "Anonymus";
+//imgPlayer.crossOrigin = "Anonymus";
+
 let imgMapchip_1 = new Image();
-imgMapchip_1.src = "./img/mapchip_1.png";
 let imgMapchip_2 = new Image();
+imgMapchip_1.src = "./img/mapchip_1.png";
 imgMapchip_2.src = "./img/mapchip_2.png";
 
-// shadow image
-let shadowPlayer = [];
-
 // create shadow image
-let createShadow = function(originalImg) {
-  backgCtx.clearRect(0, 0, backgLay.width, backgLay.height);
-  backgCtx.drawImage(originalImg, 0, 0);
-  const sImageData = backgCtx.getImageData(0, 0, backgLay.width, 16);
+let createShadowURL = function(originalImg) {
+  // create new canvas
+  console.log(originalImg.width);
+  const workCanvas = document.createElement('canvas');
+  const workCtx = workCanvas.getContext("2d");
+  workCanvas.width = originalImg.width;
+  workCanvas.height = originalImg.height;
+  workCtx.drawImage(originalImg, 0, 0);
+  const sImageData = workCtx.getImageData(0, 0, workCanvas.width, workCanvas.height);
   const data = sImageData.data;
   for (let i = 0; i < data.length; i+=4) {
     if (data[i + 3] === 0) continue; // ignore transparent cell
@@ -40,7 +44,10 @@ let createShadow = function(originalImg) {
     data[i + 2] = 0; // blue = 0
     //console.log("黒");
   }
-  return sImageData;
+  // reset work canvas and draw shadow data
+  workCtx.clearRect(0, 0, workCanvas.width, workCanvas.height);
+  workCtx.putImageData(sImageData,0, 0);
+  return workCanvas.toDataURL();
 };
 
 
@@ -69,7 +76,7 @@ let gridSize = 16;
 let mapData = [
   "....................",
   ".*..................",
-  "............*.......",
+  "........**.**.......",
   "............***.....",
   ".*.....*............",
   "........*...*.....**",
@@ -132,7 +139,7 @@ class CharacterObject {
 
   drawShadow (ctx) {
     let frameNumber = Math.floor(this.anicount / this.anime[this.anitype].dulation) % (this.anime[this.anitype].frames);
-    ctx.putImageData(this.shadow, Math.ceil(this.x) + 1 - this.anime[this.anitype].img[frameNumber] * this.w, Math.ceil(this.y) + 1, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h);
+    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h, Math.ceil(this.x) + 1, Math.ceil(this.y) + 1, this.w, this.h);
   }
 
 };
@@ -247,7 +254,7 @@ let isKeyPressedNow = function(key) {
 let sceneList = {
   "game" : {
     "init" : () => {
-      plc = new CharacterObject("player", 0, 0, 16, 16, 4, 2, 12, 16, imgPlayer, shadowPlayer, animePlayer);
+      plc = new CharacterObject("player", 0, 0, 16, 16, 3, 2, 13, 16, imgPlayer, imgPlayerShadow, animePlayer);
       console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
     },
     "update" : () => {
@@ -323,10 +330,6 @@ let sceneList = {
 
       // update anime
       plc.updateAnime();
-      
-      // draw sky
-      backgCtx.fillStyle = "#2a2349";
-      backgCtx.fillRect(0, 0, 320, 240);
       
       // draw shadow
       plc.drawShadow(charaCtx);
@@ -424,8 +427,13 @@ let gameLoop = () => {
 window.onload = () => {
   scene = "game";
   initFlag = true;
-  shadowPlayer = createShadow(imgPlayer);
-  setInterval(gameLoop, 1000/60);
+  // create shadow sprite
+  imgPlayerShadow.src = createShadowURL(imgPlayer);
+  // draw background
+  backgCtx.fillStyle = "#2a2349";
+  backgCtx.fillRect(0, 0, 320, 240);
+  // start game loop
+  setInterval(gameLoop, 1000/60); // 60fps
 };
 
 
