@@ -20,6 +20,10 @@ let imgPlayer = new Image();
 let imgPlayerShadow = new Image();
 imgPlayer.src = "./img/fighter_action.png";
 //imgPlayer.crossOrigin = "Anonymus";
+// shot
+let imgShot = new Image();
+let imgShotShadow = new Image();
+imgShot.src = "./img/shot.png";
 
 let imgMapchip_1 = new Image();
 let imgMapchip_2 = new Image();
@@ -53,13 +57,21 @@ let createShadowURL = function(originalImg) {
 
 // animation data
 let animePlayer = {
-  "stand_l": {frames: 1, dulation: 8, img: [0]},
-  "stand_r": {frames: 1, dulation: 8, img: [3]},
-  "run_l": {frames: 4, dulation: 6, img: [0, 2, 0, 1]},
-  "run_r": {frames: 4, dulation: 6, img: [3, 5, 3, 4]},
-  "jump_l": {frames: 1, dulation: 8, img: [1]},
-  "jump_r": {frames: 1, dulation: 8, img: [4]},
-  "default": {frames:1, dulation: 8, img: [0]}
+  "stand_l": { frames: 1, dulation: 8, img: [0], repeat: true },
+  "stand_r": {frames: 1, dulation: 8, img: [3], repeat: true },
+  "run_l": {frames: 4, dulation: 6, img: [0, 2, 0, 1], repeat: true },
+  "run_r": {frames: 4, dulation: 6, img: [3, 5, 3, 4], repeat: true },
+  "jump_l": {frames: 1, dulation: 8, img: [1], repeat: true },
+  "jump_r": {frames: 1, dulation: 8, img: [4], repeat: true },
+  "default": {frames: 1, dulation: 8, img: [0], repeat: true }
+};
+let animeShot = {
+  "shot": { frames: 1, dulation: 8, img: [0], repeat: true },
+  "vanish": { frames: 2, dulation: 3, img: [1, 2], repeat: false }, 
+  "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+};
+let animeDefault = { // no animation sprite
+  "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
 };
 
 // global variables
@@ -78,13 +90,13 @@ let mapData = [
   ".*..................",
   "........**.**.......",
   "............***.....",
-  ".*.....*............",
-  "........*...*.....**",
-  "..........***.......",
+  ".*-----*............",
+  ".....--.*...*.....**",
+  ".....--...***.......",
   ".*.............*....",
   ".....*..............",
   "....**..........**..",
-  "******.....*********",
+  "******--...*********",
   "******.....*********",
   "*********..*********",
   "*********..*********",
@@ -120,6 +132,8 @@ class CharacterObject {
     this.dx = 0;
     this.dy = 0;
     this.onLand = false;
+    // other parameter
+    this.param1 = 0;
   };
 
   changeAnime (new_anitype) {
@@ -132,32 +146,47 @@ class CharacterObject {
     this.anicount++;
   };
 
+  frameNumber () {
+    let frameCount = Math.floor(this.anicount / this.anime[this.anitype].dulation);
+    if (this.anime[this.anitype].repeat) {
+      return frameCount % this.anime[this.anitype].frames;
+    }
+    return frameCount < this.anime[this.anitype].frames ? frameCount : this.anime[this.anitype].frames - 1;
+  };
+
   drawAnime (ctx) {
-    let frameNumber = Math.floor(this.anicount / this.anime[this.anitype].dulation) % (this.anime[this.anitype].frames);
-    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h, Math.ceil(this.x), Math.ceil(this.y), this.w, this.h);
+    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x), Math.floor(this.y), this.w, this.h);
   };
 
   drawShadow (ctx) {
-    let frameNumber = Math.floor(this.anicount / this.anime[this.anitype].dulation) % (this.anime[this.anitype].frames);
-    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[frameNumber], 0, this.w, this.h, Math.ceil(this.x) + 1, Math.ceil(this.y) + 1, this.w, this.h);
+    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x) + 1, Math.floor(this.y) + 1, this.w, this.h);
   }
 
 };
 
-
 let plc;
+let shotArray = [];
+let shotMax = 5;
 let coyoteTime = 0;
 
-// get map data from coordinate
+// get map data from pixel coordinate
 let getMap = (x, y) => {
   let mapX = Math.floor(x / gridSize);
   let mapY = Math.floor(y / gridSize);
   if (mapX < 0 || mapWidth <= mapX) return ".";
   if (mapY < 0 || mapHeight <= mapY) return ".";
+  if (mapData[mapY][mapX] === "-") { // half floor
+    if (y % gridSize < 4){
+      return "-";
+    }
+    else {
+      return ".";
+    }
+  }
   return mapData[mapY][mapX];
 }
 
-
+// 
 
 
 
@@ -254,12 +283,17 @@ let isKeyPressedNow = function(key) {
 let sceneList = {
   "game" : {
     "init" : () => {
-      plc = new CharacterObject("player", 0, 0, 16, 16, 3, 2, 13, 16, imgPlayer, imgPlayerShadow, animePlayer);
+      plc = new CharacterObject("player", 0, 0, 16, 16, 3, 2, 12, 15, imgPlayer, imgPlayerShadow, animePlayer);
       console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
     },
     "update" : () => {
+      // *********************
       // player character move
+      // *********************
       plc.onLand = (getMap(plc.x + plc.ltx, plc.y + plc.rby + 0.0625) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby + 0.0625) === "*");
+      if (plc.dy >= 0) {
+        plc.onLand |= (getMap(plc.x + plc.ltx, plc.y + plc.rby + 0.0625) === "-" || getMap(plc.x + plc.rbx, plc.y + plc.rby + 0.0625) === "-");
+      }
       if (plc.onLand) {
         plc.dy = 0;
         coyoteTime = 7;
@@ -297,10 +331,34 @@ let sceneList = {
         plc.dy = -3.5;
         coyoteTime = 0;
       }
+      // create shot
+      if (isKeyPressedNow("x") && shotArray.length < shotMax) {
+        let newShot = new CharacterObject("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, imgShot, imgShotShadow, animeShot);
+        newShot.dx = plc.direction === "left" ? -2 : 2;
+        newShot.changeAnime("shot");
+        shotArray.push(newShot);
+      }
+      // move shot
+      for (let i = 0; i < shotArray.length; i++) {
+        shotArray[i].x += shotArray[i].dx;
+        shotArray[i].param1++;
+        if (shotArray[i].anitype === "shot") {
+          if (shotArray[i].param1 >= 40 || getMap(shotArray[i].x + 8, shotArray[i].y + 8) === "*") {
+            shotArray[i].dx = 0;
+            shotArray[i].changeAnime("vanish");
+            shotArray[i].param1 = 0;
+          }
+          shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
+        }
+      }
+      // erase shot
+      shotArray = shotArray.filter((e) => {
+        return e.param1 <= 6 || e.anitype != "vanish";
+      });
       // limit speed
       if (plc.dx > 1.25) plc.dx = 1.25;
       if (plc.dx < -1.25) plc.dx = -1.25;
-      if (plc.dy > 6.0) plc.dy = 6.0;
+      if (plc.dy > 4.0) plc.dy = 4.0;
       // update x position
       plc.x += plc.dx;
       // マップとの衝突
@@ -326,13 +384,28 @@ let sceneList = {
         plc.y -= 0.0625;
         plc.dy = 0;
       }
-      //console.log(plc.x, plc.y);
-
+      if (plc.dy >= 0) {
+        while (getMap(plc.x + plc.ltx, plc.y + plc.rby) === "-" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "-") {
+          plc.y -= 0.0625;
+          plc.dy = 0;
+        }
+      }
+      
+      // ******************
+      // ---- drawing -----
+      // ******************
       // update anime
       plc.updateAnime();
-      
-      // draw shadow
+      shotArray.forEach((e) => {
+        e.updateAnime();
+      });
+
+      // draw shadow (character)
       plc.drawShadow(charaCtx);
+      for (let i = 0; i < shotArray.length; i++) {
+        shotArray[i].drawShadow(charaCtx);
+      }
+      // draw shadow (map)
       for (let x = 0; x < mapWidth; x++) {
         for (let y = 0; y < mapHeight; y++) {
           if (mapData[y][x] === '*') {
@@ -341,7 +414,6 @@ let sceneList = {
           }
         }
       }
-      
       // draw map image
       for (let x = 0; x < mapWidth; x++) {
         for (let y = 0; y < mapHeight; y++) {
@@ -360,12 +432,13 @@ let sceneList = {
           }
           else if (mapData[y][x] === '-') {
             charaCtx.fillStyle = "tomato";
-            charaCtx.fillRect(x * gridSize, y * gridSize, gridSize, 12);
+            charaCtx.fillRect(x * gridSize, y * gridSize, gridSize, 4);
           }
         }
       }
 
       // draw character
+      // player
       if (plc.onLand) {
         if (plc.dx === 0) {
           plc.changeAnime(plc.direction === "left" ? "stand_l" : "stand_r");
@@ -381,6 +454,10 @@ let sceneList = {
       charaCtx.fillStyle = "pink";
       charaCtx.fillRect(Math.round(plc.x + plc.ltx), Math.round(plc.y + plc.lty), plc.rbx - plc.ltx, plc.rby - plc.lty);
       */
+      // shot
+      for (let i = 0; i < shotArray.length; i++) {
+        shotArray[i].drawAnime(charaCtx);
+      }
       plc.drawAnime(charaCtx);
     }
   },
@@ -429,6 +506,7 @@ window.onload = () => {
   initFlag = true;
   // create shadow sprite
   imgPlayerShadow.src = createShadowURL(imgPlayer);
+  imgShotShadow.src = createShadowURL(imgShot);
   // draw background
   backgCtx.fillStyle = "#2a2349";
   backgCtx.fillRect(0, 0, 320, 240);
