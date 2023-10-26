@@ -27,8 +27,10 @@ imgShot.src = "./img/shot.png";
 
 let imgMapchip_1 = new Image();
 let imgMapchip_2 = new Image();
+let imgBridge = new Image();
 imgMapchip_1.src = "./img/mapchip_1.png";
 imgMapchip_2.src = "./img/mapchip_2.png";
+imgBridge.src = "./img/bridge.png";
 
 // create shadow image
 let createShadowURL = function(originalImg) {
@@ -87,17 +89,17 @@ let mapHeight = 15;
 let gridSize = 16;
 let mapData = [
   "....................",
-  ".*..................",
-  "........**.**.......",
-  "............***.....",
-  ".*-----*............",
-  ".....--.*...*.....**",
-  ".....--...***.......",
-  ".*.............*....",
-  ".....*..............",
-  "....**..........**..",
-  "******--...*********",
-  "******.....*********",
+  "....*-*-------......",
+  "....*.*.............",
+  "....*-*..........*..",
+  "....................",
+  "............---.....",
+  "....*****...........",
+  ".....***............",
+  "............**---...",
+  "..---.......**......",
+  "............**....**",
+  ".................***",
   "*********..*********",
   "*********..*********",
   "*********..*********",
@@ -106,6 +108,9 @@ let mapData = [
 let scene;
 let sceneOverLay;
 let initFlag;
+// for camera
+let cameraX;
+let cameraY;
 
 // character class
 class CharacterObject {
@@ -155,11 +160,11 @@ class CharacterObject {
   };
 
   drawAnime (ctx) {
-    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x), Math.floor(this.y), this.w, this.h);
+    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x) - cameraX, Math.floor(this.y) - cameraY, this.w, this.h);
   };
 
   drawShadow (ctx) {
-    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x) + 1, Math.floor(this.y) + 1, this.w, this.h);
+    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x) + 1 - cameraX, Math.floor(this.y) + 1 - cameraY, this.w, this.h);
   }
 
 };
@@ -394,45 +399,56 @@ let sceneList = {
       // ******************
       // ---- drawing -----
       // ******************
+      // update camera position
+      cameraX = Math.floor(plc.x - charaLay.width / 2 + 8);
+      cameraY = Math.floor(plc.y - charaLay.height / 2 + 8);
+      let startDrawingMapX = Math.floor(cameraX / gridSize);
+      let startDrawingMapY = Math.floor(cameraY / gridSize);
       // update anime
       plc.updateAnime();
       shotArray.forEach((e) => {
         e.updateAnime();
       });
-
+      
       // draw shadow (character)
       plc.drawShadow(charaCtx);
       for (let i = 0; i < shotArray.length; i++) {
         shotArray[i].drawShadow(charaCtx);
       }
       // draw shadow (map)
-      for (let x = 0; x < mapWidth; x++) {
-        for (let y = 0; y < mapHeight; y++) {
+      charaCtx.fillStyle = "#0d080d";
+      for (let x = startDrawingMapX; x < startDrawingMapX + mapWidth + 1; x++) {
+        if (x < 0 || x >= mapData[0].length) continue;
+        for (let y = startDrawingMapY; y < startDrawingMapY + mapHeight + 1; y++) {
+          if (y < 0 || y >= mapData.length) continue;
           if (mapData[y][x] === '*') {
-            charaCtx.fillStyle = "#0d080d";
-            charaCtx.fillRect(x * gridSize + 2, y * gridSize + 2, gridSize, gridSize);
+            charaCtx.fillRect(x * gridSize + 2 - cameraX, y * gridSize + 2 - cameraY, gridSize, gridSize);
+          }
+          else if (mapData[y][x] === '-') {
+            charaCtx.fillRect(x * gridSize + 2 - cameraX, y * gridSize + 2 - cameraY, gridSize, 4);
           }
         }
       }
       // draw map image
-      for (let x = 0; x < mapWidth; x++) {
-        for (let y = 0; y < mapHeight; y++) {
+      for (let x = startDrawingMapX; x < startDrawingMapX + mapWidth + 1; x++) {
+        if (x < 0 || x >= mapData[0].length) continue;
+        for (let y = startDrawingMapY; y < startDrawingMapY + mapHeight + 1; y++) {
+          if (y < 0 || y >= mapData.length) continue;
           if (mapData[y][x] === '*') {
             if (y != 0) {
               if (mapData[y - 1][x] === "*") {
-                charaCtx.drawImage(imgMapchip_2, x * gridSize, y * gridSize);
+                charaCtx.drawImage(imgMapchip_2, x * gridSize - cameraX, y * gridSize - cameraY);
               }
               else {
-                charaCtx.drawImage(imgMapchip_1, x * gridSize, y * gridSize);
+                charaCtx.drawImage(imgMapchip_1, x * gridSize - cameraX, y * gridSize - cameraY);
               }
             }
             else {
-              charaCtx.drawImage(imgMapchip_2, x * gridSize, y * gridSize);
+              charaCtx.drawImage(imgMapchip_2, x * gridSize - cameraX, y * gridSize - cameraY);
             }
           }
           else if (mapData[y][x] === '-') {
-            charaCtx.fillStyle = "tomato";
-            charaCtx.fillRect(x * gridSize, y * gridSize, gridSize, 4);
+            charaCtx.drawImage(imgBridge, x * gridSize - cameraX, y * gridSize - cameraY);
           }
         }
       }
