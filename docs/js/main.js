@@ -20,6 +20,12 @@ let imgPlayer = new Image();
 let imgPlayerShadow = new Image();
 imgPlayer.src = "./img/fighter_action.png";
 //imgPlayer.crossOrigin = "Anonymus";
+
+// enemy
+let imgPumpkin = new Image();
+let imgPumpkinShadow = new Image();
+imgPumpkin.src = "./img/pumpkin.png";
+
 // shot
 let imgShot = new Image();
 let imgShotShadow = new Image();
@@ -28,9 +34,11 @@ imgShot.src = "./img/shot.png";
 let imgMapchip_1 = new Image();
 let imgMapchip_2 = new Image();
 let imgBridge = new Image();
+let imgBlock = new Image();
 imgMapchip_1.src = "./img/mapchip_1.png";
 imgMapchip_2.src = "./img/mapchip_2.png";
 imgBridge.src = "./img/bridge.png";
+imgBlock.src = "./img/block.png";
 
 // create shadow image
 let createShadowURL = function(originalImg) {
@@ -58,22 +66,28 @@ let createShadowURL = function(originalImg) {
 
 
 // animation data
-let animePlayer = {
-  "stand_l": { frames: 1, dulation: 8, img: [0], repeat: true },
-  "stand_r": {frames: 1, dulation: 8, img: [3], repeat: true },
-  "run_l": {frames: 4, dulation: 6, img: [0, 2, 0, 1], repeat: true },
-  "run_r": {frames: 4, dulation: 6, img: [3, 5, 3, 4], repeat: true },
-  "jump_l": {frames: 1, dulation: 8, img: [1], repeat: true },
-  "jump_r": {frames: 1, dulation: 8, img: [4], repeat: true },
-  "default": {frames: 1, dulation: 8, img: [0], repeat: true }
-};
-let animeShot = {
-  "shot": { frames: 1, dulation: 8, img: [0], repeat: true },
-  "vanish": { frames: 2, dulation: 3, img: [1, 2], repeat: false }, 
-  "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
-};
-let animeDefault = { // no animation sprite
-  "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+let animeData = {
+  "player":  {
+    "stand_l": { frames: 1, dulation: 8, img: [0], repeat: true },
+    "stand_r": {frames: 1, dulation: 8, img: [3], repeat: true },
+    "run_l": {frames: 4, dulation: 6, img: [0, 2, 0, 1], repeat: true },
+    "run_r": {frames: 4, dulation: 6, img: [3, 5, 3, 4], repeat: true },
+    "jump_l": {frames: 1, dulation: 8, img: [1], repeat: true },
+    "jump_r": {frames: 1, dulation: 8, img: [4], repeat: true },
+    "default": {frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "shot": {
+    "shot": { frames: 1, dulation: 8, img: [0], repeat: true },
+    "vanish": { frames: 2, dulation: 3, img: [1, 2], repeat: false }, 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
+  "pumpkin": {
+    "laugh": { frames: 2, dulation: 8, img: [0, 1], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
+  "default": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  }
 };
 
 // global variables
@@ -89,21 +103,49 @@ let mapHeight = 15;
 let gridSize = 16;
 let mapData = [
   "....................",
-  "....*-*-------......",
+  "....@-@-------......",
   "....*.*.............",
-  "....*-*..........*..",
-  "....................",
-  "............---.....",
-  "....*****...........",
+  "....*-*..........@..",
+  "....b...............",
+  "....b.......---.....",
+  "....@@@@@...........",
   ".....***............",
-  "............**---...",
+  "............@@---...",
   "..---.......**......",
-  "............**....**",
-  ".................***",
-  "*********..*********",
-  "*********..*********",
-  "*********..*********",
+  "............bb....@@",
+  "............bb...@**",
+  "@@@@@@@@@...@@@@@***",
+  "*********...********",
+  "*********...********",
 ];
+let mapChip = {
+  "@": {
+    img: imgMapchip_1,
+    type: "wall",
+    subtype: "none"
+  },
+  "*": {
+    img: imgMapchip_2,
+    type: "wall",
+    subtype: "none"
+  },
+  "b": {
+    img: imgBlock,
+    type: "wall",
+    subtype: "block"
+  },
+  "-": {
+    img: imgBridge,
+    type: "bridge",
+    subtype: "none"
+  },
+  ".": {
+    img: null,
+    type: "none",
+    subtype: "none"
+  }
+};
+
 // for game scene
 let scene;
 let sceneOverLay;
@@ -112,20 +154,14 @@ let initFlag;
 let cameraX;
 let cameraY;
 
-// character class
-class CharacterObject {
-  constructor(name, x, y, w, h, ltx, lty, rbx, rby, img, shadow, anime) {
+// sprite class
+class Sprite {
+  constructor(name, x, y, w, h, img, shadow, anime) {
     this.name = name;
     this.x = x;
     this.y = y;
     this.w= w;
     this.h = h;
-    // ltx,lty = left top of hitbox
-    this.ltx = ltx;
-    this.lty = lty;
-    // rbx, rby = right bottom of hitbox
-    this.rbx = rbx;
-    this.rby = rby;
     // image and animation data
     this.img = img;
     this.shadow = shadow;
@@ -133,10 +169,9 @@ class CharacterObject {
     this.direction = "right";
     this.anitype = "default";
     this.anicount = 0;
-    // speed and landing flag
+    // speed
     this.dx = 0;
     this.dy = 0;
-    this.onLand = false;
     // other parameter
     this.param1 = 0;
   };
@@ -160,40 +195,78 @@ class CharacterObject {
   };
 
   drawAnime (ctx) {
-    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x) - cameraX, Math.floor(this.y) - cameraY, this.w, this.h);
+    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x - cameraX), Math.floor(this.y - cameraY), this.w, this.h);
   };
 
   drawShadow (ctx) {
-    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x) + 1 - cameraX, Math.floor(this.y) + 1 - cameraY, this.w, this.h);
+    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, Math.floor(this.x + 1 - cameraX), Math.floor(this.y + 1 - cameraY), this.w, this.h);
   }
 
+};
+
+// character class
+class CharacterSprite extends Sprite{
+  constructor(name, x, y, w, h, ltx, lty, rbx, rby, img, shadow, anime) {
+    super(name, x, y, w, h, img, shadow, anime);
+    // ltx,lty = left top of hitbox
+    this.ltx = ltx;
+    this.lty = lty;
+    // rbx, rby = right bottom of hitbox
+    this.rbx = rbx;
+    this.rby = rby;
+    // landing flag
+    this.onLand = false;
+  };
+
+  lTopX () { return this.x + this.ltx; };
+  lTopY () { return this.y + this.lty; };
+  rBottomX () { return this.x + this.rbx; };
+  rBottomY () { return this.y + this.rby; };
+
+  isHit (opponent) {
+    return (
+      opponent.lTopX() <= this.rBottomX() && this.lTopX() <= opponent.rBottomX()
+      && opponent.lTopY() <= this.rBottomY() && this.lTopY() <= opponent.rBottomY()
+    );
+  };
 };
 
 let plc;
 let shotArray = [];
 let shotMax = 5;
 let coyoteTime = 0;
+let invincibleTime = 0; // muteki jikan san!?
+const invincibleTimeMax = 120;
 
-// get map data from pixel coordinate
-let getMap = (x, y) => {
+// get map data from pixel coordinate (output: type of mapchip Object)
+let getMapType = (x, y) => {
   let mapX = Math.floor(x / gridSize);
   let mapY = Math.floor(y / gridSize);
-  if (mapX < 0 || mapWidth <= mapX) return ".";
-  if (mapY < 0 || mapHeight <= mapY) return ".";
-  if (mapData[mapY][mapX] === "-") { // half floor
+  if (mapX < 0 || mapWidth <= mapX) return "none";
+  if (mapY < 0 || mapHeight <= mapY) return "none";
+  if (mapChip[mapData[mapY][mapX]].type === "bridge") { // half floor
     if (y % gridSize < 4){
-      return "-";
+      return "bridge";
     }
     else {
-      return ".";
+      return "none";
     }
   }
-  return mapData[mapY][mapX];
-}
+  return mapChip[mapData[mapY][mapX]].type;
+};
 
-// 
+let getMapSubType = (x, y) => {
+  let mapX = Math.floor(x / gridSize);
+  let mapY = Math.floor(y / gridSize);
+  if (mapX < 0 || mapWidth <= mapX) return "none";
+  if (mapY < 0 || mapHeight <= mapY) return "none";
+  return mapChip[mapData[mapY][mapX]].subtype;
+};
 
-
+// replace map data
+let replaceMap = (x, y, newMapchip) => {
+  mapData[y] = mapData[y].substring(0, x) + newMapchip + mapData[y].substring(x + 1, mapData[y].length);
+};
 
   // --------------//
  // get key event //
@@ -288,16 +361,18 @@ let isKeyPressedNow = function(key) {
 let sceneList = {
   "game" : {
     "init" : () => {
-      plc = new CharacterObject("player", 0, 0, 16, 16, 3, 2, 12, 15, imgPlayer, imgPlayerShadow, animePlayer);
+      plc = new CharacterSprite("player", 0, 0, 16, 16, 3, 2, 12, 15, imgPlayer, imgPlayerShadow, animeData["player"]);
+      enemy = new CharacterSprite("pumpkin", 128, 80, 16, 16, 2, 5, 13, 15, imgPumpkin, imgPumpkinShadow, animeData["pumpkin"]);
+      enemy.changeAnime("laugh");
       console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
     },
     "update" : () => {
       // *********************
       // player character move
       // *********************
-      plc.onLand = (getMap(plc.x + plc.ltx, plc.y + plc.rby + 0.0625) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby + 0.0625) === "*");
+      plc.onLand = (getMapType(plc.lTopX(), plc.rBottomY() + 0.0625) === "wall" || getMapType(plc.rBottomX(), plc.rBottomY() + 0.0625) === "wall");
       if (plc.dy >= 0) {
-        plc.onLand |= (getMap(plc.x + plc.ltx, plc.y + plc.rby + 0.0625) === "-" || getMap(plc.x + plc.rbx, plc.y + plc.rby + 0.0625) === "-");
+        plc.onLand |= (getMapType(plc.lTopX(), plc.rBottomY() + 0.0625) === "bridge" || getMapType(plc.rBottomX(), plc.rBottomY() + 0.0625) === "bridge");
       }
       if (plc.onLand) {
         plc.dy = 0;
@@ -338,7 +413,7 @@ let sceneList = {
       }
       // create shot
       if (isKeyPressedNow("x") && shotArray.length < shotMax) {
-        let newShot = new CharacterObject("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, imgShot, imgShotShadow, animeShot);
+        let newShot = new CharacterSprite("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, imgShot, imgShotShadow, animeData["shot"]);
         newShot.dx = plc.direction === "left" ? -2 : 2;
         newShot.changeAnime("shot");
         shotArray.push(newShot);
@@ -348,10 +423,14 @@ let sceneList = {
         shotArray[i].x += shotArray[i].dx;
         shotArray[i].param1++;
         if (shotArray[i].anitype === "shot") {
-          if (shotArray[i].param1 >= 40 || getMap(shotArray[i].x + 8, shotArray[i].y + 8) === "*") {
+          if (shotArray[i].param1 >= 40 || getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"|| shotArray[i].isHit(enemy)) {
             shotArray[i].dx = 0;
             shotArray[i].changeAnime("vanish");
             shotArray[i].param1 = 0;
+            if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block") {
+              replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '.');
+              console.log("break!!");
+            }
           }
           shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
         }
@@ -360,6 +439,14 @@ let sceneList = {
       shotArray = shotArray.filter((e) => {
         return e.param1 <= 6 || e.anitype != "vanish";
       });
+      // damage
+      if (invincibleTime > 0) invincibleTime--;
+      if (plc.isHit(enemy) && invincibleTime <= 0) {
+        plc.dx = -plc.dx;
+        plc.dy = -2;
+        invincibleTime = invincibleTimeMax;
+      }
+
       // limit speed
       if (plc.dx > 1.25) plc.dx = 1.25;
       if (plc.dx < -1.25) plc.dx = -1.25;
@@ -368,29 +455,29 @@ let sceneList = {
       plc.x += plc.dx;
       // マップとの衝突
       // left
-      while (getMap(plc.x + plc.ltx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.ltx, plc.y + plc.rby) === "*") {
+      while (getMapType(plc.lTopX(), plc.lTopY()) === "wall" || getMapType(plc.lTopX(), plc.rBottomY()) === "wall") {
         plc.x += 0.0625;
         plc.dx = 0;
       }
       // right
-      while (getMap(plc.x + plc.rbx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "*") {
+      while (getMapType(plc.rBottomX(), plc.lTopY()) === "wall" || getMapType(plc.rBottomX(), plc.rBottomY()) === "wall") {
         plc.x -= 0.0625;
         plc.dx = 0;
       }
       // update y position
       plc.y += plc.dy;
       // top
-      while (getMap(plc.x + plc.ltx, plc.y + plc.lty) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.lty) === "*") {
+      while (getMapType(plc.lTopX(), plc.lTopY()) === "wall" || getMapType(plc.rBottomX(), plc.lTopY()) === "wall") {
         plc.y += 0.0625;
         plc.dy = 0;
       }
       // bottom
-      while (getMap(plc.x + plc.ltx, plc.y + plc.rby) === "*" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "*") {
+      while (getMapType(plc.lTopX(),plc.rBottomY()) === "wall"|| getMapType(plc.rBottomX(), plc.rBottomY()) === "wall") {
         plc.y -= 0.0625;
         plc.dy = 0;
       }
       if (plc.dy >= 0) {
-        while (getMap(plc.x + plc.ltx, plc.y + plc.rby) === "-" || getMap(plc.x + plc.rbx, plc.y + plc.rby) === "-") {
+        while (getMapType(plc.lTopX(), plc.rBottomY()) === "bridge" || getMapType(plc.rBottomX(), plc.rBottomY()) === "bridge") {
           plc.y -= 0.0625;
           plc.dy = 0;
         }
@@ -406,12 +493,14 @@ let sceneList = {
       let startDrawingMapY = Math.floor(cameraY / gridSize);
       // update anime
       plc.updateAnime();
+      enemy.updateAnime();
       shotArray.forEach((e) => {
         e.updateAnime();
       });
       
       // draw shadow (character)
-      plc.drawShadow(charaCtx);
+      if (Math.floor(invincibleTime / 2) * 2 % 4 === 0) plc.drawShadow(charaCtx);
+      enemy.drawShadow(charaCtx);
       for (let i = 0; i < shotArray.length; i++) {
         shotArray[i].drawShadow(charaCtx);
       }
@@ -421,10 +510,10 @@ let sceneList = {
         if (x < 0 || x >= mapData[0].length) continue;
         for (let y = startDrawingMapY; y < startDrawingMapY + mapHeight + 1; y++) {
           if (y < 0 || y >= mapData.length) continue;
-          if (mapData[y][x] === '*') {
+          if (mapChip[mapData[y][x]].type === "wall") {
             charaCtx.fillRect(x * gridSize + 2 - cameraX, y * gridSize + 2 - cameraY, gridSize, gridSize);
           }
-          else if (mapData[y][x] === '-') {
+          else if (mapChip[mapData[y][x]].type === "bridge") {
             charaCtx.fillRect(x * gridSize + 2 - cameraX, y * gridSize + 2 - cameraY, gridSize, 4);
           }
         }
@@ -434,22 +523,8 @@ let sceneList = {
         if (x < 0 || x >= mapData[0].length) continue;
         for (let y = startDrawingMapY; y < startDrawingMapY + mapHeight + 1; y++) {
           if (y < 0 || y >= mapData.length) continue;
-          if (mapData[y][x] === '*') {
-            if (y != 0) {
-              if (mapData[y - 1][x] === "*") {
-                charaCtx.drawImage(imgMapchip_2, x * gridSize - cameraX, y * gridSize - cameraY);
-              }
-              else {
-                charaCtx.drawImage(imgMapchip_1, x * gridSize - cameraX, y * gridSize - cameraY);
-              }
-            }
-            else {
-              charaCtx.drawImage(imgMapchip_2, x * gridSize - cameraX, y * gridSize - cameraY);
-            }
-          }
-          else if (mapData[y][x] === '-') {
-            charaCtx.drawImage(imgBridge, x * gridSize - cameraX, y * gridSize - cameraY);
-          }
+          if (mapChip[mapData[y][x]].type === "none") continue;
+          charaCtx.drawImage(mapChip[mapData[y][x]].img, x * gridSize - cameraX, y * gridSize - cameraY);
         }
       }
 
@@ -468,13 +543,14 @@ let sceneList = {
       }
       /* hit box
       charaCtx.fillStyle = "pink";
-      charaCtx.fillRect(Math.round(plc.x + plc.ltx), Math.round(plc.y + plc.lty), plc.rbx - plc.ltx, plc.rby - plc.lty);
+      charaCtx.fillRect(Math.round(plc.lTopX()), Math.round(plc.lTopY()), plc.rbx - plc.ltx, plc.rby - plc.lty);
       */
+      enemy.drawAnime(charaCtx);
       // shot
       for (let i = 0; i < shotArray.length; i++) {
         shotArray[i].drawAnime(charaCtx);
       }
-      plc.drawAnime(charaCtx);
+      if (Math.floor(invincibleTime / 2) * 2 % 4 === 0) plc.drawAnime(charaCtx);
     }
   },
 };
@@ -522,9 +598,12 @@ window.onload = () => {
   initFlag = true;
   // create shadow sprite
   imgPlayerShadow.src = createShadowURL(imgPlayer);
+  imgPumpkinShadow.src = createShadowURL(imgPumpkin);
   imgShotShadow.src = createShadowURL(imgShot);
   // draw background
   backgCtx.fillStyle = "#2a2349";
+  backgCtx.fillStyle = "#4f2b24";
+  backgCtx.fillStyle = "#32535f";
   backgCtx.fillRect(0, 0, 320, 240);
   // start game loop
   setInterval(gameLoop, 1000/60); // 60fps
