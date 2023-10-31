@@ -31,14 +31,21 @@ let imgShot = new Image();
 let imgShotShadow = new Image();
 imgShot.src = "./img/shot.png";
 
+let imgMapChip = new Image();
+let imgMapChipShadow = new Image();
+imgMapChip.src = "./img/mapchip.png";
 let imgMapchip_1 = new Image();
 let imgMapchip_2 = new Image();
 let imgBridge = new Image();
 let imgBlock = new Image();
+let imgHard = new Image();
+let imgNeedle = new Image();
 imgMapchip_1.src = "./img/mapchip_1.png";
 imgMapchip_2.src = "./img/mapchip_2.png";
 imgBridge.src = "./img/bridge.png";
 imgBlock.src = "./img/block.png";
+imgHard.src = "./img/hard.png";
+imgNeedle.src = "./img/needle.png";
 
 // create shadow image
 let createShadowURL = function(originalImg) {
@@ -56,6 +63,7 @@ let createShadowURL = function(originalImg) {
     data[i] = 0; // red = 0
     data[i + 1] = 0; // green = 0
     data[i + 2] = 0; // blue = 0
+    data[i + 3] = 0x40;
     //console.log("黒");
   }
   // reset work canvas and draw shadow data
@@ -101,49 +109,85 @@ let buttonPressed;
 let mapWidth = 20;
 let mapHeight = 15;
 let gridSize = 16;
+let mapAnimeCount = 0;
 let mapData = [
   "....................",
-  "....@-@-------......",
-  "....*.*.............",
-  "....*-*..........@..",
-  "....b...............",
+  "....@-@<----->@@....",
+  "....*.*.......**....",
+  "....*-*..........++.",
+  "....b.......000.....",
   "....b.......---.....",
   "....@@@@@...........",
   ".....***............",
-  "............@@---...",
-  "..---.......**......",
-  "............bb....@@",
-  "............bb...@**",
-  "@@@@@@@@@...@@@@@***",
-  "*********...********",
-  "*********...********",
+  ".....WWW..->@@<-....",
+  "..--........**.0.BB+",
+  "............bb.0.B++",
+  "............bb.0.+++",
+  "@@@@@@@....@@@@@@@@@",
+  "*******MMMM*********",
+  "*******@@@@*********",
 ];
 let mapChip = {
+  ".": {
+    id: [0],
+    type: "none",
+    subtype: "none"
+  },
+  "b": {
+    id: [1],
+    type: "wall",
+    subtype: "block"
+  },
+  "B": {
+    id: [1],
+    type: "wall",
+    subtype: "block_coin"
+  },
   "@": {
-    img: imgMapchip_1,
+    id: [2],
     type: "wall",
     subtype: "none"
   },
   "*": {
-    img: imgMapchip_2,
+    id: [3],
     type: "wall",
     subtype: "none"
   },
-  "b": {
-    img: imgBlock,
-    type: "wall",
-    subtype: "block"
-  },
-  "-": {
-    img: imgBridge,
+  "<": {
+    id: [4],
     type: "bridge",
     subtype: "none"
   },
-  ".": {
-    img: null,
-    type: "none",
+  "-": {
+    id: [5],
+    type: "bridge",
     subtype: "none"
-  }
+  },
+  ">": {
+    id: [6],
+    type: "bridge",
+    subtype: "none"
+  },
+  "+": {
+    id: [7],
+    type: "wall",
+    subtype: "none"
+  },
+  "M": {
+    id: [8],
+    type: "none",
+    subtype: "damage"
+  },
+  "W": {
+    id: [9],
+    type: "none",
+    subtype: "damage"
+  },
+  "0": {
+    id: [10, 11, 12, 13],
+    type: "none",
+    subtype: "coin"
+  },
 };
 
 // for game scene
@@ -216,6 +260,8 @@ class CharacterSprite extends Sprite{
     this.rby = rby;
     // landing flag
     this.onLand = false;
+    // hit point
+    this.hp = 10;
   };
 
   lTopX () { return this.x + this.ltx; };
@@ -400,15 +446,15 @@ let sceneList = {
           plc.direction = "right";
         }
         if (keyInput.indexOf("z") != -1) {
-          plc.dy += 0.125;
+          plc.dy += 0.0625;
         }
         else {
-          plc.dy += 0.25;
+          plc.dy += 0.125;
         }
       }
       // jump
       if (isKeyPressedNow("z") && coyoteTime > 0) {
-        plc.dy = -3.5;
+        plc.dy = -2.5;
         coyoteTime = 0;
       }
       // create shot
@@ -429,7 +475,9 @@ let sceneList = {
             shotArray[i].param1 = 0;
             if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block") {
               replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '.');
-              console.log("break!!");
+            }
+            else if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block_coin") {
+              replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '0');
             }
           }
           shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
@@ -439,14 +487,20 @@ let sceneList = {
       shotArray = shotArray.filter((e) => {
         return e.param1 <= 6 || e.anitype != "vanish";
       });
+      // get item
+      if (getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "coin") {
+        replaceMap(Math.floor((plc.x + 8) / gridSize), Math.floor((plc.y + 8) / gridSize), '.');
+      }
       // damage
       if (invincibleTime > 0) invincibleTime--;
-      if (plc.isHit(enemy) && invincibleTime <= 0) {
-        plc.dx = -plc.dx;
-        plc.dy = -2;
-        invincibleTime = invincibleTimeMax;
+      if (invincibleTime <= 0) {
+        if (plc.isHit(enemy) || getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "damage") {
+          invincibleTime = invincibleTimeMax;
+          plc.dx = - plc.dx;
+          plc.dy = plc.dy >= 0 ? -1.5 : 0;
+        }
       }
-
+      
       // limit speed
       if (plc.dx > 1.25) plc.dx = 1.25;
       if (plc.dx < -1.25) plc.dx = -1.25;
@@ -504,27 +558,17 @@ let sceneList = {
       for (let i = 0; i < shotArray.length; i++) {
         shotArray[i].drawShadow(charaCtx);
       }
-      // draw shadow (map)
-      charaCtx.fillStyle = "#0d080d";
+      // draw map shadow & map
+      mapAnimeCount++;
+      charaCtx.fillStyle = "rgba(0, 0, 0, 0.25)";
       for (let x = startDrawingMapX; x < startDrawingMapX + mapWidth + 1; x++) {
         if (x < 0 || x >= mapData[0].length) continue;
         for (let y = startDrawingMapY; y < startDrawingMapY + mapHeight + 1; y++) {
           if (y < 0 || y >= mapData.length) continue;
-          if (mapChip[mapData[y][x]].type === "wall") {
-            charaCtx.fillRect(x * gridSize + 2 - cameraX, y * gridSize + 2 - cameraY, gridSize, gridSize);
-          }
-          else if (mapChip[mapData[y][x]].type === "bridge") {
-            charaCtx.fillRect(x * gridSize + 2 - cameraX, y * gridSize + 2 - cameraY, gridSize, 4);
-          }
-        }
-      }
-      // draw map image
-      for (let x = startDrawingMapX; x < startDrawingMapX + mapWidth + 1; x++) {
-        if (x < 0 || x >= mapData[0].length) continue;
-        for (let y = startDrawingMapY; y < startDrawingMapY + mapHeight + 1; y++) {
-          if (y < 0 || y >= mapData.length) continue;
-          if (mapChip[mapData[y][x]].type === "none") continue;
-          charaCtx.drawImage(mapChip[mapData[y][x]].img, x * gridSize - cameraX, y * gridSize - cameraY);
+          let mapAnimeFrame = mapChip[mapData[y][x]].id[Math.floor(mapAnimeCount / 8) % mapChip[mapData[y][x]].id.length]
+          if (mapAnimeFrame === 0) continue;
+          charaCtx.drawImage(imgMapChipShadow, mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX + 2, y * gridSize - cameraY + 2, gridSize, gridSize);
+          charaCtx.drawImage(imgMapChip, mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX, y * gridSize - cameraY, gridSize, gridSize);
         }
       }
 
@@ -550,7 +594,7 @@ let sceneList = {
       for (let i = 0; i < shotArray.length; i++) {
         shotArray[i].drawAnime(charaCtx);
       }
-      if (Math.floor(invincibleTime / 2) * 2 % 4 === 0) plc.drawAnime(charaCtx);
+      if (Math.floor(invincibleTime / 3) * 3 % 6 === 0) plc.drawAnime(charaCtx);
     }
   },
 };
@@ -600,10 +644,12 @@ window.onload = () => {
   imgPlayerShadow.src = createShadowURL(imgPlayer);
   imgPumpkinShadow.src = createShadowURL(imgPumpkin);
   imgShotShadow.src = createShadowURL(imgShot);
+  imgMapChipShadow.src = createShadowURL(imgMapChip);
   // draw background
-  backgCtx.fillStyle = "#2a2349";
-  backgCtx.fillStyle = "#4f2b24";
+  //backgCtx.fillStyle = "#2a2349";
+  //backgCtx.fillStyle = "#4f2b24";
   backgCtx.fillStyle = "#32535f";
+  //backgCtx.fillStyle = "#74adbb";
   backgCtx.fillRect(0, 0, 320, 240);
   // start game loop
   setInterval(gameLoop, 1000/60); // 60fps
