@@ -34,18 +34,6 @@ imgShot.src = "./img/shot.png";
 let imgMapChip = new Image();
 let imgMapChipShadow = new Image();
 imgMapChip.src = "./img/mapchip.png";
-let imgMapchip_1 = new Image();
-let imgMapchip_2 = new Image();
-let imgBridge = new Image();
-let imgBlock = new Image();
-let imgHard = new Image();
-let imgNeedle = new Image();
-imgMapchip_1.src = "./img/mapchip_1.png";
-imgMapchip_2.src = "./img/mapchip_2.png";
-imgBridge.src = "./img/bridge.png";
-imgBlock.src = "./img/block.png";
-imgHard.src = "./img/hard.png";
-imgNeedle.src = "./img/needle.png";
 
 // create shadow image
 let createShadowURL = function(originalImg) {
@@ -72,7 +60,6 @@ let createShadowURL = function(originalImg) {
   return workCanvas.toDataURL();
 };
 
-
 // animation data
 let animeData = {
   "player":  {
@@ -91,6 +78,7 @@ let animeData = {
   },
   "pumpkin": {
     "laugh": { frames: 2, dulation: 8, img: [0, 1], repeat: true },
+    "damaged" : { frames: 2, dulation: 2, img: [2, 3], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "default": {
@@ -106,44 +94,27 @@ let keyPressedPrevious = [];
 let keyInterval = 0;
 let buttonPressed;
 // for map
-let mapWidth = 20;
+let mapWidth = 50;
 let mapHeight = 15;
 let gridSize = 16;
 let mapAnimeCount = 0;
-let mapData = [
-  "....................",
-  "....@-@<----->@@....",
-  "....*.*.......**....",
-  "....*-*..........++.",
-  "....b.......000.....",
-  "....b.......---.....",
-  "....@@@@@...........",
-  ".....***............",
-  ".....WWW..->@@<-....",
-  "..--........**.0.BB+",
-  "............bb.0.B++",
-  "............bb.0.+++",
-  "@@@@@@@....@@@@@@@@@",
-  "*******MMMM*********",
-  "*******@@@@*********",
-];
-let mapChip = {
+const mapChip = {
   ".": {
     id: [0],
     type: "none",
     subtype: "none"
   },
-  "b": {
+  "#": {
     id: [1],
     type: "wall",
     subtype: "block"
   },
-  "B": {
+  "$": {
     id: [1],
     type: "wall",
     subtype: "block_coin"
   },
-  "@": {
+  "%": {
     id: [2],
     type: "wall",
     subtype: "none"
@@ -153,7 +124,7 @@ let mapChip = {
     type: "wall",
     subtype: "none"
   },
-  "<": {
+  "[": {
     id: [4],
     type: "bridge",
     subtype: "none"
@@ -163,7 +134,7 @@ let mapChip = {
     type: "bridge",
     subtype: "none"
   },
-  ">": {
+  "]": {
     id: [6],
     type: "bridge",
     subtype: "none"
@@ -173,22 +144,51 @@ let mapChip = {
     type: "wall",
     subtype: "none"
   },
-  "M": {
+  "^": {
     id: [8],
     type: "none",
     subtype: "damage"
   },
-  "W": {
+  "~": {
     id: [9],
     type: "none",
     subtype: "damage"
   },
-  "0": {
+  "¥": {
     id: [10, 11, 12, 13],
     type: "none",
     subtype: "coin"
   },
 };
+const mapChipList = Object.keys(mapChip);
+
+let mapData = [
+//"0....5....0....5....0....5....0....5....0....5...."
+  "..................................................",
+  "..................................................",
+  ".............................$$...................",
+  ".............................##...................",
+  ".............................$$...................",
+  "...........................%%%%[------]%%%........",
+  ".................----......****........***........",
+  "...........¥¥........¥¥¥..............P~~~........",
+  "..A........++........---..........................",
+  "...........++.......................P.............",
+  ".........++++...........-----+.....#$......$#.....",
+  ".........++++...........P....+.....#$......$#.....",
+  "%%%%%%%%%%%%%...%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%",
+  "*************^^^**********************************",
+  "*************%%%**********************************",
+];
+
+// get level data
+async function getLevelData(url) {
+  const requestURL = url;
+  const request = new Request(requestURL);
+  const response = await fetch(request);
+  const levelData = await response.json();
+  console.log(levelData);
+}
 
 // for game scene
 let scene;
@@ -200,11 +200,11 @@ let cameraY;
 
 // sprite class
 class Sprite {
-  constructor(name, x, y, w, h, img, shadow, anime) {
-    this.name = name;
+  constructor(id, x, y, w, h, img, shadow, anime) {
+    this.id = id;
     this.x = x;
     this.y = y;
-    this.w= w;
+    this.w = w;
     this.h = h;
     // image and animation data
     this.img = img;
@@ -250,18 +250,18 @@ class Sprite {
 
 // character class
 class CharacterSprite extends Sprite{
-  constructor(name, x, y, w, h, ltx, lty, rbx, rby, img, shadow, anime) {
-    super(name, x, y, w, h, img, shadow, anime);
+  constructor(id, x, y, w, h, ltx, lty, rbx, rby, hp, img, shadow, anime) {
+    super(id, x, y, w, h, img, shadow, anime);
     // ltx,lty = left top of hitbox
     this.ltx = ltx;
     this.lty = lty;
     // rbx, rby = right bottom of hitbox
     this.rbx = rbx;
     this.rby = rby;
-    // landing flag
-    this.onLand = false;
     // hit point
-    this.hp = 10;
+    this.hp = hp;
+    // reaction effect counter
+    this.reaction = 0;
   };
 
   lTopX () { return this.x + this.ltx; };
@@ -278,18 +278,21 @@ class CharacterSprite extends Sprite{
 };
 
 let plc;
+let enemyArray = [];
 let shotArray = [];
-let shotMax = 5;
-let coyoteTime = 0;
-let invincibleTime = 0; // muteki jikan san!?
-const invincibleTimeMax = 120;
+const shotMax = 5;
+let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
+const invincibleTimeMax = 120; // muteki jikan san!?
 
-// get map data from pixel coordinate (output: type of mapchip Object)
+// get map type from pixel coordinate (output: type of mapchip Object)
+// 注意：一方通行床はy座標がグリッド上部の時しか検出しません
 let getMapType = (x, y) => {
   let mapX = Math.floor(x / gridSize);
   let mapY = Math.floor(y / gridSize);
   if (mapX < 0 || mapWidth <= mapX) return "none";
   if (mapY < 0 || mapHeight <= mapY) return "none";
+  if ('A' <= mapData[mapY][mapX] && mapData[mapY][mapX] <= 'Z') return "none";
+  if ('a' <= mapData[mapY][mapX] && mapData[mapY][mapX] <= 'z') return "none";
   if (mapChip[mapData[mapY][mapX]].type === "bridge") { // half floor
     if (y % gridSize < 4){
       return "bridge";
@@ -306,6 +309,8 @@ let getMapSubType = (x, y) => {
   let mapY = Math.floor(y / gridSize);
   if (mapX < 0 || mapWidth <= mapX) return "none";
   if (mapY < 0 || mapHeight <= mapY) return "none";
+  if ('A' <= mapData[mapY][mapX] && mapData[mapY][mapX] <= 'Z') return "none";
+  if ('a' <= mapData[mapY][mapX] && mapData[mapY][mapX] <= 'z') return "none";
   return mapChip[mapData[mapY][mapX]].subtype;
 };
 
@@ -313,6 +318,141 @@ let getMapSubType = (x, y) => {
 let replaceMap = (x, y, newMapchip) => {
   mapData[y] = mapData[y].substring(0, x) + newMapchip + mapData[y].substring(x + 1, mapData[y].length);
 };
+
+// キャラクターの接地判定
+let isTouchingLeftWall = (character) => {
+  return (getMapType(character.lTopX() - 0.0625, character.lTopY()) === "wall" || getMapType(character.lTopX() - 0.0625, character.rBottomY()) === "wall");
+};
+
+let isTouchingRightWall = (character) => {
+  return (getMapType(character.rBottomX() + 0.0625, character.lTopY()) === "wall" || getMapType(character.rBottomX() + 0.0625, character.rBottomY()) === "wall");
+};
+
+let isHeading = (character) => {
+  return (getMapType(character.lTopX(), character.lTopY() - 0.0625) === "wall" || getMapType(character.rBottomX(), character.lTopY() - 0.0625) === "wall");
+};
+
+let isOnLand = (character) => {
+  let onLand = (getMapType(character.lTopX(), character.rBottomY() + 0.0625) === "wall" || getMapType(character.rBottomX(), character.rBottomY() + 0.0625) === "wall");
+  if (character.dy >= 0) {
+    onLand |= (getMapType(character.lTopX(), character.rBottomY() + 0.0625) === "bridge" || getMapType(character.rBottomX(), character.rBottomY() + 0.0625) === "bridge");
+  }
+  return onLand;
+};
+
+// キャラクターを移動させ、地形とぶつかったら押し戻す関数
+let moveAndCheckCollisionWithMap = (character) => {
+  // update x position
+  character.x += character.dx;
+  // left
+  while (getMapType(character.lTopX(), character.lTopY()) === "wall" || getMapType(character.lTopX(), character.rBottomY()) === "wall") {
+    character.x += 0.0625;
+  }
+  // right
+  while (getMapType(character.rBottomX(), character.lTopY()) === "wall" || getMapType(character.rBottomX(), character.rBottomY()) === "wall") {
+    character.x -= 0.0625;
+  }
+  // update y position
+  character.y += character.dy;
+  // top
+  while (getMapType(character.lTopX(), character.lTopY()) === "wall" || getMapType(character.rBottomX(), character.lTopY()) === "wall") {
+    character.y += 0.0625;
+  }
+  // bottom
+  while (getMapType(character.lTopX(),character.rBottomY()) === "wall"|| getMapType(character.rBottomX(), character.rBottomY()) === "wall") {
+    character.y -= 0.0625;
+  }
+  if (character.dy >= 0) {
+    while (getMapType(character.lTopX(), character.rBottomY()) === "bridge" || getMapType(character.rBottomX(), character.rBottomY()) === "bridge") {
+      character.y -= 0.0625;
+    }
+  }
+};
+
+  // ============= //
+ //  enemy data   //
+// ============= //
+const enemyData = {
+  "p" : {
+    "w" : 16,
+    "h" : 16,
+    "box" : [3, 3, 12, 15],
+    "hp" : 5,
+    "img" : [imgPumpkin, imgPumpkinShadow],
+    "anime": "pumpkin",
+    "move": (me) => {
+      if (me.reaction > 0) {
+        me.reaction--;
+        me.changeAnime("damaged");
+        if (me.anicount === 0) {
+          me.dx = 0;
+          me.dy = 0;
+        }
+      }
+      else {
+        me.changeAnime("laugh");
+      }
+      if (isOnLand(me)) {
+        me.dy = -2.5;
+      }
+      if (isTouchingLeftWall(me)) {
+        me.direction = "right";
+      }
+      if (isTouchingRightWall(me)) {
+        me.direction = "left";
+      }
+      me.dx = me.direction === "right" ? 1 : -1;
+      if (isHeading(me)) {
+        me.dy = -me.dy;
+      }
+      me.dy += 0.125;
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
+  "P" : {
+    "w" : 16,
+    "h" : 16,
+    "box" : [3, 3, 12, 15],
+    "hp" : 5,
+    "img" : [imgPumpkin, imgPumpkinShadow],
+    "anime": "pumpkin",
+    "move": (me) => {
+      if (me.reaction > 0) {
+        me.reaction--;
+        me.changeAnime("damaged");
+        if (me.anicount === 0) me.dy = 0;
+      }
+      else {
+        me.changeAnime("laugh");
+      }
+      if (isOnLand(me)) {
+        if (Math.abs(me.x - plc.x) < 100) {
+          me.dy = -3.0;
+          me.direction = (me.x < plc.x) ? "right" : "left";
+          if (me.reaction <= 0) me.dx = me.direction === "right" ? 0.5 : -0.5;
+        }
+        else {
+          me.dx = 0;
+          me.dy = 0;
+        }
+      }
+      if (isTouchingLeftWall(me)) {
+        me.direction = "right";
+      }
+      if (isTouchingRightWall(me)) {
+        me.direction = "left";
+      }
+      if (isHeading(me)) {
+        me.dy = -me.dy;
+      }
+      me.dy += 0.125;
+      if (me.dy > 4) me.dy = 4;
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
+};
+
+const enemyChipList = Object.keys(enemyData);
 
   // --------------//
  // get key event //
@@ -407,20 +547,47 @@ let isKeyPressedNow = function(key) {
 let sceneList = {
   "game" : {
     "init" : () => {
-      plc = new CharacterSprite("player", 0, 0, 16, 16, 3, 2, 12, 15, imgPlayer, imgPlayerShadow, animeData["player"]);
-      enemy = new CharacterSprite("pumpkin", 128, 80, 16, 16, 2, 5, 13, 15, imgPumpkin, imgPumpkinShadow, animeData["pumpkin"]);
-      enemy.changeAnime("laugh");
+      // create Player Character
+      plc = new CharacterSprite("player", 0, 0, 16, 16, 3, 2, 12, 15, 5, imgPlayer, imgPlayerShadow, animeData["player"]);
+      // create Enemy Character
+      for (let y = 0; y < mapData.length; y++) {
+        for (let x = 0; x < mapData[y].length; x++) {
+          if (mapData[y][x] === "A") {
+            plc.x = x * gridSize;
+            plc.y = y * gridSize;
+          }
+          if (enemyChipList.indexOf(mapData[y][x]) === -1) continue;
+          let newEnemy = new CharacterSprite(
+            mapData[y][x], // id
+            x * gridSize, // start position x
+            y * gridSize, // start position y
+            enemyData[mapData[y][x]].w, // width
+            enemyData[mapData[y][x]].h, // height
+            enemyData[mapData[y][x]].box[0], // hit box 
+            enemyData[mapData[y][x]].box[1],
+            enemyData[mapData[y][x]].box[2],
+            enemyData[mapData[y][x]].box[3],
+            enemyData[mapData[y][x]].hp, // hp
+            enemyData[mapData[y][x]].img[0], // sprite sheet
+            enemyData[mapData[y][x]].img[1],
+            animeData[enemyData[mapData[y][x]].anime]
+          );
+          enemyArray.push(newEnemy);
+        }
+      }
+      //enemy = new CharacterSprite("pumpkin", 160, 120, 16, 16, 2, 5, 13, 15, imgPumpkin, imgPumpkinShadow, animeData["pumpkin"]);
+      //enemy.changeAnime("laugh");
       console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
     },
     "update" : () => {
       // *********************
       // player character move
       // *********************
-      plc.onLand = (getMapType(plc.lTopX(), plc.rBottomY() + 0.0625) === "wall" || getMapType(plc.rBottomX(), plc.rBottomY() + 0.0625) === "wall");
-      if (plc.dy >= 0) {
-        plc.onLand |= (getMapType(plc.lTopX(), plc.rBottomY() + 0.0625) === "bridge" || getMapType(plc.rBottomX(), plc.rBottomY() + 0.0625) === "bridge");
-      }
-      if (plc.onLand) {
+      // hit wall -> stop
+      if (isTouchingLeftWall(plc) || isTouchingRightWall(plc)) plc.dx = 0;
+      if (isHeading(plc)) plc.dy = 0;
+      // key inputs
+      if (isOnLand(plc)) {
         plc.dy = 0;
         coyoteTime = 7;
         if (keyInput.indexOf("l") != -1) {
@@ -459,7 +626,7 @@ let sceneList = {
       }
       // create shot
       if (isKeyPressedNow("x") && shotArray.length < shotMax) {
-        let newShot = new CharacterSprite("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, imgShot, imgShotShadow, animeData["shot"]);
+        let newShot = new CharacterSprite("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 1, imgShot, imgShotShadow, animeData["shot"]);
         newShot.dx = plc.direction === "left" ? -2 : 2;
         newShot.changeAnime("shot");
         shotArray.push(newShot);
@@ -469,7 +636,16 @@ let sceneList = {
         shotArray[i].x += shotArray[i].dx;
         shotArray[i].param1++;
         if (shotArray[i].anitype === "shot") {
-          if (shotArray[i].param1 >= 40 || getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"|| shotArray[i].isHit(enemy)) {
+          let isShotVanish = shotArray[i].param1 >= 30;
+          isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall";
+          enemyArray.forEach((e) => {
+            if (e.isHit(shotArray[i])) {
+              isShotVanish = true;
+              e.hp -= 1;
+              e.reaction = 20;
+            }
+          });
+          if (isShotVanish) {
             shotArray[i].dx = 0;
             shotArray[i].changeAnime("vanish");
             shotArray[i].param1 = 0;
@@ -477,7 +653,7 @@ let sceneList = {
               replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '.');
             }
             else if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block_coin") {
-              replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '0');
+              replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '¥');
             }
           }
           shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
@@ -492,50 +668,34 @@ let sceneList = {
         replaceMap(Math.floor((plc.x + 8) / gridSize), Math.floor((plc.y + 8) / gridSize), '.');
       }
       // damage
-      if (invincibleTime > 0) invincibleTime--;
-      if (invincibleTime <= 0) {
-        if (plc.isHit(enemy) || getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "damage") {
-          invincibleTime = invincibleTimeMax;
+      if (plc.reaction > 0) plc.reaction--;
+      if (plc.reaction <= 0) {
+        let isDamaged = getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "damage";
+        enemyArray.forEach((e) => {
+          isDamaged |= e.isHit(plc);
+        });
+        if (isDamaged) {
+          plc.reaction = invincibleTimeMax;
           plc.dx = - plc.dx;
           plc.dy = plc.dy >= 0 ? -1.5 : 0;
-        }
+        } 
       }
-      
       // limit speed
       if (plc.dx > 1.25) plc.dx = 1.25;
       if (plc.dx < -1.25) plc.dx = -1.25;
       if (plc.dy > 4.0) plc.dy = 4.0;
-      // update x position
-      plc.x += plc.dx;
-      // マップとの衝突
-      // left
-      while (getMapType(plc.lTopX(), plc.lTopY()) === "wall" || getMapType(plc.lTopX(), plc.rBottomY()) === "wall") {
-        plc.x += 0.0625;
-        plc.dx = 0;
-      }
-      // right
-      while (getMapType(plc.rBottomX(), plc.lTopY()) === "wall" || getMapType(plc.rBottomX(), plc.rBottomY()) === "wall") {
-        plc.x -= 0.0625;
-        plc.dx = 0;
-      }
-      // update y position
-      plc.y += plc.dy;
-      // top
-      while (getMapType(plc.lTopX(), plc.lTopY()) === "wall" || getMapType(plc.rBottomX(), plc.lTopY()) === "wall") {
-        plc.y += 0.0625;
-        plc.dy = 0;
-      }
-      // bottom
-      while (getMapType(plc.lTopX(),plc.rBottomY()) === "wall"|| getMapType(plc.rBottomX(), plc.rBottomY()) === "wall") {
-        plc.y -= 0.0625;
-        plc.dy = 0;
-      }
-      if (plc.dy >= 0) {
-        while (getMapType(plc.lTopX(), plc.rBottomY()) === "bridge" || getMapType(plc.rBottomX(), plc.rBottomY()) === "bridge") {
-          plc.y -= 0.0625;
-          plc.dy = 0;
-        }
-      }
+
+      // enemy move
+      enemyArray.forEach((e) => {
+        enemyData[e.id].move(e);
+      });
+      // erase enemy
+      enemyArray = enemyArray.filter((e) => {
+        return e.hp > 0;
+      });
+      
+      // update position
+      moveAndCheckCollisionWithMap(plc);
       
       // ******************
       // ---- drawing -----
@@ -547,17 +707,26 @@ let sceneList = {
       let startDrawingMapY = Math.floor(cameraY / gridSize);
       // update anime
       plc.updateAnime();
-      enemy.updateAnime();
+      enemyArray.forEach((e) => {
+        e.updateAnime();
+      });
       shotArray.forEach((e) => {
         e.updateAnime();
       });
       
       // draw shadow (character)
-      if (Math.floor(invincibleTime / 2) * 2 % 4 === 0) plc.drawShadow(charaCtx);
-      enemy.drawShadow(charaCtx);
-      for (let i = 0; i < shotArray.length; i++) {
-        shotArray[i].drawShadow(charaCtx);
-      }
+      if (Math.floor(plc.reaction / 3) * 3 % 6 === 0) plc.drawShadow(charaCtx);
+      enemyArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawShadow(charaCtx);
+      }));
+      shotArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawShadow(charaCtx);
+      }));
+      
       // draw map shadow & map
       mapAnimeCount++;
       charaCtx.fillStyle = "rgba(0, 0, 0, 0.25)";
@@ -565,6 +734,8 @@ let sceneList = {
         if (x < 0 || x >= mapData[0].length) continue;
         for (let y = startDrawingMapY; y < startDrawingMapY + mapHeight + 1; y++) {
           if (y < 0 || y >= mapData.length) continue;
+          if ('A' <= mapData[y][x] && mapData[y][x] <= 'Z') continue;
+          if ('a' <= mapData[y][x] && mapData[y][x] <= 'z') continue;
           let mapAnimeFrame = mapChip[mapData[y][x]].id[Math.floor(mapAnimeCount / 8) % mapChip[mapData[y][x]].id.length]
           if (mapAnimeFrame === 0) continue;
           charaCtx.drawImage(imgMapChipShadow, mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX + 2, y * gridSize - cameraY + 2, gridSize, gridSize);
@@ -574,7 +745,7 @@ let sceneList = {
 
       // draw character
       // player
-      if (plc.onLand) {
+      if (isOnLand(plc)) {
         if (plc.dx === 0) {
           plc.changeAnime(plc.direction === "left" ? "stand_l" : "stand_r");
         }
@@ -585,16 +756,17 @@ let sceneList = {
       else {
         plc.changeAnime(plc.direction === "left" ? "jump_l" : "jump_r");
       }
-      /* hit box
-      charaCtx.fillStyle = "pink";
-      charaCtx.fillRect(Math.round(plc.lTopX()), Math.round(plc.lTopY()), plc.rbx - plc.ltx, plc.rby - plc.lty);
-      */
-      enemy.drawAnime(charaCtx);
-      // shot
-      for (let i = 0; i < shotArray.length; i++) {
-        shotArray[i].drawAnime(charaCtx);
-      }
-      if (Math.floor(invincibleTime / 3) * 3 % 6 === 0) plc.drawAnime(charaCtx);
+      enemyArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx);
+      }));
+      shotArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx);
+      }));
+      if (Math.floor(plc.reaction / 3) * 3 % 6 === 0) plc.drawAnime(charaCtx);
     }
   },
 };
@@ -648,12 +820,17 @@ window.onload = () => {
   // draw background
   //backgCtx.fillStyle = "#2a2349";
   //backgCtx.fillStyle = "#4f2b24";
-  backgCtx.fillStyle = "#32535f";
-  //backgCtx.fillStyle = "#74adbb";
+  //backgCtx.fillStyle = "#32535f";
+  backgCtx.fillStyle = "#74adbb";
   backgCtx.fillRect(0, 0, 320, 240);
+  // read json file (test)
+  getLevelData("./js/levels/level1-1.json");
+  
   // start game loop
   setInterval(gameLoop, 1000/60); // 60fps
 };
+
+
 
 
 
