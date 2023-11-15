@@ -19,65 +19,55 @@ let font = new FontFace("MaruMonica", "url(./fonts/x12y16pxMaruMonica.ttf)");
 
 // get image
 // player
-let imgPlayer = new Image();
-let imgPlayerShadow = new Image();
-imgPlayer.src = "./img/fighter_action.png";
+let imgPlayer = [new Image(), new Image()]; // [original image, shadow image]
+imgPlayer[0].src = "./img/fighter_action.png";
 //imgPlayer.crossOrigin = "Anonymus";
 
 // enemy
-let imgPumpkin = new Image();
-let imgPumpkinShadow = new Image();
-imgPumpkin.src = "./img/pumpkin.png";
-let imgWatage = new Image();
-let imgWatageShadow = new Image();
-imgWatage.src = "./img/watage.png";
-let imgSlime = new Image();
-let imgSlimeShadow = new Image();
-imgSlime.src = "./img/slime.png";
+let imgPumpkin = [new Image(), new Image()];
+imgPumpkin[0].src = "./img/pumpkin.png";
+let imgWatage = [new Image(), new Image()];
+imgWatage[0].src = "./img/watage.png";
+let imgSlime = [new Image(), new Image()];
+imgSlime[0].src = "./img/slime.png";
 // enemy (Boss)
-let imgBigPumpkin = new Image();
-let imgBigPumpkinShadow = new Image();
-imgBigPumpkin.src = "./img/bigpumpkin.png";
+let imgBigPumpkin = [new Image(), new Image()];
+imgBigPumpkin[0].src = "./img/bigpumpkin.png";
 
 // item
-let imgMedal = new Image();
-let imgMedalShadow = new Image();
-imgMedal.src = "./img/medal.png";
+let imgMedal = [new Image(), new Image()];
+imgMedal[0].src = "./img/medal.png";
 
 // shot
-let imgShot = new Image();
-let imgShotShadow = new Image();
-imgShot.src = "./img/shot.png";
+let imgShot = [new Image(), new Image()];
+imgShot[0].src = "./img/shot.png";
 
 // mapchip
-let imgMapChip = new Image();
-let imgMapChipShadow = new Image();
-imgMapChip.src = "./img/mapchip.png";
+let imgMapChip = [new Image(), new Image()];
+imgMapChip[0].src = "./img/mapchip.png";
 
 // effect
-let imgExplode = new Image();
-let imgExplodeShadow = new Image();
-imgExplode.src = "./img/explode.png";
-let imgRedGlitter = new Image();
-let imgRedGlitterShadow = new Image();
-imgRedGlitter.src = "./img/red_glitter.png";
+let imgExplode = [new Image(), new Image()];
+imgExplode[0].src = "./img/explode.png";
+let imgRedGlitter = [new Image(), new Image()];
+imgRedGlitter[0].src = "./img/red_glitter.png";
 
 // UI
 let imgUiHeart = new Image();
 imgUiHeart.src = "./img/heart.png";
 
-let originShadowList = {
-  "player" : { origin: imgPlayer, shadow: imgPlayerShadow },
-  "pumpkin" : { origin: imgPumpkin, shadow: imgPumpkinShadow },
-  "watage" : { origin: imgWatage, shadow: imgWatageShadow },
-  "slime" : { origin: imgSlime, shadow: imgSlimeShadow },
-  "shot" : { origin: imgShot, shadow: imgShotShadow},
-  "mapchip" : { origin: imgMapChip, shadow: imgMapChipShadow },
-  "medal": { origin: imgMedal, shadow: imgMedalShadow },
-  "explode": { origin: imgExplode, shadow: imgExplodeShadow },
-  "red_glitter": { origin: imgRedGlitter, shadow: imgRedGlitterShadow },
-  "bigpumpkin" : { origin: imgBigPumpkin, shadow: imgBigPumpkinShadow }
-};
+let shadowList = [
+  imgPlayer,
+  imgPumpkin,
+  imgWatage,
+  imgSlime,
+  imgBigPumpkin,
+  imgMedal,
+  imgShot,
+  imgMapChip,
+  imgExplode,
+  imgRedGlitter 
+];
 
 // create shadow image
 let createShadowURL = function(originalImg) {
@@ -339,7 +329,7 @@ let quakeTimeY = 0;
 
 // sprite class
 class Sprite {
-  constructor(id, x, y, w, h, img, shadow, anime) {
+  constructor(id, x, y, w, h, img, anime) {
     this.id = id;
     this.x = x;
     this.y = y;
@@ -347,7 +337,6 @@ class Sprite {
     this.h = h;
     // image and animation data
     this.img = img;
-    this.shadow = shadow;
     this.anime = anime;
     this.direction = "right";
     this.anitype = "default";
@@ -382,11 +371,11 @@ class Sprite {
   };
 
   drawAnime (ctx, drawX, drawY) {
-    ctx.drawImage(this.img, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
+    ctx.drawImage(this.img[0], this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
   };
 
   drawShadow (ctx, drawX, drawY) {
-    ctx.drawImage(this.shadow, this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
+    ctx.drawImage(this.img[1], this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
   };
 
 };
@@ -598,7 +587,7 @@ const enemyData = {
     "h" : 16,
     "box" : [3, 3, 12, 12],
     "hp" : 4,
-    "img" : [imgWatage, imgWatageShadow],
+    "img" : imgWatage,
     "anime": "watage",
     "move": (me) => {
       if (me.param.length === 0) {
@@ -649,7 +638,7 @@ const enemyData = {
     "h" : 16,
     "box" : [3, 3, 12, 12],
     "hp" : 2,
-    "img" : [imgWatage, imgWatageShadow],
+    "img" : imgWatage,
     "anime": "watage",
     "move": (me) => {
       if (me.param.length === 0) {
@@ -677,7 +666,7 @@ const enemyData = {
     "h" : 16,
     "box" : [3, 3, 12, 15],
     "hp" : 3,
-    "img" : [imgPumpkin, imgPumpkinShadow],
+    "img" : imgPumpkin,
     "anime": "pumpkin",
     "move": (me) => {
       if (me.reaction > 0) {
@@ -712,7 +701,7 @@ const enemyData = {
     "h" : 32,
     "box" : [8, 16, 23, 31],
     "hp" : 8,
-    "img" : [imgSlime, imgSlimeShadow],
+    "img" : imgSlime,
     "anime": "slime",
     "move": (me) => {
       if (!isOnLand(me)) {
@@ -743,7 +732,7 @@ const enemyData = {
     "h" : 64,
     "box" : [3, 16, 60, 63],
     "hp" : 1,
-    "img" : [imgBigPumpkin, imgBigPumpkinShadow],
+    "img" : imgBigPumpkin,
     "anime": "bigpumpkin",
     "move": (me) => {
       me.isNoHit = true; // 戦闘中以外衝突判定しない
@@ -845,8 +834,7 @@ let createEnemy = (enemyId, x, y) => {
     enemyData[enemyId].box[2],
     enemyData[enemyId].box[3],
     enemyData[enemyId].hp, // hp
-    enemyData[enemyId].img[0], // sprite sheet
-    enemyData[enemyId].img[1],
+    enemyData[enemyId].img, // sprite sheet
     animeData[enemyData[enemyId].anime]
   );
   enemyArray.push(newEnemy);
@@ -860,7 +848,7 @@ let itemData = {
     "w": 32,
     "h": 32,
     "box" : [3, 3, 28, 28],
-    "img": [imgMedal, imgMedalShadow],
+    "img": imgMedal,
     "anime": "medal",
     "move": () => {},
     "obtained": () => {
@@ -871,7 +859,7 @@ let itemData = {
     "w": 32,
     "h": 32,
     "box" : [3, 3, 28, 28],
-    "img": [imgMedal, imgMedalShadow],
+    "img": imgMedal,
     "anime": "medal",
     "move": () => {},
     "obtained": () => {
@@ -882,7 +870,7 @@ let itemData = {
     "w": 32,
     "h": 32,
     "box" : [3, 3, 28, 28],
-    "img": [imgMedal, imgMedalShadow],
+    "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
       if (me.param.length === 0) { // ボス戦が終わるまで画面上方で待機
@@ -927,8 +915,7 @@ let createItem = (itemId, x, y) => {
     itemData[itemId].box[2],
     itemData[itemId].box[3],
     1, // hp
-    itemData[itemId].img[0], // sprite sheet
-    itemData[itemId].img[1],
+    itemData[itemId].img, // sprite sheet
     animeData[itemData[itemId].anime]
   );
   itemArray.push(newItem);
@@ -942,19 +929,19 @@ let effectData = {
   "explode": {
     "w": 32,
     "h": 32,
-    "img": [imgExplode, imgExplodeShadow],
+    "img": imgExplode,
     "anime": "explode"
   },
   "red_glitter": {
     "w": 8,
     "h": 8,
-    "img": [imgRedGlitter, imgRedGlitterShadow],
+    "img": imgRedGlitter,
     "anime": "glitter"
   },
   "red_glitter_slow": {
     "w": 8,
     "h": 8,
-    "img": [imgRedGlitter, imgRedGlitterShadow],
+    "img": imgRedGlitter,
     "anime": "glitter_slow"
   }
 };
@@ -968,8 +955,7 @@ let createEffect = (effectId, x, y, dx, dy) => {
     y,
     effectData[effectId].w,
     effectData[effectId].h,
-    effectData[effectId].img[0],
-    effectData[effectId].img[1],
+    effectData[effectId].img,
     animeData[effectData[effectId].anime]
   );
   newEffect.dx = dx;
@@ -1187,7 +1173,7 @@ let sceneList = {
         }
         // create shot
         if (isKeyPressedNow("x") && shotArray.length < shotMax) {
-          let newShot = new CharacterSprite("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 1, imgShot, imgShotShadow, animeData["shot"]);
+          let newShot = new CharacterSprite("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
           newShot.dx = plc.direction === "left" ? -2 : 2;
           newShot.changeAnime("shot");
           newShot.param.push(0);
@@ -1454,12 +1440,12 @@ let sceneList = {
           let mapAnimeFrame = mapChip[mapData[y][x]].id[Math.floor(mapAnimeCount / 8) % mapChip[mapData[y][x]].id.length]
           if (mapAnimeFrame === 0) continue;
           if (mapChip[mapData[y][x]].type != "background") {
-            charaCtx.drawImage(imgMapChipShadow, mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX + 2, y * gridSize - cameraY + 2, gridSize, gridSize);
+            charaCtx.drawImage(imgMapChip[1], mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX + 2, y * gridSize - cameraY + 2, gridSize, gridSize);
             if (y === 0 && getMapType(x * gridSize, y) === "wall") { // copy wall shadow if top of map is wall
-              charaCtx.drawImage(imgMapChipShadow, mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX + 2, (y - 1) * gridSize - cameraY + 2, gridSize, gridSize);
+              charaCtx.drawImage(imgMapChip[1], mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX + 2, (y - 1) * gridSize - cameraY + 2, gridSize, gridSize);
             }
           }
-          charaCtx.drawImage(imgMapChip, mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX, y * gridSize - cameraY, gridSize, gridSize);
+          charaCtx.drawImage(imgMapChip[0], mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX, y * gridSize - cameraY, gridSize, gridSize);
         }
       }
 
@@ -1637,11 +1623,11 @@ window.onload = () => {
   overLayInitFlag = true;
   nowLoading = true;
   // create shadow sprite
-  Object.keys(originShadowList).forEach((key) => {
-    originShadowList[key].shadow.src = createShadowURL(originShadowList[key].origin);
+  Object.keys(shadowList).forEach((key) => {
+    shadowList[key][1].src = createShadowURL(shadowList[key][0]);
   });
   // create Player Character
-  plc = new CharacterSprite("player", 0, 0, 16, 16, 3, 2, 12, 15, plcMaxHp, imgPlayer, imgPlayerShadow, animeData["player"]);
+  plc = new CharacterSprite("player", 0, 0, 16, 16, 3, 2, 12, 15, plcMaxHp, imgPlayer, animeData["player"]);
   // draw background
   backgCtx.fillStyle = "#2a2349";
   //backgCtx.fillStyle = "#4f2b24";
