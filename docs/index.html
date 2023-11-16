@@ -1,19 +1,39 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-    <title>お試しプラットフォームアクション</title>
+    <head prefix="og: http://ogp.me/ns#">
+      <meta charset="utf-8">
+      <meta property="og:site_name" content="アクションゲーム（仮）">
+      <meta property="og:title" content="アクションゲーム（仮）">
+      <meta property="og:description" content="PCで遊べるアクションゲームです。ただいま製作中">
+      <meta property="og:url" content="https://tsukatomo.github.io/akushon/">
+      <meta property="og:type" content="website">
+      <meta property="og:image" content="https://github.com/tsukatomo/dungeon_battle/blob/main/docs/img/fighter1.png?raw=true">
+      <meta name="twitter:card" content="summary">
+      <meta name="twitter:site" content="@katsudontkd">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>アクションゲーム（仮）</title>
   </head>
   <body>
-    <h1 style="text-align:center;font-family:'筑紫a丸ゴシック',system-ui">お試しプラットフォームアクション</h1>
+    <h1 style="text-align:center;font-family:'筑紫a丸ゴシック',system-ui">アクションゲーム（仮）</h1>
     <div id="canv">
       <canvas id="backg_lay" width="320" height="240"></canvas>
       <canvas id="chara_lay" width="320" height="240"></canvas>
       <canvas id="useri_lay" width="320" height="240"></canvas>
       <canvas id="trans_lay" width="640" height="480"></canvas>
     </div>
-    <p style="text-align:center;">
-      お試しで作ったアクションゲームです。スマホ非対応
-    </p>
+    <div style="text-align:center;" id="caption">
+      <p>
+        お試しで作ったアクションゲームです。PC専用。
+      </p>
+      <p>
+        矢印キー：移動　z：ジャンプ　x：攻撃
+      </p>
+      <br>
+      <p>
+        使用フォント： マルモニカ (<a href="https://hicchicc.github.io/00ff/">x0y0pxFreeFont</a>)
+      </p>
+    </div>
     <footer>
     </footer>
     <style>
@@ -32,6 +52,9 @@
       #chara_lay { z-index: 2; width: 640px; height: 480px; }
       #useri_lay { z-index: 3; width: 640px; height: 480px; }
       #trans_lay { z-index: 4; width: 640px; height: 480px; }
+      #caption {
+        -webkit-font-smoothing: none;
+      }
     </style>
     <script src="js/main.js"></script>
   </body>

@@ -55,6 +55,10 @@ imgRedGlitter[0].src = "./img/red_glitter.png";
 // UI
 let imgUiHeart = new Image();
 imgUiHeart.src = "./img/heart.png";
+let imgUiMedal = new Image();
+imgUiMedal.src = "./img/ui_medal.png";
+let imgUiCoin = new Image();
+imgUiCoin.src = "./img/ui_coin.png";
 
 let shadowList = [
   imgPlayer,
@@ -139,7 +143,7 @@ let animeData = {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "medal": {
-    "default": { frames: 4, dulation: 6, img: [0, 1, 2, 3], repeat: true }
+    "default": { frames: 5, dulation: 6, img: [0, 1, 2, 3, 4], repeat: true }
   },
   "explode": {
     "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false } 
@@ -276,7 +280,7 @@ const mapChipList = Object.keys(mapChip);
 
 // get level data
 let levelSpecial = "none"; // ボス部屋のときは"boss"
-let levelName = "1-Boss";
+let levelName = "1-1";
 let levelStart = "A";
 let mapWidth = 90;
 let mapHeight = 15;
@@ -428,6 +432,9 @@ let bossBattlePhase = "none";
 let yarareAnimeCounter = 0;
 let clearAnimeCounter = 0;
 let collectedMedal = [false, false, false];
+let collectedCoins = 0;
+let coinCounter = 0;
+let dataResetCount = 0;
 
 // get map type from pixel coordinate (output: type of mapchip Object)
 // 注意：一方通行床はy座標がグリッド上部の時しか検出しません
@@ -731,7 +738,7 @@ const enemyData = {
     "w" : 64,
     "h" : 64,
     "box" : [3, 16, 60, 63],
-    "hp" : 1,
+    "hp" : 80,
     "img" : imgBigPumpkin,
     "anime": "bigpumpkin",
     "move": (me) => {
@@ -847,29 +854,41 @@ let itemData = {
   "1": { // medal 1
     "w": 32,
     "h": 32,
-    "box" : [3, 3, 28, 28],
+    "box" : [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
-    "move": () => {},
-    "obtained": () => {
+    "move": (me) => {
+      if (collectedMedal[0]) me.hp = 0;
+      if (mapAnimeCount % 5 === 1) createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+    },
+    "obtained": (me) => {
       collectedMedal[0] = true;
+      for (let i = 0; i < 8; i++) {
+        createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+      }
     }
   },
   "2": { // medal 2
     "w": 32,
     "h": 32,
-    "box" : [3, 3, 28, 28],
+    "box" : [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
-    "move": () => {},
-    "obtained": () => {
+    "move": (me) => {
+      if (collectedMedal[1]) me.hp = 0;
+      if (mapAnimeCount % 5 === 1) createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+    },
+    "obtained": (me) => {
       collectedMedal[1] = true;
+      for (let i = 0; i < 8; i++) {
+        createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+      }
     }
   },
   "3": { // medal 3 (boss)
     "w": 32,
     "h": 32,
-    "box" : [3, 3, 28, 28],
+    "box" : [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
@@ -888,7 +907,7 @@ let itemData = {
           me.dy -= 0.25;
           if (me.dy < 0) me.dy = 0;
         }
-        if (me.param[0]++ % 5 === 1) createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+        if (mapAnimeCount % 5 === 1) createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
       }
       me.y += me.dy;
     },
@@ -1062,6 +1081,69 @@ let isKeyPressedNow = function(key) {
   //  Scene List         //
  //=====================//
 let sceneList = {
+  ////---------------//
+  /// title         ///
+  //---------------////
+  "title": {
+    "init" : async () => {
+      backgCtx.fillStyle = "#2a2349";
+      backgCtx.fillRect(0, 0, backgLay.width, backgLay.height);
+      backgCtx.fillStyle = "#fff9e4";
+      backgCtx.textAlign = "left";
+      backgCtx.textBaseline = "top";
+      let displayText = "アクションゲーム（仮）";
+      let displaySize = backgCtx.measureText(displayText);
+      backgCtx.fillText(displayText, Math.floor(backgLay.width - displaySize.width) / 2, 64);
+      displayText = "Zキーで 始めます";
+      displaySize = backgCtx.measureText(displayText);
+      backgCtx.fillText(displayText, Math.floor(backgLay.width - displaySize.width) / 2, 176);
+      plc.changeAnime("run_r");
+      // load coin
+      let storageCoins = localStorage.getItem("coin")
+      collectedCoins = storageCoins === null ? 0 : parseInt(storageCoins);
+      return 0;
+    },
+    "update" : () => {
+      // draw animation
+      plc.updateAnime();
+      plc.drawShadow(charaCtx, Math.floor((charaLay.width - plc.w) / 2 + 2), Math.floor((charaLay.height - plc.h) / 2 + 2));
+      plc.drawAnime(charaCtx, Math.floor((charaLay.width - plc.w) / 2), Math.floor((charaLay.height - plc.h) / 2));
+      useriCtx.fillStyle = "#fff9e4";
+      useriCtx.textBaseline = "top";
+      useriCtx.textAlign = "left";
+      useriCtx.fillText(Math.ceil(coinCounter).toString().padStart(4, "0"), gridSize, 0);
+      useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, 0, 16, 16);
+      // press z key
+      if (isKeyPressedNow("z")) {
+        // reset level status
+        collectedMedal = [false, false, false];
+        plc.hp = plcMaxHp;
+        levelName = "1-1";
+        levelStart = "A";
+        // start game
+        setTransition("game");
+      }
+      // erase data
+      if (keyInput.indexOf("x") != -1 && sceneOverLay === "none") {
+        dataResetCount++;
+        useriCtx.fillStyle = "#c16c5b";
+        useriCtx.fillRect(0, 220, dataResetCount * 2, 8);
+        useriCtx.fillStyle = "#bebbb2";
+        useriCtx.fillText("X長押しでデータ消去", 0, 204); 
+        if (dataResetCount > 160) {
+          collectedCoins = 0;
+          localStorage.setItem("coin", 0);
+          setTransition("title");
+        }
+      }
+      else {
+        dataResetCount = 0;
+      }
+    }
+  },
+  ////---------------//
+  /// game          ///
+  //---------------////
   "game" : {
     "init" : async () => {
       // reset data
@@ -1106,9 +1188,13 @@ let sceneList = {
           }
         }
       }
-      //enemy = new CharacterSprite("pumpkin", 160, 120, 16, 16, 2, 5, 13, 15, imgPumpkin, imgPumpkinShadow, animeData["pumpkin"]);
-      //enemy.changeAnime("laugh");
-      console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
+      //console.log(plc.ltx, plc.lty, plc.rbx, plc.rby);
+      // draw background
+      backgCtx.fillStyle = "#2a2349"; // 藍色
+      //backgCtx.fillStyle = "#4f2b24"; // 赤茶色
+      //backgCtx.fillStyle = "#32535f"; // 濃い青緑
+      //backgCtx.fillStyle = "#74adbb"; // 水色
+      backgCtx.fillRect(0, 0, 320, 240);
       return 0;
     },
     "update" : () => {
@@ -1220,6 +1306,7 @@ let sceneList = {
         });
         // get item (MapChip)
         if (getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "coin") {
+          collectedCoins++;
           replaceMap(Math.floor((plc.x + 8) / gridSize), Math.floor((plc.y + 8) / gridSize), '.');
         }
         if (getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "heart") {
@@ -1319,8 +1406,8 @@ let sceneList = {
       else if (collectedMedal[2]) {
         plc.reaction = 0;
         if (++clearAnimeCounter === 180) {
-          collectedMedal = [false, false, false];
-          setTransition("game");
+          localStorage.setItem("coin", collectedCoins.toString());
+          setTransition("title");
         }
       }
 
@@ -1474,17 +1561,28 @@ let sceneList = {
       if (Math.floor(plc.reaction / 3) * 3 % 6 === 0 || plc.hp <= 0) plc.drawAnime(charaCtx, Math.floor(plc.x - cameraX), Math.floor(plc.y - cameraY));
 
       // draw UI
-      // heart
-      let shakeUIX = (plc.reaction < invincibleTimeMax - 20 ? 0 : ((plc.reaction / 4) * 4 % 8 - 2) / 2);
-      let shakeUIY = (plc.reaction < invincibleTimeMax - 20 ? 0 : (((plc.reaction + 2) / 4) * 4 % 8 - 2) / 2);
+      // hearts
+      let shakeHeartX = (plc.reaction < invincibleTimeMax - 20 ? 0 : ((plc.reaction / 4) * 4 % 8 - 2) / 2);
+      let shakeHeartY = (plc.reaction < invincibleTimeMax - 20 ? 0 : (((plc.reaction + 2) / 4) * 4 % 8 - 2) / 2);
       for (let i = 0; i < plcMaxHp; i++) {
-        useriCtx.drawImage(imgUiHeart, (plc.hp > i) ? 0 : 16, 0, 16, 16, i * gridSize + shakeUIX, shakeUIY, 16, 16);
+        useriCtx.drawImage(imgUiHeart, (plc.hp > i) ? 0 : 16, 0, 16, 16, i * gridSize + shakeHeartX, shakeHeartY, 16, 16);
       }
-      /*
-      useriCtx.fillStyle = "#ffffff";
+      // medals
+      for (let i = 0; i < 3; i++) {
+        useriCtx.drawImage(imgUiMedal, (collectedMedal[i]) ? 0 : 16, 0, 16, 16, i * gridSize + useriLay.width - 3 * gridSize, 0, 16, 16);
+      }
+      // coins
+      let hopCoinY = 0;
+      useriCtx.fillStyle = "#fff9e4";
+      if (coinCounter < collectedCoins) {
+        coinCounter += 0.25;
+        useriCtx.fillStyle = "#fbdf9b";
+        hopCoinY = 1;
+      }
       useriCtx.textBaseline = "top";
-      useriCtx.fillText("読みやすいフォント", 127, 127);
-      */
+      useriCtx.textAlign = "left";
+      useriCtx.fillText(Math.ceil(coinCounter).toString().padStart(4, "0"), gridSize, gridSize - hopCoinY - 2);
+      useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, gridSize - hopCoinY - 2, 16, 16);
     }
   },
   "golevel": {
@@ -1617,7 +1715,7 @@ let gameLoop = async () => {
  // Onload function //
 //-----------------//
 window.onload = () => {
-  scene = "game";
+  scene = "title";
   sceneOverLay = "none";
   initFlag = true;
   overLayInitFlag = true;
@@ -1628,12 +1726,6 @@ window.onload = () => {
   });
   // create Player Character
   plc = new CharacterSprite("player", 0, 0, 16, 16, 3, 2, 12, 15, plcMaxHp, imgPlayer, animeData["player"]);
-  // draw background
-  backgCtx.fillStyle = "#2a2349";
-  //backgCtx.fillStyle = "#4f2b24";
-  //backgCtx.fillStyle = "#32535f";
-  //backgCtx.fillStyle = "#74adbb";
-  backgCtx.fillRect(0, 0, 320, 240);
   // start game loop
   setInterval(gameLoop, 1000/60); // 60fps
 };
