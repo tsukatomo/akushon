@@ -1086,6 +1086,10 @@ let sceneList = {
   //---------------////
   "title": {
     "init" : async () => {
+      // load coin
+      let storageCoins = localStorage.getItem("coin")
+      collectedCoins = storageCoins === null ? 0 : parseInt(storageCoins);
+      // drawing
       backgCtx.fillStyle = "#2a2349";
       backgCtx.fillRect(0, 0, backgLay.width, backgLay.height);
       backgCtx.fillStyle = "#fff9e4";
@@ -1098,9 +1102,6 @@ let sceneList = {
       displaySize = backgCtx.measureText(displayText);
       backgCtx.fillText(displayText, Math.floor(backgLay.width - displaySize.width) / 2, 176);
       plc.changeAnime("run_r");
-      // load coin
-      let storageCoins = localStorage.getItem("coin")
-      collectedCoins = storageCoins === null ? 0 : parseInt(storageCoins);
       return 0;
     },
     "update" : () => {
@@ -1111,7 +1112,7 @@ let sceneList = {
       useriCtx.fillStyle = "#fff9e4";
       useriCtx.textBaseline = "top";
       useriCtx.textAlign = "left";
-      useriCtx.fillText(Math.ceil(coinCounter).toString().padStart(4, "0"), gridSize, 0);
+      useriCtx.fillText(Math.ceil(collectedCoins).toString().padStart(4, "0"), gridSize, 0);
       useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, 0, 16, 16);
       // press z key
       if (isKeyPressedNow("z")) {
