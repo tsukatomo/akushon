@@ -1121,6 +1121,7 @@ let sceneList = {
         plc.hp = plcMaxHp;
         levelName = "1-1";
         levelStart = "A";
+        coinCounter = collectedCoins;
         // start game
         setTransition("game");
       }
