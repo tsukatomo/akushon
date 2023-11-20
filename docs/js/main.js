@@ -998,29 +998,23 @@ window.onkeydown = function (e) {
   //if (isAcceptKeyInput === false) return;
   if (e.defaultPrevented) return false;
   // read pressed key
-  if (e.code === "ArrowUp" || e.code === "KeyK") {
+  if (e.code === "ArrowUp" || e.code === "KeyK" || e.code === "KeyW") {
     if (keyInput.indexOf("u") == -1) keyInput.push("u");
   }
-  if (e.code === "ArrowDown" || e.code === "KeyJ") {
+  if (e.code === "ArrowDown" || e.code === "KeyJ" || e.code === "KeyS") {
     if (keyInput.indexOf("d") == -1) keyInput.push("d");
   }
-  if (e.code === "ArrowLeft" || e.code === "KeyH") {
+  if (e.code === "ArrowLeft" || e.code === "KeyH" || e.code === "KeyA") {
     if (keyInput.indexOf("l") == -1) keyInput.push("l");
   }
-  if (e.code === "ArrowRight" || e.code === "KeyL") {
+  if (e.code === "ArrowRight" || e.code === "KeyL" || e.code === "KeyD") {
     if (keyInput.indexOf("r") == -1) keyInput.push("r");
   }
   if (e.code === "KeyZ" || e.code === "Enter") {
     if (keyInput.indexOf("z") == -1) keyInput.push("z");
   }
-  if (e.code === "KeyX") {
+  if (e.code === "KeyX" || e.code === "ShiftRight") {
     if (keyInput.indexOf("x") == -1) keyInput.push("x");
-  }
-  if (e.code === "KeyA") {
-    if (keyInput.indexOf("a") == -1) keyInput.push("a");
-  }
-  if (e.code === "KeyS") {
-    if (keyInput.indexOf("s") == -1) keyInput.push("s");
   }
   // prevent default key input
   if (!e.metaKey && !e.shiftKey && !e.ctrlKey){
@@ -1034,19 +1028,19 @@ window.onkeyup = function (e) {
   if (e.defaultPrevented) return false;
   // read released key
   let idx;
-  if (e.code === "ArrowUp" || e.code === "KeyK") {
+  if (e.code === "ArrowUp" || e.code === "KeyK" || e.code === "KeyW") {
     idx = keyInput.indexOf("u");
     if (idx != -1) keyInput.splice(idx, 1);
   }
-  if (e.code === "ArrowDown" || e.code === "KeyJ") {
+  if (e.code === "ArrowDown" || e.code === "KeyJ" || e.code === "KeyS") {
     idx = keyInput.indexOf("d");
     if (idx != -1) keyInput.splice(idx, 1);
   }
-  if (e.code === "ArrowLeft" || e.code === "KeyH") {
+  if (e.code === "ArrowLeft" || e.code === "KeyH" || e.code === "KeyA") {
     idx = keyInput.indexOf("l");
     if (idx != -1) keyInput.splice(idx, 1);
   }
-  if (e.code === "ArrowRight" || e.code === "KeyL") {
+  if (e.code === "ArrowRight" || e.code === "KeyL" || e.code === "KeyD") {
     idx = keyInput.indexOf("r");
     if (idx != -1) keyInput.splice(idx, 1);
   }
@@ -1054,16 +1048,8 @@ window.onkeyup = function (e) {
     idx = keyInput.indexOf("z");
     if (idx != -1) keyInput.splice(idx, 1);
   }
-  if (e.code === "KeyX") {
+  if (e.code === "KeyX" || e.code === "ShiftRight") {
     idx = keyInput.indexOf("x");
-    if (idx != -1) keyInput.splice(idx, 1);
-  }
-  if (e.code === "KeyA") {
-    idx = keyInput.indexOf("a");
-    if (idx != -1) keyInput.splice(idx, 1);
-  }
-  if (e.code === "KeyS") {
-    idx = keyInput.indexOf("s");
     if (idx != -1) keyInput.splice(idx, 1);
   }
   // prevent default key input
