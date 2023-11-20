@@ -1010,10 +1010,10 @@ window.onkeydown = function (e) {
   if (e.code === "ArrowRight" || e.code === "KeyL" || e.code === "KeyD") {
     if (keyInput.indexOf("r") == -1) keyInput.push("r");
   }
-  if (e.code === "KeyZ" || e.code === "Enter") {
+  if (e.code === "KeyZ" || e.code === "Enter" || e.code === "Space") {
     if (keyInput.indexOf("z") == -1) keyInput.push("z");
   }
-  if (e.code === "KeyX" || e.code === "ShiftRight") {
+  if (e.code === "KeyX" || e.code === "IntlRo" || e.code === "ShiftRight") {
     if (keyInput.indexOf("x") == -1) keyInput.push("x");
   }
   // prevent default key input
@@ -1044,11 +1044,11 @@ window.onkeyup = function (e) {
     idx = keyInput.indexOf("r");
     if (idx != -1) keyInput.splice(idx, 1);
   }
-  if (e.code === "KeyZ" || e.code === "Enter") {
+  if (e.code === "KeyZ" || e.code === "Enter" || e.code === "Space") {
     idx = keyInput.indexOf("z");
     if (idx != -1) keyInput.splice(idx, 1);
   }
-  if (e.code === "KeyX" || e.code === "ShiftRight") {
+  if (e.code === "KeyX" || e.code === "IntlRo" || e.code === "ShiftRight") {
     idx = keyInput.indexOf("x");
     if (idx != -1) keyInput.splice(idx, 1);
   }
