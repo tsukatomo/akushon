@@ -167,113 +167,147 @@ let mapAnimeCount = 0;
 const mapChip = {
   ".": {
     id: [0],
+    dulation: 1,
     type: "none",
     subtype: "none"
   },
   "#": {
     id: [1],
+    dulation: 1,
     type: "wall",
     subtype: "block"
   },
   "$": {
     id: [1],
+    dulation: 1,
     type: "wall",
     subtype: "block_coin"
   },
   "%": {
     id: [2],
+    dulation: 1,
     type: "wall",
     subtype: "none"
   },
   "*": {
     id: [3],
+    dulation: 1,
     type: "wall",
     subtype: "none"
   },
   "[": {
     id: [4],
+    dulation: 1,
     type: "bridge",
     subtype: "none"
   },
   "-": {
     id: [5],
+    dulation: 1,
     type: "bridge",
     subtype: "none"
   },
   "]": {
     id: [6],
+    dulation: 1,
     type: "bridge",
     subtype: "none"
   },
   "+": {
     id: [7],
+    dulation: 1,
     type: "wall",
     subtype: "none"
   },
   "^": {
     id: [8],
+    dulation: 1,
     type: "none",
     subtype: "damage"
   },
   "~": {
     id: [9],
+    dulation: 1,
     type: "none",
     subtype: "damage"
   },
   "¥": {
     id: [10, 11, 12, 13],
+    dulation: 8,
     type: "none",
     subtype: "coin"
   },
   "|": {
     id: [14],
+    dulation: 1,
     type: "background",
     subtype: "none"
   },
   "@": {
     id: [15],
+    dulation: 1,
     type: "background",
     subtype: "door"
   },
   "?": {
     id: [16, 16, 16, 16, 16, 17, 18, 17],
+    dulation: 8,
     type: "none",
     subtype: "heart"
   },
   "!": {
     id: [1],
+    dulation: 1,
     type: "wall",
     subtype: "block_heart"
   },
   "π": { // alt + p
     id: [19], // hidden block
+    dulation: 1,
     type: "wall",
     subtype: "block"
   },
   "∂": { // alt + d
     id: [19],
+    dulation: 1,
     type: "wall",
     subtype: "block_coin"
   },
   "†": { // alt + t
     id: [19],
+    dulation: 1,
     type: "wall",
     subtype: "block_heart"
   },
   "∆": { // alt + j
     id: [19],
+    dulation: 1,
     type: "wall",
     subtype: "block_door"
   },
   "∑": { // alt + w
     id: [20],
+    dulation: 1,
     type: "none",
     subtype: "door"
   },
   ";": {
     id: [0],
+    dulation: 1,
     type: "none",
     subtype: "boss_gate"
+  },
+  "≥": {
+    id: [21, 22, 23, 24],
+    dulation: 1,
+    type: "wall",
+    subtype: "left_conv"
+  },
+  "≤": {
+    id: [25, 26, 27, 28],
+    dulation: 1,
+    type: "wall",
+    subtype: "right_conv"
   }
 };
 const mapChipList = Object.keys(mapChip);
@@ -400,6 +434,9 @@ class CharacterSprite extends Sprite{
     this.reaction = 0;
     // trueのとき、他キャラクターとの衝突判定を行わない
     this.isNoHit = false;
+    // 他の物体から受ける移動量（慣性）
+    this.px = 0;
+    this.py = 0;
   };
 
   lTopX () { return this.x + this.ltx; };
@@ -514,6 +551,22 @@ let isOnLand = (character) => {
   return isTouching;
 };
 
+// マップチップから受ける移動効果
+let movesAffectedByMap = (character) => {
+  let footData = [];// 足元のマップチップ情報を格納する配列
+  for (let x = 0; x < character.rBottomX() - character.lTopX(); x += gridSize) {
+    footData.push(getMapSubType(character.lTopX() + x, character.rBottomY() + 0.0625));
+  }
+  footData.push(getMapSubType(character.rBottomX(), character.rBottomY() + 0.0625));
+  // belt conv
+  if (footData.indexOf("left_conv") != -1) {
+    character.px = 1;
+  }
+  if (footData.indexOf("right_conv") != -1) {
+    character.px = -1;
+  }
+};
+
 // キャラクターを移動させ、地形とぶつかったら押し戻す関数
 let moveAndCheckCollisionWithMap = (character) => {
   // collision flag
@@ -521,7 +574,7 @@ let moveAndCheckCollisionWithMap = (character) => {
   const loopMax = 256; // 押し戻す回数の上限
   const slideLength = 0.0625; // 1回で押し戻す量
   // update y position
-  character.y += character.dy;
+  character.y += character.dy + character.py;
   // bottom
   for (let i = 0; i < loopMax; i++) {
     let isTouching = false;
@@ -530,6 +583,7 @@ let moveAndCheckCollisionWithMap = (character) => {
     }
     isTouching |= getMapType(character.rBottomX(), character.rBottomY()) === "wall";
     if (!isTouching) break;
+    character.py = 0;
     character.y -= slideLength;
   }
   if (isTouching) character.y += slideLength * loopMax;
@@ -542,6 +596,7 @@ let moveAndCheckCollisionWithMap = (character) => {
       }
       isTouching |= getMapType(character.rBottomX(), character.rBottomY()) === "bridge";
       if (!isTouching) break;
+      character.py = 0;
       character.y -= slideLength;
     }
   }
@@ -554,12 +609,13 @@ let moveAndCheckCollisionWithMap = (character) => {
     }
     isTouching |= getMapType(character.rBottomX(), character.lTopY()) === "wall";
     if (!isTouching) break;
+    character.py = 0;
     character.y += slideLength;
   }
   if (isTouching) character.y -= slideLength * loopMax;
   //------------------
   // update x position
-  character.x += character.dx;
+  character.x += character.dx + character.px;
   // left
   for (let i = 0; i < loopMax; i++) {
     isTouching = false;
@@ -568,6 +624,7 @@ let moveAndCheckCollisionWithMap = (character) => {
     }
     isTouching |= getMapType(character.lTopX(), character.rBottomY()) === "wall";
     if (!isTouching) break;
+    character.px = 0;
     character.x += slideLength;
   }
   if (isTouching) character.x -= slideLength * loopMax;
@@ -579,6 +636,7 @@ let moveAndCheckCollisionWithMap = (character) => {
     }
     isTouching |= getMapType(character.rBottomX(), character.rBottomY()) === "wall";
     if (!isTouching) break;
+    character.px = 0;
     character.x -= slideLength;
   }
   if (isTouching) character.x += slideLength * loopMax;
@@ -706,6 +764,9 @@ const enemyData = {
       }
       me.dy += 0.125;
       if (me.dy > 4) me.dy = 4;
+      me.px = 0;
+      me.py = 0;
+      movesAffectedByMap(me);
       moveAndCheckCollisionWithMap(me);
     }
   },
@@ -723,6 +784,8 @@ const enemyData = {
       }
       else {
         me.dy = 0;
+        me.px = 0;
+        me.py = 0;
       }
       if (me.dy > 4) me.dy = 4;
       if (((isOnLand(me) && getMapType(me.lTopX(), me.rBottomY() + 1) === "none") || isTouchingLeftWall(me)) && me.anitype === "walk_l") {
@@ -737,6 +800,7 @@ const enemyData = {
         me.changeAnime(me.direction === "left" ? "walk_l" : "walk_r");
       }
       me.dx = 0.25 * (me.anitype === "walk_l" ? -1 : me.anitype === "walk_r" ? 1 : 0);
+      movesAffectedByMap(me);
       moveAndCheckCollisionWithMap(me);
     }
   },
@@ -1159,6 +1223,8 @@ let sceneList = {
       if (plc.hp <= 0) plc.hp = plcMaxHp;
       plc.dx = 0;
       plc.dy = 0;
+      plc.px = 0;
+      plc.py = 0;
       plc.direction = "right";
       plc.reaction = 0;
       // create Character Objects
@@ -1205,6 +1271,8 @@ let sceneList = {
           plc.dy = 0;
           isJumping = false;
           coyoteTime = 7;
+          // 地形効果から受ける移動量を計算
+          movesAffectedByMap(plc);
           if (keyInput.indexOf("l") != -1) {
             plc.dx -= 0.125;
             plc.direction = "left";
@@ -1213,8 +1281,11 @@ let sceneList = {
             plc.dx += 0.125;
             plc.direction = "right";
           }
-          else {
+          else { 
             plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.0625 > 0 ? Math.abs(plc.dx) - 0.0625 : 0);
+          }
+          if (plc.px != 0) { // 摩擦力
+            plc.px = Math.sign(plc.px) * (Math.abs(plc.px) - 0.0625 > 0 ? Math.abs(plc.px) - 0.0625 : 0);  
           }
           // enter to door
           if (isKeyPressedNow("u")) {
@@ -1231,11 +1302,23 @@ let sceneList = {
         else {
           coyoteTime--;
           if (keyInput.indexOf("l") != -1) {
-            plc.dx -= 0.0625;
+            if (plc.px > 0) {
+              plc.px -= 0.0625;
+              if (plc.px < 0) plc.px = 0;
+            }
+            else {
+              plc.dx -= 0.0625;
+            }
             plc.direction = "left";
           }
           else if (keyInput.indexOf("r") != -1) {
-            plc.dx += 0.0625;
+            if (plc.px < 0) {
+              plc.px += 0.0625;
+              if (plc.px > 0) plc.px = 0;
+            }
+            else {
+              plc.dx += 0.0625;
+            }
             plc.direction = "right";
           }
           if (keyInput.indexOf("z") != -1 && isJumping) {
@@ -1338,6 +1421,8 @@ let sceneList = {
               stopFlag = true;
               plc.dx = 0;
               plc.dy = 0;
+              plc.px = 0;
+              plc.py = 0;
             }
           };
         }
@@ -1520,7 +1605,7 @@ let sceneList = {
         for (let x = startDrawingMapX - 1; x < startDrawingMapX + mapWidth + 1; x++) {
           if (x < 0 || x >= mapData[y].length) continue;
           if (mapChipList.indexOf(mapData[y][x]) === -1) continue;
-          let mapAnimeFrame = mapChip[mapData[y][x]].id[Math.floor(mapAnimeCount / 8) % mapChip[mapData[y][x]].id.length]
+          let mapAnimeFrame = mapChip[mapData[y][x]].id[Math.floor(mapAnimeCount / mapChip[mapData[y][x]].dulation) % mapChip[mapData[y][x]].id.length]
           if (mapAnimeFrame === 0) continue;
           if (mapChip[mapData[y][x]].type != "background") {
             charaCtx.drawImage(imgMapChip[1], mapAnimeFrame * gridSize, 0, gridSize, gridSize, x * gridSize - cameraX + 2, y * gridSize - cameraY + 2, gridSize, gridSize);
