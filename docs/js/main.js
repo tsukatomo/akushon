@@ -245,27 +245,27 @@ const mapChip = {
     type: "wall",
     subtype: "block_heart"
   },
-  "π": { // id 19 = hidden block
-    id: [19],
+  "π": { // alt + p
+    id: [19], // hidden block
     type: "wall",
     subtype: "block"
   },
-  "ø": {
+  "∂": { // alt + d
     id: [19],
     type: "wall",
     subtype: "block_coin"
   },
-  "†": {
+  "†": { // alt + t
     id: [19],
     type: "wall",
     subtype: "block_heart"
   },
-  "∆": {
+  "∆": { // alt + j
     id: [19],
     type: "wall",
     subtype: "block_door"
   },
-  "∑": {
+  "∑": { // alt + w
     id: [20],
     type: "none",
     subtype: "door"
@@ -441,11 +441,11 @@ let dataResetCount = 0;
 let getMapType = (x, y) => {
   let mapX = Math.floor(x / gridSize);
   let mapY = Math.floor(y / gridSize);
-  if (mapX < 0 || mapWidth <= mapX) return "wall";
-  if (mapY < 0) mapY = 0;
-  if (mapHeight <= mapY) return "none";
-  if (mapChipList.indexOf(mapData[mapY][mapX]) === -1) return "none";
-  if (mapChip[mapData[mapY][mapX]].type === "bridge") { // half floor
+  if (mapX < 0 || mapWidth <= mapX) return "wall"; // マップ左右端は壁
+  if (mapY < 0) mapY = 0; // マップより上は最上部のマップチップを参照
+  if (mapHeight <= mapY) return "none"; // マップより下は虚無
+  if (mapChipList.indexOf(mapData[mapY][mapX]) === -1) return "none"; // 定義されてないマップチップは全部虚無
+  if (mapChip[mapData[mapY][mapX]].type === "bridge") { // 一方通行床は上4ドットのみ衝突判定
     if (y % gridSize < 4){
       return "bridge";
     }
@@ -516,43 +516,12 @@ let isOnLand = (character) => {
 
 // キャラクターを移動させ、地形とぶつかったら押し戻す関数
 let moveAndCheckCollisionWithMap = (character) => {
-  // update x position
-  character.x += character.dx;
   // collision flag
   let isTouching = false;
-  const loopMax = 10000;
-  // left
-  for (let i = 0; i < loopMax; i++) {
-    isTouching = false;
-    for (let y = 0; y < character.rBottomY() - character.lTopY(); y += gridSize) {
-      isTouching |= getMapType(character.lTopX(), character.lTopY() + y) === "wall";
-    }
-    isTouching |= getMapType(character.lTopX(), character.rBottomY()) === "wall";
-    if (!isTouching) break;
-    character.x += 0.0625;
-  }
-  // right
-  for (let i = 0; i < loopMax; i++) {
-    isTouching = false;
-    for (let y = 0; y < character.rBottomY() - character.lTopY(); y += gridSize) {
-      isTouching |= getMapType(character.rBottomX(), character.lTopY() + y) === "wall";
-    }
-    isTouching |= getMapType(character.rBottomX(), character.rBottomY()) === "wall";
-    if (!isTouching) break;
-    character.x -= 0.0625;
-  }
+  const loopMax = 256; // 押し戻す回数の上限
+  const slideLength = 0.0625; // 1回で押し戻す量
   // update y position
   character.y += character.dy;
-  // top
-  for (let i = 0; i < loopMax; i++) {
-    let isTouching = false;
-    for (let x = 0; x < character.rBottomX() - character.lTopX(); x += gridSize) {
-      isTouching |= getMapType(character.lTopX() + x, character.lTopY()) === "wall";
-    }
-    isTouching |= getMapType(character.rBottomX(), character.lTopY()) === "wall";
-    if (!isTouching) break;
-    character.y += 0.0625;
-  }
   // bottom
   for (let i = 0; i < loopMax; i++) {
     let isTouching = false;
@@ -561,8 +530,9 @@ let moveAndCheckCollisionWithMap = (character) => {
     }
     isTouching |= getMapType(character.rBottomX(), character.rBottomY()) === "wall";
     if (!isTouching) break;
-    character.y -= 0.0625;
+    character.y -= slideLength;
   }
+  if (isTouching) character.y += slideLength * loopMax;
   // bottom (bridge)
   if (character.dy >= 0) {
     for (let i = 0; i < loopMax; i++) {
@@ -572,9 +542,46 @@ let moveAndCheckCollisionWithMap = (character) => {
       }
       isTouching |= getMapType(character.rBottomX(), character.rBottomY()) === "bridge";
       if (!isTouching) break;
-      character.y -= 0.0625;
+      character.y -= slideLength;
     }
   }
+  if (isTouching) character.y += slideLength * loopMax;
+  // top
+  for (let i = 0; i < loopMax; i++) {
+    let isTouching = false;
+    for (let x = 0; x < character.rBottomX() - character.lTopX(); x += gridSize) {
+      isTouching |= getMapType(character.lTopX() + x, character.lTopY()) === "wall";
+    }
+    isTouching |= getMapType(character.rBottomX(), character.lTopY()) === "wall";
+    if (!isTouching) break;
+    character.y += slideLength;
+  }
+  if (isTouching) character.y -= slideLength * loopMax;
+  //------------------
+  // update x position
+  character.x += character.dx;
+  // left
+  for (let i = 0; i < loopMax; i++) {
+    isTouching = false;
+    for (let y = 0; y < character.rBottomY() - character.lTopY(); y += gridSize) {
+      isTouching |= getMapType(character.lTopX(), character.lTopY() + y) === "wall";
+    }
+    isTouching |= getMapType(character.lTopX(), character.rBottomY()) === "wall";
+    if (!isTouching) break;
+    character.x += slideLength;
+  }
+  if (isTouching) character.x -= slideLength * loopMax;
+  // right
+  for (let i = 0; i < loopMax; i++) {
+    isTouching = false;
+    for (let y = 0; y < character.rBottomY() - character.lTopY(); y += gridSize) {
+      isTouching |= getMapType(character.rBottomX(), character.lTopY() + y) === "wall";
+    }
+    isTouching |= getMapType(character.rBottomX(), character.rBottomY()) === "wall";
+    if (!isTouching) break;
+    character.x -= slideLength;
+  }
+  if (isTouching) character.x += slideLength * loopMax;
 };
 
 // get random integer (min ≤ r ≤ max)
@@ -1420,7 +1427,7 @@ let sceneList = {
         // update camera position
         cameraX = Math.floor(plc.x - charaLay.width / 2 + 8);
         cameraY = Math.floor(plc.y - charaLay.height / 2 + 8);
-        if (bossBattlePhase != "none") {
+        if (bossBattlePhase != "none") { // ボスバトル開戦後はx軸固定
           cameraX = mapWidth * gridSize - charaLay.width;
         }
         if (cameraX < 0) cameraX = 0;
@@ -1443,6 +1450,7 @@ let sceneList = {
         if (cameraY > mapHeight * gridSize - charaLay.height) {
           cameraY = mapHeight * gridSize - charaLay.height;
         }
+        // 揺れ
         if (quakeTimeX-- > 0) {
           cameraX -= (((quakeTimeX + 1) / 2 * 2) % 4 - 1) * 2;
         }
