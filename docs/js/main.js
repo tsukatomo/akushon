@@ -299,16 +299,40 @@ const mapChip = {
   },
   "≥": {
     id: [21, 22, 23, 24],
-    dulation: 1,
+    dulation: 2,
     type: "wall",
     subtype: "left_conv"
   },
   "≤": {
     id: [25, 26, 27, 28],
-    dulation: 1,
+    dulation: 2,
     type: "wall",
     subtype: "right_conv"
-  }
+  },
+  "»": { // alt + shift + ]
+    id: [21, 22, 23, 24],
+    dulation: 1,
+    type: "wall",
+    subtype: "left_conv_fast"
+  },
+  "«": { // alt + ]
+    id: [25, 26, 27, 28],
+    dulation: 1,
+    type: "wall",
+    subtype: "right_conv_fast"
+  },
+  "=": {
+    id: [29],
+    dulation: 1,
+    type: "wall",
+    subtype: "none"
+  },
+  "&": {
+    id: [30],
+    dulation: 1,
+    type: "wall",
+    subtype: "none"
+  },
 };
 const mapChipList = Object.keys(mapChip);
 
@@ -560,10 +584,20 @@ let movesAffectedByMap = (character) => {
   footData.push(getMapSubType(character.rBottomX(), character.rBottomY() + 0.0625));
   // belt conv
   if (footData.indexOf("left_conv") != -1) {
+    character.px = 0.5;
+  }
+  else if (footData.indexOf("right_conv") != -1) {
+    character.px = -0.5;
+  }
+  else if (footData.indexOf("left_conv_fast") != -1) {
     character.px = 1;
   }
-  if (footData.indexOf("right_conv") != -1) {
+  else if (footData.indexOf("right_conv_fast") != -1) {
     character.px = -1;
+  }
+  else {
+    character.px = 0;
+    character.py = 0;
   }
 };
 
@@ -1159,6 +1193,8 @@ let sceneList = {
       displaySize = backgCtx.measureText(displayText);
       backgCtx.fillText(displayText, Math.floor(backgLay.width - displaySize.width) / 2, 176);
       plc.changeAnime("run_r");
+      // set transition animation
+      setOverlayScene("transout");
       return 0;
     },
     "update" : () => {
@@ -1171,19 +1207,20 @@ let sceneList = {
       useriCtx.textAlign = "left";
       useriCtx.fillText(Math.ceil(collectedCoins).toString().padStart(4, "0"), gridSize, 0);
       useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, 0, 16, 16);
+      if (sceneOverLay != "none") return;
       // press z key
       if (isKeyPressedNow("z")) {
         // reset level status
         collectedMedal = [false, false, false];
         plc.hp = plcMaxHp;
-        levelName = "1-1";
+        levelName = "test";
         levelStart = "A";
         coinCounter = collectedCoins;
         // start game
         setTransition("game");
       }
       // erase data
-      if (keyInput.indexOf("x") != -1 && sceneOverLay === "none") {
+      if (keyInput.indexOf("x") != -1) {
         dataResetCount++;
         useriCtx.fillStyle = "#c16c5b";
         useriCtx.fillRect(0, 220, dataResetCount * 2, 8);
@@ -1256,37 +1293,41 @@ let sceneList = {
       //backgCtx.fillStyle = "#32535f"; // 濃い青緑
       //backgCtx.fillStyle = "#74adbb"; // 水色
       backgCtx.fillRect(0, 0, 320, 240);
+      // set transition animation
+      setOverlayScene("transout");
       return 0;
     },
     "update" : () => {
+      const plcMaxSpeedX = 1.25;
       if (!stopFlag) {
         // *********************
         // player character move
         // *********************
         // hit wall -> stop
-        if (isTouchingLeftWall(plc) || isTouchingRightWall(plc)) plc.dx = 0;
-        if (isHeading(plc)) plc.dy = 0;
+        if ((isTouchingLeftWall(plc) && plc.dx < 0) || (isTouchingRightWall(plc) && plc.dx > 0)) plc.dx = 0;
+        if (isHeading(plc) && plc.dy < 0) plc.dy = 0;
         // key inputs
         if (isOnLand(plc)) {
           plc.dy = 0;
           isJumping = false;
           coyoteTime = 7;
-          // 地形効果から受ける移動量を計算
-          movesAffectedByMap(plc);
           if (keyInput.indexOf("l") != -1) {
-            plc.dx -= 0.125;
+            if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.125, -plcMaxSpeedX);
             plc.direction = "left";
           }
           else if (keyInput.indexOf("r") != -1) {
-            plc.dx += 0.125;
+            if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + 0.125, plcMaxSpeedX);
             plc.direction = "right";
           }
-          else { 
+          else {
             plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.0625 > 0 ? Math.abs(plc.dx) - 0.0625 : 0);
           }
-          if (plc.px != 0) { // 摩擦力
-            plc.px = Math.sign(plc.px) * (Math.abs(plc.px) - 0.0625 > 0 ? Math.abs(plc.px) - 0.0625 : 0);  
+          // 最高速を超えている場合は減衰させる
+          if (Math.abs(plc.dx) > plcMaxSpeedX){ 
+            plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.0625 > 0 ? Math.abs(plc.dx) - 0.0625 : 0);
           }
+          // 地形効果から受ける移動量を計算
+          movesAffectedByMap(plc);
           // enter to door
           if (isKeyPressedNow("u")) {
             doorArray.forEach((e) => {
@@ -1300,25 +1341,17 @@ let sceneList = {
           }
         }
         else {
+          plc.dx += plc.px;
+          plc.dy += plc.py;
+          plc.px = 0;
+          plc.py = 0;
           coyoteTime--;
           if (keyInput.indexOf("l") != -1) {
-            if (plc.px > 0) {
-              plc.px -= 0.0625;
-              if (plc.px < 0) plc.px = 0;
-            }
-            else {
-              plc.dx -= 0.0625;
-            }
+            if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.0625, -plcMaxSpeedX);
             plc.direction = "left";
           }
           else if (keyInput.indexOf("r") != -1) {
-            if (plc.px < 0) {
-              plc.px += 0.0625;
-              if (plc.px > 0) plc.px = 0;
-            }
-            else {
-              plc.dx += 0.0625;
-            }
+            if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + 0.0625, plcMaxSpeedX);
             plc.direction = "right";
           }
           if (keyInput.indexOf("z") != -1 && isJumping) {
@@ -1427,9 +1460,9 @@ let sceneList = {
           };
         }
         // limit speed
-        if (plc.dx > 1.25) plc.dx = 1.25;
-        if (plc.dx < -1.25) plc.dx = -1.25;
-        if (plc.dy > 4.0) plc.dy = 4.0;
+        if (plc.dx < -4.0) plc.dx = -4.0;
+        if (plc.dx >  4.0) plc.dx =  4.0;
+        if (plc.dy >  4.0) plc.dy =  4.0;
 
         // update player position
         moveAndCheckCollisionWithMap(plc);
@@ -1701,13 +1734,14 @@ let sceneOverLayList = {
       //transCtx.fillRect(640 * (transAnimeCount / transAnimeCountInit), 0, 640, 480);
       //transCtx.globalAlpha = 1.0 - (transAnimeCount / transAnimeCountInit);
       //transCtx.fillRect(0, 0, 640, 480);
-      if (--transAnimeCount <= 0) {
-        // set transition animation
-        setOverlayScene("transwait");
+      if (--transAnimeCount === 0) {
+        // change scene
+        setScene(sceneAfterTrans);
       }
     }
   },
 
+  /*
   // sub scene: transwait（トランジション中間）
   "transwait": {
     init: () =>  {
@@ -1718,13 +1752,12 @@ let sceneOverLayList = {
       transCtx.fillStyle = "#0d080d"; // black
       transCtx.fillRect(0, 0, 640, 480);
       if (--transAnimeCount <= 0) {
-        // change scene
-        setScene(sceneAfterTrans);
         // set transition animation
         setOverlayScene("transout");
       }
     }  
   },
+  */
 
   // sub scene: transout（トランジション終了）
   "transout": {
