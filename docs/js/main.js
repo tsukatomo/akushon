@@ -38,6 +38,10 @@ imgBigPumpkin[0].src = "./img/bigpumpkin.png";
 let imgMedal = [new Image(), new Image()];
 imgMedal[0].src = "./img/medal.png";
 
+// gimmick
+let imgMoveFloor = [new Image(), new Image()];
+imgMoveFloor[0].src = "./img/movefloor.png";
+
 // shot
 let imgShot = [new Image(), new Image()];
 imgShot[0].src = "./img/shot.png";
@@ -60,6 +64,7 @@ imgUiMedal.src = "./img/ui_medal.png";
 let imgUiCoin = new Image();
 imgUiCoin.src = "./img/ui_coin.png";
 
+// list of shadowing objects
 let shadowList = [
   imgPlayer,
   imgPumpkin,
@@ -67,6 +72,7 @@ let shadowList = [
   imgSlime,
   imgBigPumpkin,
   imgMedal,
+  imgMoveFloor,
   imgShot,
   imgMapChip,
   imgExplode,
@@ -144,6 +150,9 @@ let animeData = {
   },
   "medal": {
     "default": { frames: 5, dulation: 6, img: [0, 1, 2, 3, 4], repeat: true }
+  },
+  "movefloor": {
+    "default": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true }
   },
   "explode": {
     "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false } 
@@ -458,9 +467,13 @@ class CharacterSprite extends Sprite{
     this.reaction = 0;
     // trueのとき、他キャラクターとの衝突判定を行わない
     this.isNoHit = false;
-    // 他の物体から受ける移動量（慣性）
+    // 地形から受ける移動量（慣性が乗る）
     this.px = 0;
     this.py = 0;
+    // 乗っている物体
+    this.riding = null;
+    this.rx = 0;
+    this.ry = 0;
   };
 
   lTopX () { return this.x + this.ltx; };
@@ -482,6 +495,7 @@ let plcMaxHp = 4;
 let enemyArray = [];
 let shotArray = [];
 let itemArray = [];
+let gimmickArray = [];
 let effectArray = [];
 let doorArray = [];
 const shotMax = 5;
@@ -608,7 +622,7 @@ let moveAndCheckCollisionWithMap = (character) => {
   const loopMax = 256; // 押し戻す回数の上限
   const slideLength = 0.0625; // 1回で押し戻す量
   // update y position
-  character.y += character.dy + character.py;
+  character.y += character.dy + character.py + character.ry;
   // bottom
   for (let i = 0; i < loopMax; i++) {
     let isTouching = false;
@@ -649,7 +663,7 @@ let moveAndCheckCollisionWithMap = (character) => {
   if (isTouching) character.y -= slideLength * loopMax;
   //------------------
   // update x position
-  character.x += character.dx + character.px;
+  character.x += character.dx + character.px + character.rx;
   // left
   for (let i = 0; i < loopMax; i++) {
     isTouching = false;
@@ -674,6 +688,14 @@ let moveAndCheckCollisionWithMap = (character) => {
     character.x -= slideLength;
   }
   if (isTouching) character.x += slideLength * loopMax;
+};
+
+// 物体に乗っているかチェックし、乗っていたら riding 情報を記録する
+let checkRiding = (character, vehicle) => {
+  if (character.dy < 0) return;
+  if (character.rBottomY() + 1.0625 < vehicle.lTopY() || vehicle.rBottomY() < character.rBottomY() + 1.0625) return;
+  if (character.rBottomX() < vehicle.lTopX() || vehicle.rBottomX() < character.lTopX()) return;
+  character.riding = vehicle;
 };
 
 // get random integer (min ≤ r ≤ max)
@@ -820,13 +842,14 @@ const enemyData = {
         me.dy = 0;
         me.px = 0;
         me.py = 0;
+        movesAffectedByMap(me);
       }
       if (me.dy > 4) me.dy = 4;
-      if (((isOnLand(me) && getMapType(me.lTopX(), me.rBottomY() + 1) === "none") || isTouchingLeftWall(me)) && me.anitype === "walk_l") {
+      if (((isOnLand(me) && getMapType(me.lTopX(), me.rBottomY() + 1) === "none" && me.px === 0) || isTouchingLeftWall(me) || me.px > 0) && me.anitype === "walk_l") {
         me.direction = "right";
         me.changeAnime("turn_to_r");
       }
-      else if ((((isOnLand(me) && getMapType(me.rBottomX(), me.rBottomY() + 1) === "none") || isTouchingRightWall(me)) && me.anitype === "walk_r") || me.anitype === "default") {
+      else if ((((isOnLand(me) && getMapType(me.rBottomX(), me.rBottomY() + 1) === "none" && me.px === 0) || isTouchingRightWall(me) || me.px < 0) && me.anitype === "walk_r") || me.anitype === "default") {
         me.direction = "left";
         me.changeAnime("turn_to_l");
       }
@@ -834,7 +857,6 @@ const enemyData = {
         me.changeAnime(me.direction === "left" ? "walk_l" : "walk_r");
       }
       me.dx = 0.25 * (me.anitype === "walk_l" ? -1 : me.anitype === "walk_r" ? 1 : 0);
-      movesAffectedByMap(me);
       moveAndCheckCollisionWithMap(me);
     }
   },
@@ -956,7 +978,7 @@ let createEnemy = (enemyId, x, y) => {
  //  item data   //
 // ============ //
 let itemData = {
-  "1": { // medal 1
+  "X": { // medal 1
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
@@ -973,7 +995,7 @@ let itemData = {
       }
     }
   },
-  "2": { // medal 2
+  "Y": { // medal 2
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
@@ -990,7 +1012,7 @@ let itemData = {
       }
     }
   },
-  "3": { // medal 3 (boss)
+  "Z": { // medal 3 (boss)
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
@@ -1045,6 +1067,48 @@ let createItem = (itemId, x, y) => {
   itemArray.push(newItem);
 };
 
+  // ============== //
+ //  gimmick data  //
+// ============== //
+const gimmickData = {
+  "{" : {
+    "w": 32,
+    "h": 32,
+    "box" : [0, 0, 31, 5],
+    "img": imgMoveFloor,
+    "anime": "movefloor",
+    "move": (me) => {
+      if (me.param.length === 0) {
+      me.param.push(0);  
+      }
+      me.param = (me.param + 1) % 200;
+      me.dy = Math.cos(2 * Math.PI * (me.param + 1) / 200) - Math.cos(2 * Math.PI * me.param / 200) * 2;
+      me.dx = Math.sin(2 * Math.PI * (me.param + 1) / 200) - Math.sin(2 * Math.PI * me.param / 200) * 2;
+      me.x += me.dx;
+      me.y += me.dy;
+    },
+  }
+};
+
+let gimmickKeyList = Object.keys(gimmickData);
+
+let createGimmick = (gimmickId, x, y) => {
+  let newGimmick = new CharacterSprite(
+    gimmickId, // id
+    x, // start position x
+    y, // start position y
+    gimmickData[gimmickId].w, // width
+    gimmickData[gimmickId].h, // height
+    gimmickData[gimmickId].box[0], // hit box 
+    gimmickData[gimmickId].box[1],
+    gimmickData[gimmickId].box[2],
+    gimmickData[gimmickId].box[3],
+    1, // hp
+    gimmickData[gimmickId].img, // sprite sheet
+    animeData[gimmickData[gimmickId].anime]
+  );
+  gimmickArray.push(newGimmick);
+};
 
   // ============== //
  //  effect data   //
@@ -1246,6 +1310,7 @@ let sceneList = {
       shotArray = [];
       enemyArray = [];
       itemArray = [];
+      gimmickArray = [];
       effectArray = [];
       doorArray = [];
       // 時は動き出す……
@@ -1262,6 +1327,8 @@ let sceneList = {
       plc.dy = 0;
       plc.px = 0;
       plc.py = 0;
+      plc.rx = 0;
+      plc.ry = 0;
       plc.direction = "right";
       plc.reaction = 0;
       // create Character Objects
@@ -1279,6 +1346,10 @@ let sceneList = {
           // item
           if (itemKeyList.indexOf(mapData[y][x]) != -1) {
             createItem(mapData[y][x], x * gridSize, y * gridSize);
+          }
+          // gimmick
+          if (gimmickKeyList.indexOf(mapData[y][x]) != -1) {
+            createGimmick(mapData[y][x], x * gridSize, y * gridSize);
           }
           // enemy
           if (enemyKeyList.indexOf(mapData[y][x]) != -1) {
@@ -1300,6 +1371,12 @@ let sceneList = {
     "update" : () => {
       const plcMaxSpeedX = 1.25;
       if (!stopFlag) {
+        // gimmick move
+        plc.riding = null;
+        gimmickArray.forEach((e) => {
+          checkRiding(plc, e);
+          gimmickData[e.id].move(e);
+        });
         // *********************
         // player character move
         // *********************
@@ -1307,7 +1384,7 @@ let sceneList = {
         if ((isTouchingLeftWall(plc) && plc.dx < 0) || (isTouchingRightWall(plc) && plc.dx > 0)) plc.dx = 0;
         if (isHeading(plc) && plc.dy < 0) plc.dy = 0;
         // key inputs
-        if (isOnLand(plc)) {
+        if (isOnLand(plc) || plc.riding != null) {
           plc.dy = 0;
           isJumping = false;
           coyoteTime = 7;
@@ -1323,11 +1400,18 @@ let sceneList = {
             plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.0625 > 0 ? Math.abs(plc.dx) - 0.0625 : 0);
           }
           // 最高速を超えている場合は減衰させる
-          if (Math.abs(plc.dx) > plcMaxSpeedX){ 
-            plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.0625 > 0 ? Math.abs(plc.dx) - 0.0625 : 0);
-          }
+          if (plc.dx < -plcMaxSpeedX) plc.dx = -plcMaxSpeedX;
+          if (plc.dx >  plcMaxSpeedX) plc.dx =  plcMaxSpeedX;
           // 地形効果から受ける移動量を計算
-          movesAffectedByMap(plc);
+          if (plc.riding === null) {
+            movesAffectedByMap(plc);
+            plc.rx = 0;
+          }
+          // 乗っている物体の移動を反映
+          else {
+            plc.y = plc.riding.lTopY() - plc.h;
+            plc.rx = plc.riding.dx;
+          }
           // enter to door
           if (isKeyPressedNow("u")) {
             doorArray.forEach((e) => {
@@ -1345,6 +1429,8 @@ let sceneList = {
           plc.dy += plc.py;
           plc.px = 0;
           plc.py = 0;
+          plc.rx = 0;
+          plc.ry = 0;
           coyoteTime--;
           if (keyInput.indexOf("l") != -1) {
             if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.0625, -plcMaxSpeedX);
@@ -1539,6 +1625,9 @@ let sceneList = {
         itemArray.forEach((e) => {
           e.updateAnime();
         });
+        gimmickArray.forEach((e) => {
+          e.updateAnime();
+        });       
         effectArray.forEach((e) => {
           e.updateAnime();
         })
@@ -1579,7 +1668,7 @@ let sceneList = {
       
       // change player animation
       if (!stopFlag){
-        if (isOnLand(plc)) {
+        if (isOnLand(plc) || plc.riding != null) {
           if (plc.dx === 0) {
             plc.changeAnime(plc.direction === "left" ? "stand_l" : "stand_r");
           }
@@ -1618,6 +1707,11 @@ let sceneList = {
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
       }));
       itemArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
+      }));
+      gimmickArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
@@ -1663,6 +1757,11 @@ let sceneList = {
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
       itemArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
+      }));
+      gimmickArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
