@@ -30,6 +30,11 @@ let imgWatage = [new Image(), new Image()];
 imgWatage[0].src = "./img/watage.png";
 let imgSlime = [new Image(), new Image()];
 imgSlime[0].src = "./img/slime.png";
+let imgSlimeLauncher = [new Image(), new Image()];
+imgSlimeLauncher[0].src = "./img/slimelauncher.png";
+let imgMinionSlime = [new Image(), new Image()];
+imgMinionSlime[0].src = "./img/minionslime.png";
+
 // enemy (Boss)
 let imgBigPumpkin = [new Image(), new Image()];
 imgBigPumpkin[0].src = "./img/bigpumpkin.png";
@@ -53,6 +58,8 @@ imgMapChip[0].src = "./img/mapchip.png";
 // effect
 let imgExplode = [new Image(), new Image()];
 imgExplode[0].src = "./img/explode.png";
+let imgStar = [new Image(), new Image()];
+imgStar[0].src = "./img/star.png";
 let imgRedGlitter = [new Image(), new Image()];
 imgRedGlitter[0].src = "./img/red_glitter.png";
 
@@ -70,12 +77,15 @@ let shadowList = [
   imgPumpkin,
   imgWatage,
   imgSlime,
+  imgSlimeLauncher,
+  imgMinionSlime,
   imgBigPumpkin,
   imgMedal,
   imgMoveFloor,
   imgShot,
   imgMapChip,
   imgExplode,
+  imgStar,
   imgRedGlitter 
 ];
 
@@ -143,6 +153,19 @@ let animeData = {
     "turn_to_r" : {frames: 3, dulation: 6, img: [10, 9, 8], repeat: false},
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
+  "slimelauncher": {
+    "munch": {frames: 4, dulation: 6, img: [0, 1, 2, 3], repeat: true},
+    "vomit": {frames: 3, dulation: 8, img: [4, 5, 6], repeat: false},
+    "damaged": {frames: 1, dulation: 8, img: [7], repeat: true},
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
+  "minionslime": {
+    "walk_l": {frames: 2, dulation: 6, img: [0, 1], repeat: true},
+    "walk_r": {frames: 2, dulation: 6, img: [2, 3], repeat: true},
+    "fall_l": {frames: 1, dulation: 8, img: [4], repeat: true},
+    "fall_r": {frames: 1, dulation: 8, img: [5], repeat: true},
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
   "bigpumpkin": {
     "laugh": { frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true},
     "yarare": { frames: 1, dulation: 8, img: [4], repeat: true},
@@ -162,6 +185,9 @@ let animeData = {
   },
   "glitter_slow": {
     "default": { frames: 7, dulation: 3, img: [0, 1, 2, 2, 2, 2, 1], repeat: false } 
+  },
+  "star": {
+    "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
   },
   "default": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
@@ -481,12 +507,31 @@ class CharacterSprite extends Sprite{
   rBottomX () { return this.x + this.rbx; };
   rBottomY () { return this.y + this.rby; };
 
+  // 衝突判定
   isHit (opponent) {
     if (this.isNoHit || opponent.isNoHit) return false;
     return (
       opponent.lTopX() <= this.rBottomX() && this.lTopX() <= opponent.rBottomX()
       && opponent.lTopY() <= this.rBottomY() && this.lTopY() <= opponent.rBottomY()
     );
+  };
+
+  // 物体に乗っているかチェックし、乗っていたら riding 情報を記録する
+  checkRiding (vehicle) {
+    if (this.dy < 0) return;
+    if (this.rBottomY() + 1 < vehicle.lTopY() || vehicle.rBottomY() < this.rBottomY() + 1) return;
+    if (this.rBottomX() < vehicle.lTopX() || vehicle.rBottomX() < this.lTopX()) return;
+    this.riding = vehicle;
+  };
+
+  // 乗り物に追従する
+  rideOn () {
+    if (this.riding === null) return;
+    this.y = this.riding.y - this.h;
+    this.rx = this.riding.dx;
+    this.ry = this.riding.dy;
+    this.px = 0;
+    this.py = 0;
   };
 };
 
@@ -497,6 +542,7 @@ let shotArray = [];
 let itemArray = [];
 let gimmickArray = [];
 let effectArray = [];
+let effectSubArray = []; // stopFlag が true の時に動くエフェクト
 let doorArray = [];
 const shotMax = 5;
 let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
@@ -518,7 +564,7 @@ let getMapType = (x, y) => {
   let mapY = Math.floor(y / gridSize);
   if (mapX < 0 || mapWidth <= mapX) return "wall"; // マップ左右端は壁
   if (mapY < 0) mapY = 0; // マップより上は最上部のマップチップを参照
-  if (mapHeight <= mapY) return "none"; // マップより下は虚無
+  if (mapHeight <= mapY) mapY = mapHeight - 1; // マップより下は最下部のマップチップを参照
   if (mapChipList.indexOf(mapData[mapY][mapX]) === -1) return "none"; // 定義されてないマップチップは全部虚無
   if (mapChip[mapData[mapY][mapX]].type === "bridge") { // 一方通行床は上4ドットのみ衝突判定
     if (y % gridSize < 4){
@@ -536,7 +582,7 @@ let getMapSubType = (x, y) => {
   let mapY = Math.floor(y / gridSize);
   if (mapX < 0 || mapWidth <= mapX) return "none";
   if (mapY < 0) mapY = 0;
-  if (mapHeight <= mapY) return "none";
+  if (mapHeight <= mapY) mapY = mapHeight - 1;
   if (mapChipList.indexOf(mapData[mapY][mapX]) === -1) return "none";
   return mapChip[mapData[mapY][mapX]].subtype;
 };
@@ -586,7 +632,7 @@ let isOnLand = (character) => {
     }
     isTouching |= getMapType(character.rBottomX(), character.rBottomY() + 0.0625) === "bridge";
   }
-  return isTouching;
+  return isTouching || (character.riding != null);
 };
 
 // マップチップから受ける移動効果
@@ -622,7 +668,7 @@ let moveAndCheckCollisionWithMap = (character) => {
   const loopMax = 256; // 押し戻す回数の上限
   const slideLength = 0.0625; // 1回で押し戻す量
   // update y position
-  character.y += character.dy + character.py + character.ry;
+  character.y += character.dy + character.py;
   // bottom
   for (let i = 0; i < loopMax; i++) {
     let isTouching = false;
@@ -690,14 +736,6 @@ let moveAndCheckCollisionWithMap = (character) => {
   if (isTouching) character.x += slideLength * loopMax;
 };
 
-// 物体に乗っているかチェックし、乗っていたら riding 情報を記録する
-let checkRiding = (character, vehicle) => {
-  if (character.dy < 0) return;
-  if (character.rBottomY() + 1.0625 < vehicle.lTopY() || vehicle.rBottomY() < character.rBottomY() + 1.0625) return;
-  if (character.rBottomX() < vehicle.lTopX() || vehicle.rBottomX() < character.lTopX()) return;
-  character.riding = vehicle;
-};
-
 // get random integer (min ≤ r ≤ max)
 let randInt = function(min, max) {
   let minInt = Math.ceil(min);
@@ -710,7 +748,7 @@ let randInt = function(min, max) {
 // ============= //
 const enemyData = {
   "W" : { // watage 1
-    "type": "normal",
+    "type": "flight",
     "w" : 16,
     "h" : 16,
     "box" : [3, 3, 12, 12],
@@ -761,7 +799,7 @@ const enemyData = {
     }
   },
   "w" : { // watage 2
-    "type": "normal",
+    "type": "flight",
     "w" : 16,
     "h" : 16,
     "box" : [3, 3, 12, 12],
@@ -822,6 +860,9 @@ const enemyData = {
       if (me.dy > 4) me.dy = 4;
       me.px = 0;
       me.py = 0;
+      me.rx = 0;
+      me.ry = 0;
+      me.rideOn();
       movesAffectedByMap(me);
       moveAndCheckCollisionWithMap(me);
     }
@@ -837,11 +878,14 @@ const enemyData = {
     "move": (me) => {
       if (!isOnLand(me)) {
         me.dy += 0.125;
+        me.rx = 0;
+        me.ry = 0;
       }
       else {
         me.dy = 0;
         me.px = 0;
         me.py = 0;
+        me.rideOn();
         movesAffectedByMap(me);
       }
       if (me.dy > 4) me.dy = 4;
@@ -858,6 +902,81 @@ const enemyData = {
       }
       me.dx = 0.25 * (me.anitype === "walk_l" ? -1 : me.anitype === "walk_r" ? 1 : 0);
       moveAndCheckCollisionWithMap(me);
+    }
+  },
+  "L": { // Slime Launcher
+    "type": "normal",
+    "w" : 32,
+    "h" : 32,
+    "box" : [2, 4, 29, 31],
+    "hp" : 12,
+    "img" : imgSlimeLauncher,
+    "anime": "slimelauncher",
+    "move": (me) => {
+      if (me.param.length === 0) {
+        me.param.push(0);
+      }
+      if (!isOnLand(me)) {
+        me.dy += 0.125;
+        me.rx = 0;
+        me.ry = 0;
+      }
+      else {
+        me.dy = 0;
+        me.px = 0;
+        me.py = 0;
+        me.rideOn();
+        movesAffectedByMap(me);
+      }
+      if (me.dy > 4) me.dy = 4;
+      moveAndCheckCollisionWithMap(me);
+      if (me.anitype != "vomit") {
+        me.anitype = (me.reaction > 0) ? "damaged" : "munch";
+        if (++me.param[0] > 100) {
+          me.param[0] = 0;
+          createEnemy("minion", me.x, me.y + 8, -1.0 + me.dx + me.px + me.rx, -2.0 + me.dy + me.py + me.ry);
+          me.changeAnime("vomit");
+        } 
+      }
+      else if (me.isEndAnime()) {
+        me.changeAnime("munch");
+      }
+    }
+  },
+  "minion": { // Minion Slime
+    "type": "normal",
+    "w" : 16,
+    "h" : 16,
+    "box" : [2, 4, 13, 15],
+    "hp" : 4,
+    "img" : imgMinionSlime,
+    "anime": "minionslime",
+    "move": (me) => {
+      if (!isOnLand(me)) {
+        me.dy += 0.125;
+      }
+      else {
+        me.dx = 0.25 * (me.anitype === "walk_l" ? -1 : 1);
+        me.dy = 0;
+        me.rx = 0;
+        me.ry = 0;
+        me.rideOn();
+        movesAffectedByMap(me);
+      }
+      if (me.dy > 4) me.dy = 4;
+      moveAndCheckCollisionWithMap(me);
+      if ((isTouchingLeftWall(me) || me.px > 0) && me.anitype === "walk_l") {
+        me.direction = "right";
+      }
+      else if (((isTouchingRightWall(me) || me.px < 0) && me.anitype === "walk_r") || me.anitype === "default") {
+        me.direction = "left";
+      }
+      if (!isOnLand(me)) {
+        me.changeAnime(me.direction === "left" ? "fall_l" : "fall_r");
+      }
+      else {
+        me.changeAnime(me.direction === "left" ? "walk_l" : "walk_r");
+      }
     }
   },
   "p": { // big pumpkin
@@ -900,7 +1019,7 @@ const enemyData = {
             if (me.param[1] === 1) { // 着地
               me.param[1] = 0;
               quakeTimeY = 15;
-              createEnemy("P", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16);
+              createEnemy("P", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0);
             }
             if (me.param[0]-- < 0) { // ジャンプ
               me.dx = randInt(2, 6) * 0.25 * (me.direction === "left") ? -1 : 1;
@@ -943,6 +1062,9 @@ const enemyData = {
           }
           me.changeAnime("yarare");
           if (me.param[0] > 200) {
+            for (let i = 0; i < 16; i++) {
+              createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
+            }
             quakeTimeY = 20;
             bossBattlePhase = "end";
           }
@@ -956,7 +1078,7 @@ const enemyData = {
 
 const enemyKeyList = Object.keys(enemyData);
 
-let createEnemy = (enemyId, x, y) => {
+let createEnemy = (enemyId, x, y, dx, dy) => {
   let newEnemy = new CharacterSprite(
     enemyId, // id
     x, // start position x
@@ -971,6 +1093,8 @@ let createEnemy = (enemyId, x, y) => {
     enemyData[enemyId].img, // sprite sheet
     animeData[enemyData[enemyId].anime]
   );
+  newEnemy.dx = dx;
+  newEnemy.dy = dy;
   enemyArray.push(newEnemy);
 };
 
@@ -1118,19 +1242,29 @@ let effectData = {
     "w": 32,
     "h": 32,
     "img": imgExplode,
-    "anime": "explode"
+    "anime": "explode",
+    "gravity": false
   },
   "red_glitter": {
     "w": 8,
     "h": 8,
     "img": imgRedGlitter,
-    "anime": "glitter"
+    "anime": "glitter",
+    "gravity": false
   },
   "red_glitter_slow": {
     "w": 8,
     "h": 8,
     "img": imgRedGlitter,
-    "anime": "glitter_slow"
+    "anime": "glitter_slow",
+    "gravity": false
+  },
+  "star": {
+    "w": 8,
+    "h": 8,
+    "img": imgStar,
+    "anime": "star",
+    "gravity": true
   }
 };
 
@@ -1150,6 +1284,22 @@ let createEffect = (effectId, x, y, dx, dy) => {
   newEffect.dy = dy;
   newEffect.changeAnime("default");
   effectArray.push(newEffect);
+};
+
+let createEffectSub = (effectId, x, y, dx, dy) => {
+  let newEffect = new Sprite (
+    effectId,
+    x,
+    y,
+    effectData[effectId].w,
+    effectData[effectId].h,
+    effectData[effectId].img,
+    animeData[effectData[effectId].anime]
+  );
+  newEffect.dx = dx;
+  newEffect.dy = dy;
+  newEffect.changeAnime("default");
+  effectSubArray.push(newEffect);
 };
 
   // --------------//
@@ -1353,7 +1503,7 @@ let sceneList = {
           }
           // enemy
           if (enemyKeyList.indexOf(mapData[y][x]) != -1) {
-            createEnemy(mapData[y][x], x * gridSize, y * gridSize);
+            createEnemy(mapData[y][x], x * gridSize, y * gridSize, 0, 0);
           }
         }
       }
@@ -1371,11 +1521,27 @@ let sceneList = {
     "update" : () => {
       const plcMaxSpeedX = 1.25;
       if (!stopFlag) {
+        // erase enemy
+        enemyArray = enemyArray.filter((e) => {
+          return (e.hp > 0 || (enemyData[e.id].type === "boss" && bossBattlePhase != "end"));
+        });
+        // erase item
+        itemArray = itemArray.filter((e) => {
+          return e.hp > 0;
+        });
+        // erase effect
+        effectArray = effectArray.filter((e) => {
+          return e.isEndAnime() === false;
+        });
         // gimmick move
         plc.riding = null;
-        gimmickArray.forEach((e) => {
-          checkRiding(plc, e);
-          gimmickData[e.id].move(e);
+        enemyArray.forEach( (enemy) => {enemy.riding = null;} );
+        gimmickArray.forEach((vehicle) => {
+          plc.checkRiding(vehicle);
+          enemyArray.forEach((enemy) => {
+            if (enemyData[enemy.id].type === "normal") enemy.checkRiding(vehicle);
+          });
+          gimmickData[vehicle.id].move(vehicle);
         });
         // *********************
         // player character move
@@ -1406,12 +1572,10 @@ let sceneList = {
           if (plc.riding === null) {
             movesAffectedByMap(plc);
             plc.rx = 0;
+            plc.ry = 0;
           }
           // 乗っている物体の移動を反映
-          else {
-            plc.y = plc.riding.lTopY() - plc.h;
-            plc.rx = plc.riding.dx;
-          }
+          plc.rideOn();
           // enter to door
           if (isKeyPressedNow("u")) {
             doorArray.forEach((e) => {
@@ -1425,12 +1589,19 @@ let sceneList = {
           }
         }
         else {
+          // 慣性を移動速度に反映
           plc.dx += plc.px;
           plc.dy += plc.py;
+          if (plc.dy >= 0) { // 動く足場の慣性は落下時にのみ適用
+            plc.dy += plc.ry;
+          }
+          // 慣性リセット
           plc.px = 0;
           plc.py = 0;
-          plc.rx = 0;
           plc.ry = 0;
+          if (coyoteTime <= 0) {
+            plc.rx = 0;
+          }
           coyoteTime--;
           if (keyInput.indexOf("l") != -1) {
             if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.0625, -plcMaxSpeedX);
@@ -1535,15 +1706,23 @@ let sceneList = {
             plc.hp -= 1;
             plc.dx = - plc.dx;
             plc.dy = plc.dy >= 0 ? -1.5 : 0;
-            if (plc.hp <= 0) { // ぐえ〜〜
-              yarareAnimeCounter = 0;
-              stopFlag = true;
-              plc.dx = 0;
-              plc.dy = 0;
-              plc.px = 0;
-              plc.py = 0;
-            }
           };
+        }
+        // fall
+        if (plc.y > cameraY + charaLay.height + 64) {
+          plc.reaction = invincibleTimeMax;
+          plc.hp = 0;
+          for (let i = 0; i < 6; i++) {
+            createEffectSub("star", plc.lTopX() + ((plc.rbx - plc.ltx) - 8) / 2, cameraY + charaLay.height, randInt(0, 60) * 0.01 * (i % 2 * 2 - 1), randInt(200, 500) * -0.01);
+          }
+        }
+        if (plc.hp <= 0) { // ぐえ〜〜
+          yarareAnimeCounter = 0;
+          stopFlag = true;
+          plc.dx = 0;
+          plc.dy = 0;
+          plc.px = 0;
+          plc.py = 0;
         }
         // limit speed
         if (plc.dx < -4.0) plc.dx = -4.0;
@@ -1557,7 +1736,10 @@ let sceneList = {
         enemyArray.forEach((e) => {
           enemyData[e.id].move(e);
           if (e.hp <= 0 && enemyData[e.id].type != "boss") { // やられた時 (ボスを除く)
-            createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty)- 32) / 2, 0, 0);
+            createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty) - 32) / 2, 0, 0);
+            for (let i = 0; i < e.w * 2 / gridSize; i++) {
+              createEffect("star", e.lTopX() + ((e.rbx - e.ltx) - 8) / 2, e.lTopY() + ((e.rby - e.lty) - 8) / 2, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 300) * -0.01);
+            }
           }
         });
         // item move
@@ -1568,19 +1750,9 @@ let sceneList = {
         effectArray.forEach((e) => {
           e.x += e.dx;
           e.y += e.dy;
-        });
-
-        // erase enemy
-        enemyArray = enemyArray.filter((e) => {
-          return (e.hp > 0 || (enemyData[e.id].type === "boss" && bossBattlePhase != "end"));
-        });
-        // erase item
-        itemArray = itemArray.filter((e) => {
-          return e.hp > 0;
-        });
-        // erase effect
-        effectArray = effectArray.filter((e) => {
-          return e.isEndAnime() === false;
+          if (effectData[e.id].gravity) {
+            e.dy += 0.125;
+          }
         });
       } // stop flag が立ってない時の処理 ここまで！
       
@@ -1597,6 +1769,14 @@ let sceneList = {
         }
         plc.x += plc.dx;
         plc.y += plc.dy;
+        // effect move
+        effectSubArray.forEach((e) => {
+          e.x += e.dx;
+          e.y += e.dy;
+          if (effectData[e.id].gravity) {
+            e.dy += 0.125;
+          }
+        });
         if (yarareAnimeCounter === 180) {
           setTransition("game");
         }
@@ -1721,6 +1901,11 @@ let sceneList = {
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
       }));
+      effectSubArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
+      }));
       if (Math.floor(plc.reaction / 3) * 3 % 6 === 0 || plc.hp <= 0) plc.drawShadow(charaCtx, Math.floor(plc.x - cameraX + 1), Math.floor(plc.y - cameraY) + 1);
 
       // draw map shadow & map
@@ -1767,6 +1952,11 @@ let sceneList = {
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
       effectArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
+      }));
+      effectSubArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
@@ -1959,8 +2149,3 @@ font.load().then((loadedFace) => {
   useriCtx.font = "12px MS ゴシック";
   transCtx.font = "12px MS ゴシック";
 });
-
-
-
-
-
