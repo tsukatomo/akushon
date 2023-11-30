@@ -82,6 +82,8 @@ let imgSSCursorL = [new Image(), new Image()];
 imgSSCursorL[0].src = "./img/sscursor_l.png";
 let imgSSCursorR = [new Image(), new Image()];
 imgSSCursorR[0].src = "./img/sscursor_r.png";
+let imgWip = new Image();
+imgWip.src = "./img/work_in_progress.png";
 
 // list of shadowing objects
 let shadowList = [
@@ -190,7 +192,11 @@ let animeData = {
     "stand": { frames: 2, dulation: 8, img: [0, 1], repeat: true },
     "jump": { frames: 1, dulation: 8, img: [2], repeat: true },
     "fall": { frames: 2, dulation: 8, img: [3, 4], repeat: false },
-    "open": { frames: 6, dulation: 2, img: [5, 6, 7, 8, 9, 10], repeat: false},
+    "shake": { frames: 2, dulation: 2, img: [15, 16], repeat: true },
+    "dash": { frames: 4, dulation: 3, img: [5, 6, 7, 8], repeat: true },
+    "clash": { frames: 1, dulation: 8, img: [3], repeat: true },
+    "open": { frames: 6, dulation: 2, img: [9, 10, 11, 12, 13, 14], repeat: false},
+    "yarare": { frames: 1, dulation: 8, img: [12], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "medal": {
@@ -319,7 +325,7 @@ let stageData = [
   },
   {
     name: "あおみどり研究所",
-    level: "2-1",
+    level: "2-Boss",
   },
 ];
 
@@ -424,6 +430,8 @@ class CharacterSprite extends Sprite{
     this.reaction = 0;
     // trueのとき、他キャラクターとの衝突判定を行わない
     this.isNoHit = false;
+    // trueのとき、無敵
+    this.isInvincible = false;
     // 地形から受ける移動量（慣性が乗る）
     this.px = 0;
     this.py = 0;
@@ -1009,62 +1017,104 @@ const enemyData = {
     "type": "boss",
     "w" : 96,
     "h" : 48,
-    "box" : [32, 16, 85, 47],
+    "box" : [36, 18, 85, 47],
     "hp" : 80,
-    "img" : imgBigPumpkin,
-    "anime": "bigpumpkin",
+    "img" : imgRenchin,
+    "anime": "renchin",
     "move": (me) => {
       me.isNoHit = true; // 戦闘中以外衝突判定しない
       switch(bossBattlePhase) {
         case "none" :
-          me.y = -64; // 画面外に移動
+          me.isInvincible = true;
+          me.changeAnime("default");
           break;
         case "entrance" :
-          if (!isOnLand(me)) {
-            me.dy += (me.dy > 0) ? 0.25 : 0.125;
-          }
-          else {
-            bossBattlePhase = "fight";
-          }
-          me.changeAnime("laugh");
+          bossBattlePhase = "fight";
+          me.changeAnime("stand");
           moveAndCheckCollisionWithMap(me);
           break; 
         case "fight" :
           me.isNoHit = false;
           if (me.param.length === 0) {
-            me.param.push(200); // 地面での待機時間
-            me.param.push(1); // 滞空時1，着地した瞬間に0に変更
+            me.param.push(100); // 待機時間
+            me.param.push("dash_wait"); // 行動パターン
+            me.param.push(me.x); // 初期位置
           }
-          if (!isOnLand(me)) {
-            me.param[0] = me.hp * 2 + 40
-            me.param[1] = 1;
-            me.dy += (me.dy > 0) ? 0.25 : 0.125;
-          }
-          else {
-            //me.direction = (me.x < plc.x) ? "right" : "left";
-            if (me.param[1] === 1) { // 着地
-              me.param[1] = 0;
-              quakeTimeY = 15;
-              createEnemy("P", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0);
-            }
-            if (me.param[0]-- < 0) { // ジャンプ
-              me.dx = randInt(2, 6) * 0.25 * (me.direction === "left") ? -1 : 1;
-              me.dy = -6;
-            }
-            else { // 待機
-              me.dx = 0;
-              me.dy = 0;
+          if (me.param[1] === "dash_wait") {
+            me.isInvincible = true;
+            me.dx = 0;
+            me.dy = 0;
+            if (me.param[0]-- <= 0) {
+              me.param[0] = 50;
+              me.param[1] = "shake";
+              me.changeAnime("shake");
             }
           }
-          if (isTouchingLeftWall(me) && me.direction === "left") {
-            me.direction = "right";
-            me.dx = -me.dx;
+          else if (me.param[1] === "shake") {
+            if (me.param[0]-- <= 0) {
+              me.param[1] = "dash";
+              me.changeAnime("dash");
+            }
           }
-          if (isTouchingRightWall(me) && me.direction === "right") {
-            me.direction = "left";
-            me.dx = -me.dx;
+          else if (me.param[1] === "dash") {
+            if (me.dx > -8) me.dx -= 0.0625;
+            if (me.isHit(plc) && plc.reaction === invincibleTimeMax) {
+              plc.dx += me.dx;
+            }
+            if (isTouchingLeftWall(me)) {
+              me.param[1] = "clash";
+              me.dy = -1.25;
+              quakeTimeX = 15;
+              me.changeAnime("clash");
+            }
           }
-          me.changeAnime("laugh");
+          else if (me.param[1] === "clash") {
+            me.dx = 1;
+            me.dy += 0.125;
+            if (isOnLand(me)) {
+              me.param[0] = 25;
+              me.param[1] = "jump_wait";
+              me.changeAnime("stand");
+            }
+          }
+          else if (me.param[1] === "jump_wait") {
+            me.dx = 0;
+            me.dy = 0;
+            if (me.param[0]-- <= 0) {
+              me.param[1] = "jump";
+              me.changeAnime("jump");
+              me.dy -= 4;
+            }
+          }
+          else if (me.param[1] === "jump") {
+            me.dx = 1.75;
+            me.dy += 0.0625;
+            if (me.anitype === "jump" && me.dy > 0) me.changeAnime("fall");
+            if (me.x > me.param[2]) me.x = me.param[2];
+            if (isOnLand(me)) {
+              quakeTimeY = 20;
+              me.param[0] = 200;
+              me.param[1] = "open_wait";
+              me.changeAnime("stand");
+            }
+          }
+          else if (me.param[1] === "open_wait") {
+            me.dx = 0;
+            me.dy = 0;
+            if (me.param[0]-- <= 0) {
+              me.param[0] = 200;
+              me.param[1] = "open";
+              me.changeAnime("open");
+            }
+          }
+          else if (me.param[1] === "open") {
+            me.isInvincible = false;
+            if (me.param[0]-- <= 0) {
+              me.param[0] = 200;
+              me.param[1] = "dash_wait";
+              me.changeAnime("stand");
+            }
+          }
           moveAndCheckCollisionWithMap(me);
           // HPバーの描画
           useriCtx.fillStyle = "#2a2349";
@@ -1740,8 +1790,10 @@ let sceneList = {
             enemyArray.forEach((e) => {
               if (e.isHit(shotArray[i])) {
                 isShotVanish = true;
-                e.hp -= 1;
-                e.reaction = 20;
+                if (!e.isInvincible) {
+                  e.hp -= 1;
+                  e.reaction = 20;
+                }
               }
             });
             if (isShotVanish) {
@@ -1962,10 +2014,10 @@ let sceneList = {
         }
         // 揺れ
         if (quakeTimeX-- > 0) {
-          cameraX -= (((quakeTimeX + 1) / 2 * 2) % 4 - 1) * 2;
+          cameraX -= (Math.floor(((quakeTimeX + 1) / 2) * 2) % 4 - 1) * 2;
         }
         if (quakeTimeY-- > 0) {
-          cameraY -= ((quakeTimeY / 2 * 2) % 4 - 1) * 2;
+          cameraY -= ((Math.floor(quakeTimeY / 2) * 2) % 4 - 1) * 2;
         }
       }
       
@@ -2001,8 +2053,9 @@ let sceneList = {
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        let shakeX = e.reaction-- > 0 ? ((e.reaction / 2 * 2) % 4) - 1 * (e.w / gridSize) : 0;
-        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1) + shakeX, Math.floor(e.y - cameraY + 1));
+        let shakeX = e.reaction-- > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1) : 0;
+        if (e.type === "boss") shakeX *= 2;
+        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1 + shakeX), Math.floor(e.y - cameraY + 1));
       }));
       shotArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
@@ -2056,8 +2109,9 @@ let sceneList = {
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        let shakeX = e.reaction > 0 ? ((e.reaction / 2 * 2) % 4) - 1  * (e.w / gridSize) : 0;
-        e.drawAnime(charaCtx, Math.floor(e.x - cameraX) + shakeX, Math.floor(e.y - cameraY));
+        let shakeX = e.reaction > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1)  : 0;
+        if (e.type === "boss") shakeX *= 2;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX + shakeX), Math.floor(e.y - cameraY));
       }));
       shotArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
@@ -2088,8 +2142,8 @@ let sceneList = {
 
       // draw UI
       // hearts
-      let shakeHeartX = (plc.reaction < invincibleTimeMax - 20 ? 0 : ((plc.reaction / 4) * 4 % 8 - 2) / 2);
-      let shakeHeartY = (plc.reaction < invincibleTimeMax - 20 ? 0 : (((plc.reaction + 2) / 4) * 4 % 8 - 2) / 2);
+      let shakeHeartX = (plc.reaction < invincibleTimeMax - 20 ? 0 : (Math.floor(plc.reaction / 4) * 4 % 8 - 2) / 2);
+      let shakeHeartY = (plc.reaction < invincibleTimeMax - 20 ? 0 : (Math.floor((plc.reaction + 2) / 4) * 4 % 8 - 2) / 2);
       for (let i = 0; i < plcMaxHp; i++) {
         useriCtx.drawImage(imgUiHeart, (plc.hp > i) ? 0 : 16, 0, 16, 16, i * gridSize + shakeHeartX, shakeHeartY, 16, 16);
       }
