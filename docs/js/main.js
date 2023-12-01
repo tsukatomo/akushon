@@ -44,10 +44,10 @@ let imgRenchin = [new Image(), new Image()];
 imgRenchin[0].src = "./img/renchin.png";
 
 // item
-let imgMedal = [new Image(), new Image()];
-imgMedal[0].src = "./img/medal.png";
 let imgKey = [new Image(), new Image()];
 imgKey[0].src = "./img/key.png";
+let imgMedal = [new Image(), new Image()];
+imgMedal[0].src = "./img/medal.png";
 
 // gimmick
 let imgMoveFloor = [new Image(), new Image()];
@@ -68,6 +68,8 @@ let imgStar = [new Image(), new Image()];
 imgStar[0].src = "./img/star.png";
 let imgRedGlitter = [new Image(), new Image()];
 imgRedGlitter[0].src = "./img/red_glitter.png";
+let imgYellowGlitter = [new Image(), new Image()];
+imgYellowGlitter[0].src = "./img/yellow_glitter.png";
 
 // UI
 let imgUiHeart = new Image();
@@ -76,6 +78,8 @@ let imgUiMedal = new Image();
 imgUiMedal.src = "./img/ui_medal.png";
 let imgUiCoin = new Image();
 imgUiCoin.src = "./img/ui_coin.png";
+let imgUiKey = new Image();
+imgUiKey.src = "./img/ui_key.png";
 
 // thumbnail
 let imgThumbnail = new Image();
@@ -100,6 +104,7 @@ let shadowList = [
   imgDanmakuYellow,
   imgBigPumpkin,
   imgRenchin,
+  imgKey,
   imgMedal,
   imgMoveFloor,
   imgShot,
@@ -107,6 +112,7 @@ let shadowList = [
   imgExplode,
   imgStar,
   imgRedGlitter,
+  imgYellowGlitter,
   imgSSCursorL,
   imgSSCursorR
 ];
@@ -213,6 +219,9 @@ let animeData = {
     "yarare": { frames: 1, dulation: 8, img: [12], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
+  "key": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
   "medal": {
     "collected": { frames: 5, dulation: 6, img: [5, 6, 7, 8, 9], repeat: true },
     "default": { frames: 5, dulation: 6, img: [0, 1, 2, 3, 4], repeat: true }
@@ -227,7 +236,7 @@ let animeData = {
     "default": { frames: 6, dulation: 2, img: [0, 1, 2, 2, 1, 0], repeat: false } 
   },
   "glitter_slow": {
-    "default": { frames: 7, dulation: 3, img: [0, 1, 2, 2, 2, 2, 1], repeat: false } 
+    "default": { frames: 7, dulation: 3, img: [0, 1, 2, 3, 3, 3, 2], repeat: false } 
   },
   "star": {
     "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
@@ -274,7 +283,8 @@ const mapChip = {
   "«": { id: [25, 26, 27, 28], dulation: 1, type: "wall", subtype: "right_conv_fast" }, // alt + ]
   "=": { id: [29], dulation: 1, type: "wall", subtype: "none" },
   "&": { id: [30], dulation: 1, type: "wall", subtype: "none" },
-  "ƒ": { id: [31, 32, 31, 33], dulation: 4, type: "wall", subtype: "reverse_switch"} // alt + f
+  "ƒ": { id: [31, 32, 31, 33], dulation: 4, type: "wall", subtype: "reverse_switch"}, // alt + f
+  "¡": { id: [34], dulation: 1, type: "wall", subtype: "lock"}, // alt + 1
 };
 const mapChipList = Object.keys(mapChip);
 
@@ -345,7 +355,7 @@ let stageData = [
   },
   {
     name: "あおみどり研究所",
-    level: "2-Boss",
+    level: "2-1",
   },
 ];
 
@@ -519,6 +529,9 @@ let bossBattlePhase = "none";
 let yarareAnimeCounter = 0;
 let clearAnimeCounter = 0;
 let collectedMedal = [false, false, false];
+let collectedKey = [false, false, false];
+let collectedKeyNum = 0;
+let changedMapList = [];
 let collectedCoins = 0;
 let coinCounter = 0;
 let dataResetCount = 0;
@@ -625,6 +638,23 @@ let movesAffectedByMap = (character) => {
     character.px = 0;
     character.py = 0;
   }
+};
+
+// 地形と重力の影響を受ける物体の速度(dx, dy, px, py, rx, ry)を更新
+let updateVelocity = (character) => {
+  if (!isOnLand(character)) {
+    character.dy += 0.125;
+    character.rx = 0;
+    character.ry = 0;
+  }
+  else {
+    character.dy = 0;
+    character.px = 0;
+    character.py = 0;
+    character.rideOn();
+    movesAffectedByMap(character);
+  }
+  if (character.dy > 4) character.dy = 4;
 };
 
 // キャラクターを移動させ、地形とぶつかったら押し戻す関数
@@ -1251,7 +1281,72 @@ let createEnemy = (enemyId, x, y, dx, dy) => {
  //  item data   //
 // ============ //
 let itemData = {
-  "X": { // medal 1
+  //--------------------------------- Key ------------------------------
+  "à": { // key 0 (alt + _ -> a)
+    "type": "gravity",
+    "w": 16,
+    "h": 16,
+    "box" : [2, 0, 13, 15],
+    "img": imgKey,
+    "anime": "key",
+    "move": (me) => {
+      if (collectedKey[0]) me.hp = 0;
+      else if (mapAnimeCount % 20 === 1) {
+        createEffect("yellow_glitter", randInt(me.x - 8, me.x + 16), randInt(me.y - 8, me.y + 16), 0, 0);
+      }
+    },
+    "obtained": (me) => {
+      collectedKey[0] = true;
+      collectedKeyNum++;
+      for (let i = 0; i < 4; i++) {
+        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2*Math.PI*(i*2+1)/8) * 4, Math.sin(2*Math.PI*(i*2+1)/8) * 4);
+      }
+    }
+  },
+  "è": { // key 0 (alt + _ -> e)
+    "type": "gravity",
+    "w": 16,
+    "h": 16,
+    "box" : [2, 0, 13, 15],
+    "img": imgKey,
+    "anime": "key",
+    "move": (me) => {
+      if (collectedKey[1]) me.hp = 0;
+      else if (mapAnimeCount % 20 === 1) {
+        createEffect("yellow_glitter", randInt(me.x - 8, me.x + 16), randInt(me.y - 8, me.y + 16), 0, 0);
+      }
+    },
+    "obtained": (me) => {
+      collectedKey[1] = true;
+      collectedKeyNum++;
+      for (let i = 0; i < 4; i++) {
+        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2*Math.PI*(i*2+1)/8) * 4, Math.sin(2*Math.PI*(i*2+1)/8) * 4);
+      }
+    }
+  },
+  "ì": { // key 0 (alt + _ -> i)
+    "type": "gravity",
+    "w": 16,
+    "h": 16,
+    "box" : [2, 0, 13, 15],
+    "img": imgKey,
+    "anime": "key",
+    "move": (me) => {
+      if (collectedKey[2]) me.hp = 0;
+      else if (mapAnimeCount % 20 === 1) {
+        createEffect("yellow_glitter", randInt(me.x - 8, me.x + 16), randInt(me.y - 8, me.y + 16), 0, 0);
+      }
+    },
+    "obtained": (me) => {
+      collectedKey[2] = true;
+      collectedKeyNum++;
+      for (let i = 0; i < 4; i++) {
+        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2*Math.PI*(i*2+1)/8) * 4, Math.sin(2*Math.PI*(i*2+1)/8) * 4);
+      }
+    }
+  },
+  //--------------------------------- Medal ------------------------------
+  "X": { // medal 0
     "type": "medal",
     "w": 32,
     "h": 32,
@@ -1274,12 +1369,12 @@ let itemData = {
       }
       else {
         for (let i = 0; i < 8; i++) {
-          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 4, Math.sin(2*Math.PI*i/8) * 4);
         }
       }
     }
   },
-  "Y": { // medal 2
+  "Y": { // medal 1
     "type": "medal",
     "w": 32,
     "h": 32,
@@ -1302,12 +1397,12 @@ let itemData = {
       }
       else {
         for (let i = 0; i < 8; i++) {
-          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 4, Math.sin(2*Math.PI*i/8) * 4);
         }
       }
     }
   },
-  "Z": { // medal 3 (boss)
+  "Z": { // medal 2 (boss)
     "type": "medal",
     "w": 32,
     "h": 32,
@@ -1346,7 +1441,7 @@ let itemData = {
       }
       else {
         for (let i = 0; i < 8; i++) {
-          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 4, Math.sin(2*Math.PI*i/8) * 4);
         }
       }
     }
@@ -1430,28 +1525,42 @@ let effectData = {
     "h": 32,
     "img": imgExplode,
     "anime": "explode",
-    "gravity": false
+    "move": "stop"
   },
   "red_glitter": {
     "w": 8,
     "h": 8,
     "img": imgRedGlitter,
     "anime": "glitter",
-    "gravity": false
+    "move": "stop"
   },
   "red_glitter_slow": {
     "w": 8,
     "h": 8,
     "img": imgRedGlitter,
     "anime": "glitter_slow",
-    "gravity": false
+    "move": "slowy"
+  },
+  "yellow_glitter": {
+    "w": 8,
+    "h": 8,
+    "img": imgYellowGlitter,
+    "anime": "glitter",
+    "move": "stop"
+  },
+  "yellow_glitter_slow": {
+    "w": 8,
+    "h": 8,
+    "img": imgYellowGlitter,
+    "anime": "glitter_slow",
+    "move": "slowy"
   },
   "star": {
     "w": 8,
     "h": 8,
     "img": imgStar,
     "anime": "star",
-    "gravity": true
+    "move": "gravity"
   }
 };
 
@@ -1704,6 +1813,9 @@ let sceneList = {
       else if (isKeyPressedNow("z") && stageId < stageData.length) { // start game
         // reset level status
         collectedMedal = [false, false, false];
+        collectedKey = [false, false, false];
+        collectedKeyNum = 0;
+        changedMapList.length = 0;
         plc.hp = plcMaxHp;
         levelName = stageData[stageId].level;
         levelStart = "A";
@@ -1775,6 +1887,11 @@ let sceneList = {
           }
         }
       }
+      // マップの更新情報を反映
+      changedMapList.forEach((e) => {
+        if (e.level != levelName) return;
+        replaceMap(e.x, e.y, e.replaceTo);
+      });
       // initialize camera position
       cameraX = Math.floor(plc.x - charaLay.width / 2 + 8);
       cameraY = Math.floor(plc.y - charaLay.height / 2 + 8);
@@ -1905,6 +2022,7 @@ let sceneList = {
         }
         // move shot
         for (let i = 0; i < shotArray.length; i++) {
+          shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
           shotArray[i].x += shotArray[i].dx;
           shotArray[i].param[0]++;
           if (shotArray[i].anitype === "shot") {
@@ -1924,19 +2042,32 @@ let sceneList = {
               shotArray[i].changeAnime("vanish");
               shotArray[i].param[0] = 0;
               // 地形破壊
-              if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block") {
-                replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '.');
+              let hitMapX = Math.floor((shotArray[i].x + 8) / gridSize);
+              let hitMapY = Math.floor((shotArray[i].y + 8) / gridSize);
+              let hitMapSubType = getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8);
+              if (hitMapSubType === "block") {
+                replaceMap(hitMapX, hitMapY, '.');
               }
-              else if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block_coin") {
-                replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '¥');
+              else if (hitMapSubType === "block_coin") {
+                replaceMap(hitMapX, hitMapY, '¥');
               }
-              else if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block_heart") {
-                replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '?');
+              else if (hitMapSubType === "block_heart") {
+                replaceMap(hitMapX, hitMapY, '?');
               }
-              else if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "block_door") {
-                replaceMap(Math.floor((shotArray[i].x + 8) / gridSize), Math.floor((shotArray[i].y + 8) / gridSize), '∑');
+              else if (hitMapSubType === "block_door") {
+                replaceMap(hitMapX, hitMapY, '∑');
               }
-              else if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "reverse_switch") {
+              // 解錠
+              else if (hitMapSubType === "lock" && collectedKeyNum > 0) {
+                collectedKeyNum--;
+                replaceMap(hitMapX, hitMapY, '.');
+                changedMapList.push( { level: levelName, x: hitMapX, y: hitMapY, replaceTo: '.'} );
+                for (let j = 0; j < 4; j++) {
+                  createEffect("yellow_glitter_slow", shotArray[i].x + 8, shotArray[i].y + 8, Math.cos(2*Math.PI*(j*2+1)/8) * 4, Math.sin(2*Math.PI*(j*2+1)/8) * 4);
+                }
+              }
+              // ベルトコンベア切り替え
+              else if (hitMapSubType === "reverse_switch") {
                 for (let y = 0; y < mapData.length; y++) {
                   for (let x = 0; x < mapData[y].length; x++) {
                     if (mapData[y][x] === "≥") replaceMap(x, y, "≤");
@@ -1947,7 +2078,6 @@ let sceneList = {
                 }
               }
             }
-            shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
           }
         }
         // erase shot
@@ -2029,13 +2159,21 @@ let sceneList = {
         // item move
         itemArray.forEach((e) => {
           itemData[e.id].move(e);
+          if (e.type === "gravity") {
+            updateVelocity(e);
+            moveAndCheckCollisionWithMap(e);
+          }
         });
         // effect move
         effectArray.forEach((e) => {
           e.x += e.dx;
           e.y += e.dy;
-          if (effectData[e.id].gravity) {
+          if (effectData[e.id].move === "gravity") {
             e.dy += 0.125;
+          }
+          else if (effectData[e.id].move === "slowy") {
+            e.dx *= 0.90;
+            e.dy *= 0.90;
           }
         });
       } // stop flag が立ってない時の処理 ここまで！
@@ -2057,8 +2195,12 @@ let sceneList = {
         effectSubArray.forEach((e) => {
           e.x += e.dx;
           e.y += e.dy;
-          if (effectData[e.id].gravity) {
+          if (effectData[e.id].move === "gravity") {
             e.dy += 0.125;
+          }
+          else if (effectData[e.id].move === "slowy") {
+            e.dx *= 0.90;
+            e.dy *= 0.90;
           }
         });
         if (yarareAnimeCounter === 180) {
@@ -2284,6 +2426,12 @@ let sceneList = {
       useriCtx.textAlign = "left";
       useriCtx.fillText(Math.ceil(coinCounter).toString().padStart(4, "0"), gridSize, gridSize - hopCoinY - 2);
       useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, gridSize - hopCoinY - 2, 16, 16);
+      // key
+      if (collectedKeyNum > 0) {
+        useriCtx.fillStyle = "#fff9e4";
+        useriCtx.fillText(collectedKeyNum, gridSize, gridSize * 2 - 2);
+        useriCtx.drawImage(imgUiKey, 0, 0, 16, 16, 0, gridSize * 2 - 2, 16, 16);
+      }
     }
   },
 };
