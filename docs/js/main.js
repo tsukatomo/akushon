@@ -34,6 +34,8 @@ let imgSlimeLauncher = [new Image(), new Image()];
 imgSlimeLauncher[0].src = "./img/slimelauncher.png";
 let imgMinionSlime = [new Image(), new Image()];
 imgMinionSlime[0].src = "./img/minionslime.png";
+let imgDanmakuYellow = [new Image(), new Image()];
+imgDanmakuYellow[0].src = "./img/danmaku_yellow.png";
 
 // enemy (Boss)
 let imgBigPumpkin = [new Image(), new Image()];
@@ -44,6 +46,8 @@ imgRenchin[0].src = "./img/renchin.png";
 // item
 let imgMedal = [new Image(), new Image()];
 imgMedal[0].src = "./img/medal.png";
+let imgKey = [new Image(), new Image()];
+imgKey[0].src = "./img/key.png";
 
 // gimmick
 let imgMoveFloor = [new Image(), new Image()];
@@ -93,6 +97,7 @@ let shadowList = [
   imgSlime,
   imgSlimeLauncher,
   imgMinionSlime,
+  imgDanmakuYellow,
   imgBigPumpkin,
   imgRenchin,
   imgMedal,
@@ -183,6 +188,11 @@ let animeData = {
     "fall_r": {frames: 1, dulation: 8, img: [5], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
+  "danmakuyellow": {
+    "shot": { frames: 2, dulation: 4, img: [0, 1], repeat: true },
+    "vanish": { frames: 2, dulation: 2, img: [2, 3], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
   "bigpumpkin": {
     "laugh": { frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true },
     "yarare": { frames: 1, dulation: 8, img: [4], repeat: true },
@@ -193,13 +203,18 @@ let animeData = {
     "jump": { frames: 1, dulation: 8, img: [2], repeat: true },
     "fall": { frames: 2, dulation: 8, img: [3, 4], repeat: false },
     "shake": { frames: 2, dulation: 2, img: [15, 16], repeat: true },
+    "shake_red": { frames: 2, dulation: 2, img: [21, 22], repeat: true },
     "dash": { frames: 4, dulation: 3, img: [5, 6, 7, 8], repeat: true },
-    "clash": { frames: 1, dulation: 8, img: [3], repeat: true },
-    "open": { frames: 6, dulation: 2, img: [9, 10, 11, 12, 13, 14], repeat: false},
+    "dash_red": { frames: 4, dulation: 3, img: [17, 18, 19, 20], repeat: true },
+    "clash": { frames: 1, dulation: 8, img: [4], repeat: true },
+    "open_1": { frames: 3, dulation: 2, img: [9, 10, 11], repeat: false },
+    "open_2": { frames: 3, dulation: 2, img: [12, 13, 14], repeat: false },
+    "open_2_red": { frames: 3, dulation: 2, img: [12, 23, 24], repeat: false },
     "yarare": { frames: 1, dulation: 8, img: [12], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "medal": {
+    "collected": { frames: 5, dulation: 6, img: [5, 6, 7, 8, 9], repeat: true },
     "default": { frames: 5, dulation: 6, img: [0, 1, 2, 3, 4], repeat: true }
   },
   "movefloor": {
@@ -315,6 +330,11 @@ let createNewSaveData = async (saveDataName) => {
   await writeSaveData(saveDataName, saveDataObject);
 };
 
+let isMedalcollected = (stageId, medalId) => {
+  if (!saveDataObject["medal"].hasOwnProperty(stageId)) return false;
+  return  saveDataObject["medal"][stageId][medalId];
+}
+
 // stage select
 let stageId = 0;
 let ssCursorL, ssCursorR;
@@ -416,8 +436,10 @@ class Sprite {
 
 // character class
 class CharacterSprite extends Sprite{
-  constructor(id, x, y, w, h, ltx, lty, rbx, rby, hp, img, shadow, anime) {
+  constructor(id, type, x, y, w, h, ltx, lty, rbx, rby, hp, img, shadow, anime) {
     super(id, x, y, w, h, img, shadow, anime);
+    // type
+    this.type = type;
     // ltx,lty = left top of hitbox
     this.ltx = ltx;
     this.lty = lty;
@@ -445,6 +467,11 @@ class CharacterSprite extends Sprite{
   lTopY () { return this.y + this.lty; };
   rBottomX () { return this.x + this.rbx; };
   rBottomY () { return this.y + this.rby; };
+
+  // タイプ判定
+  isType (typename) {
+    return this.type === typename;
+  }
 
   // 衝突判定
   isHit (opponent) {
@@ -873,7 +900,7 @@ const enemyData = {
         me.anitype = (me.reaction > 0) ? "damaged" : "munch";
         if (++me.param[0] > 100) {
           me.param[0] = 0;
-          createEnemy("minion", me.x, me.y + 8, -1.0 + me.dx + me.px + me.rx, -2.0 + me.dy + me.py + me.ry);
+          createEnemy("minion", me.x, me.y + 8, -1.0 + me.dx + me.px + me.rx, -2.0 + me.dy + me.py + me.ry).direction = "left";
           me.changeAnime("vomit");
         } 
       }
@@ -907,7 +934,7 @@ const enemyData = {
       if ((isTouchingLeftWall(me) || me.px > 0) && me.anitype === "walk_l") {
         me.direction = "right";
       }
-      else if (((isTouchingRightWall(me) || me.px < 0) && me.anitype === "walk_r") || me.anitype === "default") {
+      else if ((isTouchingRightWall(me) || me.px < 0) && me.anitype === "walk_r") {
         me.direction = "left";
       }
       if (!isOnLand(me)) {
@@ -918,7 +945,34 @@ const enemyData = {
       }
     }
   },
-  "p": { // big pumpkin
+  "danmaku_yellow": { // danmaku (yellow)
+    "type": "danmaku",
+    "w" : 16,
+    "h" : 16,
+    "box" : [3, 3, 12, 12],
+    "hp" : 1,
+    "img" : imgDanmakuYellow,
+    "anime": "danmakuyellow",
+    "move": (me) => {
+      if (isOnLand(me) || isTouchingLeftWall(me) || isTouchingRightWall(me) || isHeading(me)) {
+        me.isNoHit = true;
+        me.dx = 0;
+        me.dy = 0;
+        me.changeAnime("vanish");
+      }
+      else {
+        me.dy += 0.0625;
+        me.changeAnime("shot");
+      }
+      if (me.isEndAnime()) {
+        me.hp = 0;
+      }
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
+  //-------------------------------BOSS----------------------------------
+  // big pumpkin
+  "p": { 
     "type": "boss",
     "w" : 64,
     "h" : 64,
@@ -1017,11 +1071,12 @@ const enemyData = {
     "type": "boss",
     "w" : 96,
     "h" : 48,
-    "box" : [36, 18, 85, 47],
-    "hp" : 80,
+    "box" : [36, 18, 88, 47],
+    "hp" : 100,
     "img" : imgRenchin,
     "anime": "renchin",
     "move": (me) => {
+      const halfHp = 50;
       me.isNoHit = true; // 戦闘中以外衝突判定しない
       switch(bossBattlePhase) {
         case "none" :
@@ -1047,24 +1102,29 @@ const enemyData = {
             if (me.param[0]-- <= 0) {
               me.param[0] = 50;
               me.param[1] = "shake";
-              me.changeAnime("shake");
+              me.changeAnime(me.hp > halfHp ? "shake" : "shake_red");
             }
           }
           else if (me.param[1] === "shake") {
             if (me.param[0]-- <= 0) {
+              me.dx = 0.25;
               me.param[1] = "dash";
-              me.changeAnime("dash");
+              me.changeAnime(me.hp > halfHp ? "dash" : "dash_red");
             }
           }
           else if (me.param[1] === "dash") {
-            if (me.dx > -8) me.dx -= 0.0625;
+            if (me.dx > -8) me.dx -= me.hp > halfHp ? 0.0625 : 0.1875;
             if (me.isHit(plc) && plc.reaction === invincibleTimeMax) {
-              plc.dx += me.dx;
+              plc.dx += me.dx / 2;
+              plc.dy = - 2.0;
             }
             if (isTouchingLeftWall(me)) {
               me.param[1] = "clash";
               me.dy = -1.25;
               quakeTimeX = 15;
+              createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width / 2 - 8), -16, 0, 0).direction = "right";
+              createEnemy("minion", randInt(cameraX + charaLay.width / 2 - 8, cameraX + charaLay.width - 48), -16, 0, 0).direction = "left";
+              if (me.hp <= 50) createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0).direction = "left";
               me.changeAnime("clash");
             }
           }
@@ -1093,7 +1153,9 @@ const enemyData = {
             if (me.x > me.param[2]) me.x = me.param[2];
             if (isOnLand(me)) {
               quakeTimeY = 20;
-              me.param[0] = 200;
+              createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0).direction = "right";
+              if (me.hp <= halfHp) createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0).direction = "left";
+              me.param[0] = 100;
               me.param[1] = "open_wait";
               me.changeAnime("stand");
             }
@@ -1102,15 +1164,24 @@ const enemyData = {
             me.dx = 0;
             me.dy = 0;
             if (me.param[0]-- <= 0) {
-              me.param[0] = 200;
+              me.param[0] = 250;
               me.param[1] = "open";
-              me.changeAnime("open");
+              me.changeAnime("open_1");
             }
           }
           else if (me.param[1] === "open") {
-            me.isInvincible = false;
+            if (me.isEndAnime() && me.anitype === "open_1") {
+              me.changeAnime(me.hp > halfHp ? "open_2" : "open_2_red");
+            }
+            if (me.anitype === "open_2" || me.anitype === "open_2_red"){
+              me.ltx = me.isEndAnime() ? 38 : 16; // 扉によるダメージ
+              me.isInvincible = false;
+            }
+            if ((me.param[0] > 50 && me.param[0] % 35 === 15 && me.anitype === "open_2") || (me.param[0] > 50 && me.param[0] % 20 === 15 && me.anitype === "open_2_red")) {
+              createEnemy("danmaku_yellow", me.x + 48, me.y + 24, - 0.25 - randInt(0, 4) * 0.25, -3.0 - randInt(0, 4) * 0.125);
+            }
             if (me.param[0]-- <= 0) {
-              me.param[0] = 200;
+              me.param[0] = 30;
               me.param[1] = "dash_wait";
               me.changeAnime("stand");
             }
@@ -1120,7 +1191,7 @@ const enemyData = {
           useriCtx.fillStyle = "#2a2349";
           useriCtx.fillRect(0, 222, 320, 16);
           useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 80)), 12);
+          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 100)), 12);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.param[0] = 0;
@@ -1157,6 +1228,7 @@ const enemyKeyList = Object.keys(enemyData);
 let createEnemy = (enemyId, x, y, dx, dy) => {
   let newEnemy = new CharacterSprite(
     enemyId, // id
+    enemyData[enemyId].type, // type
     x, // start position x
     y, // start position y
     enemyData[enemyId].w, // width
@@ -1172,6 +1244,7 @@ let createEnemy = (enemyId, x, y, dx, dy) => {
   newEnemy.dx = dx;
   newEnemy.dy = dy;
   enemyArray.push(newEnemy);
+  return newEnemy;
 };
 
   // ============ //
@@ -1179,6 +1252,7 @@ let createEnemy = (enemyId, x, y, dx, dy) => {
 // ============ //
 let itemData = {
   "X": { // medal 1
+    "type": "medal",
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
@@ -1186,16 +1260,27 @@ let itemData = {
     "anime": "medal",
     "move": (me) => {
       if (collectedMedal[0]) me.hp = 0;
-      if (mapAnimeCount % 5 === 1) createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+      if (isMedalcollected(stageId, 0)) {
+        me.changeAnime("collected");
+      }
+      else if (mapAnimeCount % 5 === 1) {
+        createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+      }
     },
     "obtained": (me) => {
       collectedMedal[0] = true;
-      for (let i = 0; i < 8; i++) {
-        createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+      if (isMedalcollected(stageId, 0)) {
+        collectedCoins += 10;
+      }
+      else {
+        for (let i = 0; i < 8; i++) {
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+        }
       }
     }
   },
   "Y": { // medal 2
+    "type": "medal",
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
@@ -1203,16 +1288,27 @@ let itemData = {
     "anime": "medal",
     "move": (me) => {
       if (collectedMedal[1]) me.hp = 0;
-      if (mapAnimeCount % 5 === 1) createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+      if (isMedalcollected(stageId, 1)) {
+        me.changeAnime("collected");
+      }
+      else if (mapAnimeCount % 5 === 1) {
+        createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+      }
     },
     "obtained": (me) => {
       collectedMedal[1] = true;
-      for (let i = 0; i < 8; i++) {
-        createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+      if (isMedalcollected(stageId, 1)) {
+        collectedCoins += 10;
+      }
+      else {
+        for (let i = 0; i < 8; i++) {
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+        }
       }
     }
   },
   "Z": { // medal 3 (boss)
+    "type": "medal",
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
@@ -1234,14 +1330,24 @@ let itemData = {
           me.dy -= 0.25;
           if (me.dy < 0) me.dy = 0;
         }
-        if (mapAnimeCount % 5 === 1) createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+        if (mapAnimeCount % 5 === 1 && !isMedalcollected(stageId, 2)) {
+          createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
+        }
+      }
+      if (isMedalcollected(stageId, 2)) {
+        me.changeAnime("collected");
       }
       me.y += me.dy;
     },
     "obtained": (me) => {
       collectedMedal[2] = true;
-      for (let i = 0; i < 8; i++) {
-        createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+      if (isMedalcollected(stageId, 2)) {
+        collectedCoins += 10;
+      }
+      else {
+        for (let i = 0; i < 8; i++) {
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 2, Math.sin(2*Math.PI*i/8) * 2);
+        }
       }
     }
   },
@@ -1252,6 +1358,7 @@ let itemKeyList = Object.keys(itemData);
 let createItem = (itemId, x, y) => {
   let newItem = new CharacterSprite(
     itemId, // id
+    itemData[itemId].type, // type
     x, // start position x
     y, // start position y
     itemData[itemId].w, // width
@@ -1265,6 +1372,7 @@ let createItem = (itemId, x, y) => {
     animeData[itemData[itemId].anime]
   );
   itemArray.push(newItem);
+  return newItem;
 };
 
   // ============== //
@@ -1272,6 +1380,7 @@ let createItem = (itemId, x, y) => {
 // ============== //
 const gimmickData = {
   "{" : {
+    "type": "floor",
     "w": 32,
     "h": 32,
     "box" : [0, 0, 31, 5],
@@ -1295,6 +1404,7 @@ let gimmickKeyList = Object.keys(gimmickData);
 let createGimmick = (gimmickId, x, y) => {
   let newGimmick = new CharacterSprite(
     gimmickId, // id
+    gimmickData[gimmickId].type, // type
     x, // start position x
     y, // start position y
     gimmickData[gimmickId].w, // width
@@ -1308,6 +1418,7 @@ let createGimmick = (gimmickId, x, y) => {
     animeData[gimmickData[gimmickId].anime]
   );
   gimmickArray.push(newGimmick);
+  return newGimmick;
 };
 
   // ============== //
@@ -1360,6 +1471,7 @@ let createEffect = (effectId, x, y, dx, dy) => {
   newEffect.dy = dy;
   newEffect.changeAnime("default");
   effectArray.push(newEffect);
+  return newEffect;
 };
 
 let createEffectSub = (effectId, x, y, dx, dy) => {
@@ -1376,6 +1488,7 @@ let createEffectSub = (effectId, x, y, dx, dy) => {
   newEffect.dy = dy;
   newEffect.changeAnime("default");
   effectSubArray.push(newEffect);
+  return newEffect;
 };
 
   // --------------//
@@ -1546,11 +1659,21 @@ let sceneList = {
       let displaySize = useriCtx.measureText(displayText);
       useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 32);
       // ---- stage name
-      displayText = "- " + stageData[stageId].name + " -";
+      if (stageId < stageData.length) {
+        displayText = "- " + stageData[stageId].name + " -";
+      }
+      else {
+        displayText = "- ただいま製作中！ -";
+      }
       displaySize = useriCtx.measureText(displayText);
       useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 48);
       // ---- thumbnail
-      useriCtx.drawImage(imgThumbnail, stageId * 128, 0, 128, 96, Math.floor((useriLay.width - 128) / 2), 80, 128, 96);
+      if (stageId < stageData.length) {
+        useriCtx.drawImage(imgThumbnail, stageId * 128, 0, 128, 96, Math.floor((useriLay.width - 128) / 2), 80, 128, 96);
+      }
+      else {
+        useriCtx.drawImage(imgWip, 0, 0, 128, 96, Math.floor((useriLay.width - 128) / 2), 80, 128, 96);
+      }
       // ---- cursor
       ssCursorL.updateAnime();
       ssCursorR.updateAnime();
@@ -1563,9 +1686,9 @@ let sceneList = {
         ssCursorR.drawAnime(useriCtx, ssCursorR.x, ssCursorR.y);
       }
       // ---- medal
-      if (saveDataObject["medal"].hasOwnProperty(stageData[stageId].name)) {
-        for (let i = 0; i < saveDataObject["medal"][stageData[stageId].name].length; i++) {
-          useriCtx.drawImage(imgSSMedal, saveDataObject["medal"][stageData[stageId].name][i] * 32, 0, 32, 32, 112 + 32 * i , 186, 32, 32);
+      if (stageId < stageData.length) {
+        for (let i = 0; i < 3; i++) {
+          useriCtx.drawImage(imgSSMedal, isMedalcollected(stageId, i) * 32, 0, 32, 32, 112 + 32 * i , 186, 32, 32);
         }
       }
       // ---- coins
@@ -1578,7 +1701,7 @@ let sceneList = {
       else if (isKeyPressedNow("r") && stageId < saveDataObject.progress) { // next stage
         stageId++;
       }
-      else if (isKeyPressedNow("z")) { // start game
+      else if (isKeyPressedNow("z") && stageId < stageData.length) { // start game
         // reset level status
         collectedMedal = [false, false, false];
         plc.hp = plcMaxHp;
@@ -1774,7 +1897,7 @@ let sceneList = {
         }
         // create shot
         if (isKeyPressedNow("x") && shotArray.length < shotMax) {
-          let newShot = new CharacterSprite("shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
+          let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
           newShot.dx = plc.direction === "left" ? -2 : 2;
           newShot.changeAnime("shot");
           newShot.param.push(0);
@@ -1788,7 +1911,7 @@ let sceneList = {
             let isShotVanish = shotArray[i].param[0] >= 30;
             isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall";
             enemyArray.forEach((e) => {
-              if (e.isHit(shotArray[i])) {
+              if (e.isHit(shotArray[i]) && !e.isType("danmaku")) {
                 isShotVanish = true;
                 if (!e.isInvincible) {
                   e.hp -= 1;
@@ -1895,7 +2018,7 @@ let sceneList = {
         enemyArray.forEach((e) => {
           enemyData[e.id].move(e);
           if (e.y > mapHeight * gridSize) e.hp = 0; // 落下死
-          if (e.hp <= 0 && enemyData[e.id].type != "boss") { // やられた時 (ボスを除く)
+          if (e.hp <= 0 && !e.isType("boss") && !e.isType("danmaku")) { // やられた時 (ボスと弾幕を除く)
             if (e.y > mapHeight * gridSize) return;
             createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty) - 32) / 2, 0, 0);
             for (let i = 0; i < e.w * 2 / gridSize; i++) {
@@ -1953,11 +2076,11 @@ let sceneList = {
             saveDataObject["progress"] = stageId + 1;
           }
           if (!saveDataObject["medal"].hasOwnProperty(stageData[stageId].name)) {
-            saveDataObject["medal"][stageData[stageId].name] = collectedMedal;
+            saveDataObject["medal"][stageId] = collectedMedal;
           }
           else {
             for (let i = 0; i < collectedMedal.length; i++) {
-              saveDataObject["medal"][stageData[stageId].name][i] |= collectedMedal[i];
+              saveDataObject["medal"][stageId][i] |= collectedMedal[i];
             }
           }
           writeSaveData(currentSaveData);
@@ -2054,7 +2177,6 @@ let sceneList = {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         let shakeX = e.reaction-- > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1) : 0;
-        if (e.type === "boss") shakeX *= 2;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1 + shakeX), Math.floor(e.y - cameraY + 1));
       }));
       shotArray.forEach((e => {
@@ -2110,7 +2232,6 @@ let sceneList = {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         let shakeX = e.reaction > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1)  : 0;
-        if (e.type === "boss") shakeX *= 2;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX + shakeX), Math.floor(e.y - cameraY));
       }));
       shotArray.forEach((e => {
@@ -2149,7 +2270,7 @@ let sceneList = {
       }
       // medals
       for (let i = 0; i < 3; i++) {
-        useriCtx.drawImage(imgUiMedal, (collectedMedal[i]) ? 0 : 16, 0, 16, 16, i * gridSize + useriLay.width - 3 * gridSize, 0, 16, 16);
+        useriCtx.drawImage(imgUiMedal, (isMedalcollected(stageId, i) || collectedMedal[i]) ? 0 : 16, 0, 16, 16, i * gridSize + useriLay.width - 3 * gridSize, 0, 16, 16);
       }
       // coins
       let hopCoinY = 0;
@@ -2280,7 +2401,7 @@ window.onload = () => {
     shadowList[key][1].src = createShadowURL(shadowList[key][0]);
   });
   // create Player Character
-  plc = new CharacterSprite("player", 0, 0, 16, 16, 3, 2, 12, 15, plcMaxHp, imgPlayer, animeData["player"]);
+  plc = new CharacterSprite("player", "player", 0, 0, 16, 16, 3, 2, 12, 15, plcMaxHp, imgPlayer, animeData["player"]);
   // start game loop
   setInterval(gameLoop, 1000/60); // 60fps
 };
