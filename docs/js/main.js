@@ -28,14 +28,21 @@ let imgPumpkin = [new Image(), new Image()];
 imgPumpkin[0].src = "./img/pumpkin.png";
 let imgWatage = [new Image(), new Image()];
 imgWatage[0].src = "./img/watage.png";
+let imgFlyingCamera = [new Image(), new Image()];
+imgFlyingCamera[0].src = "./img/flying_camera.png";
 let imgSlime = [new Image(), new Image()];
 imgSlime[0].src = "./img/slime.png";
 let imgSlimeLauncher = [new Image(), new Image()];
 imgSlimeLauncher[0].src = "./img/slimelauncher.png";
+let imgElectroJar = [new Image(), new Image()];
+imgElectroJar[0].src = "./img/electrojar.png";
 let imgMinionSlime = [new Image(), new Image()];
 imgMinionSlime[0].src = "./img/minionslime.png";
 let imgDanmakuYellow = [new Image(), new Image()];
 imgDanmakuYellow[0].src = "./img/danmaku_yellow.png";
+let imgDanmakuWhite = [new Image(), new Image()];
+imgDanmakuWhite[0].src = "./img/danmaku_white.png";
+
 
 // enemy (Boss)
 let imgBigPumpkin = [new Image(), new Image()];
@@ -98,10 +105,13 @@ let shadowList = [
   imgPlayer,
   imgPumpkin,
   imgWatage,
+  imgFlyingCamera,
   imgSlime,
   imgSlimeLauncher,
+  imgElectroJar,
   imgMinionSlime,
   imgDanmakuYellow,
+  imgDanmakuWhite,
   imgBigPumpkin,
   imgRenchin,
   imgKey,
@@ -174,6 +184,13 @@ let animeData = {
     "damaged2" : { frames: 1, dulation: 2, img: [7], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
+  "flying_camera": {
+    "float_l": { frames: 4, dulation: 4, img: [4, 5, 6, 7], repeat: false },
+    "float_r": { frames: 4, dulation: 4, img: [12, 13, 14, 15], repeat: false },
+    "glow_l" : { frames: 12, dulation: 4, img: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3], repeat: false },
+    "glow_r" : { frames: 12, dulation: 4, img: [8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
   "slime": {
     "walk_l": {frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true },
     "walk_r": {frames: 4, dulation: 8, img: [4, 5, 6, 7], repeat: true },
@@ -187,6 +204,10 @@ let animeData = {
     "damaged": {frames: 1, dulation: 8, img: [7], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
+  "electrojar": {
+    "launch": { frames: 3, dulation: 4, img: [0, 1, 2], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
   "minionslime": {
     "walk_l": {frames: 2, dulation: 6, img: [0, 1], repeat: true },
     "walk_r": {frames: 2, dulation: 6, img: [2, 3], repeat: true },
@@ -194,9 +215,20 @@ let animeData = {
     "fall_r": {frames: 1, dulation: 8, img: [5], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
+  "minirenchin" :{
+    "sleep": { frames: 1, dulation: 8, img: [0], repeat: true },
+    "open_1": { frames: 1, dulation: 6, img: [1], repeat: false },
+    "open_2": { frames: 2, dulation: 6, img: [2, 3], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true },
+  },
   "danmakuyellow": {
     "shot": { frames: 2, dulation: 4, img: [0, 1], repeat: true },
     "vanish": { frames: 2, dulation: 2, img: [2, 3], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
+  "danmakuwhite": {
+    "shot": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true },
+    "vanish": { frames: 3, dulation: 2, img: [4, 5, 6], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "bigpumpkin": {
@@ -284,7 +316,10 @@ const mapChip = {
   "=": { id: [29], dulation: 1, type: "wall", subtype: "none" },
   "&": { id: [30], dulation: 1, type: "wall", subtype: "none" },
   "ƒ": { id: [31, 32, 31, 33], dulation: 4, type: "wall", subtype: "reverse_switch"}, // alt + f
-  "¡": { id: [34], dulation: 1, type: "wall", subtype: "lock"}, // alt + 1
+  "º": { id: [34], dulation: 1, type: "wall", subtype: "lock"}, // alt + 0
+  "ø": { id: [35], dulation: 1, type: "wall", subtype: "block" }, // alt + o // red block
+  "£": { id: [35], dulation: 1, type: "wall", subtype: "block_coin" }, // alt + 3
+  "¿": { id: [35], dulation: 1, type: "wall", subtype: "block_heart" }, // alt + shift + /
 };
 const mapChipList = Object.keys(mapChip);
 
@@ -359,6 +394,13 @@ let stageData = [
   },
 ];
 
+// jump to level (debug)
+let goToLevel = (lName) => {
+  levelName = lName;
+  levelStart = 'A';
+  setTransition("game");
+}
+
 // game scene
 let scene;
 let sceneOverLay;
@@ -412,6 +454,11 @@ class Sprite {
     this.param = [];
   };
 
+  startAnime (anitype) {
+    this.anitype = anitype;
+    this.anicount = 0;
+  };
+
   changeAnime (new_anitype) {
     if (new_anitype === this.anitype) return;
     this.anitype = new_anitype;
@@ -458,6 +505,8 @@ class CharacterSprite extends Sprite{
     this.rby = rby;
     // hit point
     this.hp = hp;
+    // initial parameter
+    this.initParam = 0;
     // reaction effect counter
     this.reaction = 0;
     // trueのとき、他キャラクターとの衝突判定を行わない
@@ -519,7 +568,7 @@ let itemArray = [];
 let gimmickArray = [];
 let effectArray = [];
 let effectSubArray = []; // stopFlag が true の時に動くエフェクト
-let doorArray = [];
+let doorArray = []; // ドア情報を格納
 const shotMax = 5;
 let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
 let isJumping = false;
@@ -900,12 +949,52 @@ const enemyData = {
       moveAndCheckCollisionWithMap(me);
     }
   },
+  "f": { // flying camera
+    "type": "flight",
+    "w" : 16,
+    "h" : 16,
+    "box" : [3, 3, 12, 12],
+    "hp" : 6,
+    "img" : imgFlyingCamera,
+    "anime": "flying_camera",
+    "move": (me) => {
+      if (me.param.length === 0) {
+        me.param.push(me.x); // 初期座標（X）
+        me.param.push(me.y); // 初期座標（Y）
+        me.param.push(randInt(0,199)); // 移動時間
+        me.param.push(0); // 行動切り替えカウント
+        me.changeAnime("float_l");
+      }
+      if (me.isEndAnime()) {
+        if (me.anitype === "glow_l" || me.anitype === "glow_r" ) {
+          let theta = Math.atan2(plc.y - me.y, plc.x - me.x)
+          createEnemy("danmaku_white", me.x, me.y, Math.cos(theta) * 1.75, Math.sin(theta) * 1.75);
+          me.param[3] = randInt(0, 20) + 60;
+          me.startAnime(plc.x < me.x ? "float_l" : "float_r");
+        }
+        else {
+          if (Math.abs(plc.x - me.x) < 150 && Math.abs(plc.y - me.y) < 150 && me.param[3] <= 0) {
+            me.startAnime(plc.x < me.x ? "glow_l" : "glow_r");
+          }
+          else {
+            me.startAnime(plc.x < me.x ? "float_l" : "float_r");
+          }
+        }
+      }
+      me.param[2] = (me.param[2] + 1) % 200;
+      me.param[3]--;
+      me.dx = 0;
+      me.dy = Math.sin(2 * Math.PI * me.param[2] / 200) * 16;
+      me.x = me.param[0] + me.dx;
+      me.y = me.param[1] + me.dy;
+    }
+  },
   "L": { // Slime Launcher
     "type": "normal",
     "w" : 32,
     "h" : 32,
     "box" : [2, 4, 29, 31],
-    "hp" : 12,
+    "hp" : 8,
     "img" : imgSlimeLauncher,
     "anime": "slimelauncher",
     "move": (me) => {
@@ -928,7 +1017,7 @@ const enemyData = {
       moveAndCheckCollisionWithMap(me);
       if (me.anitype != "vomit") {
         me.anitype = (me.reaction > 0) ? "damaged" : "munch";
-        if (++me.param[0] > 100) {
+        if (++me.param[0] > 120) {
           me.param[0] = 0;
           createEnemy("minion", me.x, me.y + 8, -1.0 + me.dx + me.px + me.rx, -2.0 + me.dy + me.py + me.ry).direction = "left";
           me.changeAnime("vomit");
@@ -936,6 +1025,32 @@ const enemyData = {
       }
       else if (me.isEndAnime()) {
         me.changeAnime("munch");
+      }
+    }
+  },
+  "e" : { // electro jar
+    "type": "normal",
+    "w" : 32,
+    "h" : 32,
+    "box" : [8, 8, 23, 31],
+    "hp" : 12,
+    "img" : imgElectroJar,
+    "anime": "electrojar",
+    "move": (me) => {
+      if (me.param.length === 0) {
+        me.param.push(me.initParam * 10);
+      }
+      updateVelocity(me);
+      moveAndCheckCollisionWithMap(me);
+      me.param[0]++;
+      if (me.param[0] === 30) {
+        me.startAnime("launch");
+        createEnemy("danmaku_yellow", me.x + 8, me.y - 8, -1.000 + randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
+      }
+      if (me.param[0] >= 60) {
+        me.param[0] = 0;
+        me.startAnime("launch");
+        createEnemy("danmaku_yellow", me.x + 8, me.y - 8,  1.000 - randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
       }
     }
   },
@@ -992,6 +1107,30 @@ const enemyData = {
       }
       else {
         me.dy += 0.0625;
+        me.changeAnime("shot");
+      }
+      if (me.isEndAnime()) {
+        me.hp = 0;
+      }
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
+  "danmaku_white": { // danmaku (white)
+    "type": "danmaku",
+    "w" : 16,
+    "h" : 16,
+    "box" : [5, 5, 10, 10],
+    "hp" : 1,
+    "img" : imgDanmakuWhite,
+    "anime": "danmakuwhite",
+    "move": (me) => {
+      if (isOnLand(me) || isTouchingLeftWall(me) || isTouchingRightWall(me) || isHeading(me)) {
+        me.isNoHit = true;
+        me.dx = 0;
+        me.dy = 0;
+        me.changeAnime("vanish");
+      }
+      else {
         me.changeAnime("shot");
       }
       if (me.isEndAnime()) {
@@ -1194,7 +1333,7 @@ const enemyData = {
             me.dx = 0;
             me.dy = 0;
             if (me.param[0]-- <= 0) {
-              me.param[0] = 250;
+              me.param[0] = 225;
               me.param[1] = "open";
               me.changeAnime("open_1");
             }
@@ -1204,11 +1343,16 @@ const enemyData = {
               me.changeAnime(me.hp > halfHp ? "open_2" : "open_2_red");
             }
             if (me.anitype === "open_2" || me.anitype === "open_2_red"){
-              me.ltx = me.isEndAnime() ? 38 : 16; // 扉によるダメージ
+              me.ltx = me.isEndAnime() ? 36 : 16; // 扉によるダメージ
               me.isInvincible = false;
             }
-            if ((me.param[0] > 50 && me.param[0] % 35 === 15 && me.anitype === "open_2") || (me.param[0] > 50 && me.param[0] % 20 === 15 && me.anitype === "open_2_red")) {
-              createEnemy("danmaku_yellow", me.x + 48, me.y + 24, - 0.25 - randInt(0, 4) * 0.25, -3.0 - randInt(0, 4) * 0.125);
+            if ((me.param[0] > 40 && me.param[0] % 35 === 15 && me.anitype === "open_2") || (me.param[0] > 40 && me.param[0] % 20 === 15 && me.anitype === "open_2_red")) {
+              createEnemy("danmaku_yellow", me.x + 48, me.y + 24, -0.25 - randInt(0, 8) * 0.125, -3.0 - randInt(0, 8) * 0.0625);
+            }
+            if (me.anitype === "open_2" && me.hp <= 40) { // hpが40以下なら強制的に第2形態へ
+              me.param[0] = 60;
+              me.param[1] = "dash_wait";
+              me.changeAnime("stand");
             }
             if (me.param[0]-- <= 0) {
               me.param[0] = 30;
@@ -1483,11 +1627,11 @@ const gimmickData = {
     "anime": "movefloor",
     "move": (me) => {
       if (me.param.length === 0) {
-      me.param.push(0);  
+        me.param.push(me.initParam * 30);  
       }
-      me.param = (me.param + 1) % 200;
-      me.dy = Math.cos(2 * Math.PI * (me.param + 1) / 200) - Math.cos(2 * Math.PI * me.param / 200) * 2;
-      me.dx = Math.sin(2 * Math.PI * (me.param + 1) / 200) - Math.sin(2 * Math.PI * me.param / 200) * 2;
+      me.param = (me.param + 1) % 240;
+      me.dy = (Math.cos(2 * Math.PI * (me.param + 1) / 240) - Math.cos(2 * Math.PI * me.param / 240)) * 32;
+      //me.dx = (Math.sin(2 * Math.PI * (me.param + 1) / 240) - Math.sin(2 * Math.PI * me.param / 240)) * 32;
       me.x += me.dx;
       me.y += me.dy;
     },
@@ -1852,7 +1996,11 @@ let sceneList = {
         await getLevelData("test");
       }
       // respawn plc
-      if (plc.hp <= 0) plc.hp = plcMaxHp;
+      if (plc.hp <= 0) {
+        plc.hp = plcMaxHp;
+        collectedCoins -= 10;
+        if (collectedCoins < 0) collectedCoins = 0;
+      }
       plc.dx = 0;
       plc.dy = 0;
       plc.px = 0;
@@ -1862,6 +2010,7 @@ let sceneList = {
       plc.direction = "right";
       plc.reaction = 0;
       // create Character Objects
+      let newCharacter;
       for (let y = 0; y < mapData.length; y++) {
         for (let x = 0; x < mapData[y].length; x++) {
           // player
@@ -1871,20 +2020,25 @@ let sceneList = {
           }
           // door
           if (mapData[y][x] === "@" || mapData[y][x] === "∆") {
-            doorArray.push({ x: x * gridSize, y: y * gridSize, next: nextData.pop() });
+            doorArray.push({ x: x, y: y, next: nextData.pop() });
           }
           // item
           if (itemKeyList.indexOf(mapData[y][x]) != -1) {
-            createItem(mapData[y][x], x * gridSize, y * gridSize);
+            newCharacter = createItem(mapData[y][x], x * gridSize, y * gridSize);
           }
           // gimmick
           if (gimmickKeyList.indexOf(mapData[y][x]) != -1) {
-            createGimmick(mapData[y][x], x * gridSize, y * gridSize);
+            newCharacter = createGimmick(mapData[y][x], x * gridSize, y * gridSize);
           }
           // enemy
           if (enemyKeyList.indexOf(mapData[y][x]) != -1) {
-            createEnemy(mapData[y][x], x * gridSize, y * gridSize, 0, 0);
+            newCharacter = createEnemy(mapData[y][x], x * gridSize, y * gridSize, 0, 0);
           }
+          // add initial parameter (look next mapchip)
+          if (x + 1 >= mapData[y].length) continue;
+          if ('0' <= mapData[y][x + 1] && mapData[y][x + 1] <= '9') {
+            newCharacter.initParam = parseInt(mapData[y][x + 1]);
+          }  
         }
       }
       // マップの更新情報を反映
@@ -1908,6 +2062,51 @@ let sceneList = {
     "update" : () => {
       const plcMaxSpeedX = 1.25;
       if (!stopFlag) {
+        //============================= move character ================================
+        // gimmick move
+        plc.riding = null;
+        enemyArray.forEach( (enemy) => {enemy.riding = null;} );
+        gimmickArray.forEach((vehicle) => {
+          plc.checkRiding(vehicle);
+          enemyArray.forEach((enemy) => {
+            if (enemyData[enemy.id].type === "normal") enemy.checkRiding(vehicle);
+          });
+          gimmickData[vehicle.id].move(vehicle);
+        });
+        // enemy move
+        enemyArray.forEach((e) => {
+          enemyData[e.id].move(e);
+          if (e.y > mapHeight * gridSize) e.hp = 0; // 落下死
+          if (e.hp <= 0 && !e.isType("boss") && !e.isType("danmaku")) { // やられた時 (ボスと弾幕を除く)
+            if (e.y > mapHeight * gridSize) return;
+            createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty) - 32) / 2, 0, 0);
+            for (let i = 0; i < e.w * 2 / gridSize; i++) {
+              createEffect("star", e.lTopX() + ((e.rbx - e.ltx) - 8) / 2, e.lTopY() + ((e.rby - e.lty) - 8) / 2, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 300) * -0.01);
+            }
+          }
+        });
+        // item move
+        itemArray.forEach((e) => {
+          itemData[e.id].move(e);
+          if (e.type === "gravity") {
+            updateVelocity(e);
+            moveAndCheckCollisionWithMap(e);
+          }
+        });
+        // effect move
+        effectArray.forEach((e) => {
+          e.x += e.dx;
+          e.y += e.dy;
+          if (effectData[e.id].move === "gravity") {
+            e.dy += 0.125;
+          }
+          else if (effectData[e.id].move === "slowy") {
+            e.dx *= 0.90;
+            e.dy *= 0.90;
+          }
+        });
+        
+        //============================ erase character ================================
         // erase enemy
         enemyArray = enemyArray.filter((e) => {
           return (e.hp > 0 || (enemyData[e.id].type === "boss" && bossBattlePhase != "end"));
@@ -1920,16 +2119,8 @@ let sceneList = {
         effectArray = effectArray.filter((e) => {
           return e.isEndAnime() === false;
         });
-        // gimmick move
-        plc.riding = null;
-        enemyArray.forEach( (enemy) => {enemy.riding = null;} );
-        gimmickArray.forEach((vehicle) => {
-          plc.checkRiding(vehicle);
-          enemyArray.forEach((enemy) => {
-            if (enemyData[enemy.id].type === "normal") enemy.checkRiding(vehicle);
-          });
-          gimmickData[vehicle.id].move(vehicle);
-        });
+
+        //============================ player character ================================
         // *********************
         // player character move
         // *********************
@@ -1966,8 +2157,8 @@ let sceneList = {
           // enter to door
           if (isKeyPressedNow("u")) {
             doorArray.forEach((e) => {
-              if (plc.x + 8 < e.x || e.x + gridSize < plc.x + 8) return;
-              if (plc.y + 8 < e.y || e.y + gridSize < plc.y + 8) return;
+              if (plc.x + 8 < e.x * gridSize || e.x * gridSize + gridSize < plc.x + 8) return;
+              if (plc.y + 8 < e.y * gridSize || e.y * gridSize + gridSize < plc.y + 8) return;
               levelName = e["next"]["level"];
               levelStart = e["next"]["start"];
               setTransition("game");
@@ -2144,38 +2335,6 @@ let sceneList = {
         // update player position
         moveAndCheckCollisionWithMap(plc);
         
-        // enemy move
-        enemyArray.forEach((e) => {
-          enemyData[e.id].move(e);
-          if (e.y > mapHeight * gridSize) e.hp = 0; // 落下死
-          if (e.hp <= 0 && !e.isType("boss") && !e.isType("danmaku")) { // やられた時 (ボスと弾幕を除く)
-            if (e.y > mapHeight * gridSize) return;
-            createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty) - 32) / 2, 0, 0);
-            for (let i = 0; i < e.w * 2 / gridSize; i++) {
-              createEffect("star", e.lTopX() + ((e.rbx - e.ltx) - 8) / 2, e.lTopY() + ((e.rby - e.lty) - 8) / 2, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 300) * -0.01);
-            }
-          }
-        });
-        // item move
-        itemArray.forEach((e) => {
-          itemData[e.id].move(e);
-          if (e.type === "gravity") {
-            updateVelocity(e);
-            moveAndCheckCollisionWithMap(e);
-          }
-        });
-        // effect move
-        effectArray.forEach((e) => {
-          e.x += e.dx;
-          e.y += e.dy;
-          if (effectData[e.id].move === "gravity") {
-            e.dy += 0.125;
-          }
-          else if (effectData[e.id].move === "slowy") {
-            e.dx *= 0.90;
-            e.dy *= 0.90;
-          }
-        });
       } // stop flag が立ってない時の処理 ここまで！
       
       else if (plc.hp <= 0) { // ミス！
@@ -2217,7 +2376,7 @@ let sceneList = {
           if (saveDataObject["progress"] <= stageId) {
             saveDataObject["progress"] = stageId + 1;
           }
-          if (!saveDataObject["medal"].hasOwnProperty(stageData[stageId].name)) {
+          if (!saveDataObject["medal"].hasOwnProperty(stageId)) {
             saveDataObject["medal"][stageId] = collectedMedal;
           }
           else {
@@ -2422,6 +2581,11 @@ let sceneList = {
         useriCtx.fillStyle = "#fbdf9b";
         hopCoinY = 1;
       }
+      else if (coinCounter > collectedCoins) {
+        coinCounter -= 0.25;
+        useriCtx.fillStyle = "#e89973";
+        hopCoinY = 1;
+      }
       useriCtx.textBaseline = "top";
       useriCtx.textAlign = "left";
       useriCtx.fillText(Math.ceil(coinCounter).toString().padStart(4, "0"), gridSize, gridSize - hopCoinY - 2);
@@ -2549,7 +2713,7 @@ window.onload = () => {
     shadowList[key][1].src = createShadowURL(shadowList[key][0]);
   });
   // create Player Character
-  plc = new CharacterSprite("player", "player", 0, 0, 16, 16, 3, 2, 12, 15, plcMaxHp, imgPlayer, animeData["player"]);
+  plc = new CharacterSprite("player", "player", 0, 0, 16, 16, 3, 3, 12, 15, plcMaxHp, imgPlayer, animeData["player"]);
   // start game loop
   setInterval(gameLoop, 1000/60); // 60fps
 };
