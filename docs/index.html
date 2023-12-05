@@ -22,18 +22,33 @@
       <canvas id="useri_lay" width="320" height="240"></canvas>
       <canvas id="trans_lay" width="640" height="480"></canvas>
     </div>
-    <div style="text-align:center;" id="caption">
+    <div style="text-align:center; font-family:'筑紫a丸ゴシック',system-ui" id="caption">
       <p>
         お試しで作ったアクションゲームです。PC専用。
       </p>
-      <p>
-        矢印キー：移動　z：ジャンプ　x：攻撃
-      </p>
-      <br>
-      <p>
-        使用フォント： マルモニカ (<a href="https://hicchicc.github.io/00ff/">x0y0pxFreeFont</a>)
-      </p>
     </div>
+    <div id="howto">
+      <table style="font-family:'筑紫a丸ゴシック',system-ui">
+        <caption>● 操作方法 ●</caption>
+        <tr>
+          <td>矢印キー・WASD・HJKL</td>
+          <td>移動</td>
+        </tr>
+        <tr>
+          <td>Z・Enter・スペース</td>
+          <td>決定・ジャンプ</td>
+        </tr>
+        <tr>
+          <td>X・右shift・アンダースコア (_)
+          </td>
+          <td>キャンセル・攻撃</td>
+        </tr>
+      </table>
+    </div>
+    <br>
+    <p style="text-align:center; font-family:'筑紫a丸ゴシック',system-ui">
+      使用フォント： マルモニカ (<a href="https://hicchicc.github.io/00ff/">x0y0pxFreeFont</a>)
+    </p>
     <footer>
     </footer>
     <style>
@@ -56,8 +71,29 @@
       #chara_lay { z-index: 2; width: 640px; height: 480px; }
       #useri_lay { z-index: 3; width: 640px; height: 480px; }
       #trans_lay { z-index: 4; width: 640px; height: 480px; }
-      #caption {
-        -webkit-font-smoothing: none;
+      #howto {
+        position: relative;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      table {
+        border-collapse: collapse;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      table, caption {
+        padding: 0.5em;
+      }
+      table, td {
+        padding: 0.5em;
+        border: 1px solid black;
+      }
+      footer {
+        font-family: '筑紫a丸ゴシック', "system-ui";
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 4.0em;
       }
     </style>
     <script src="js/main.js"></script>

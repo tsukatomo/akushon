@@ -1911,7 +1911,7 @@ let sceneList = {
       backgCtx.fillText(displayText, Math.floor((backgLay.width - displaySize.width) / 2), 64);
       displayText = "Zキーで 始めます";
       displaySize = backgCtx.measureText(displayText);
-      backgCtx.fillText(displayText, Math.floor((backgLay.width - displaySize.width) / 2), 176);
+      backgCtx.fillText(displayText, Math.floor((backgLay.width - displaySize.width) / 2), 160);
       plc.changeAnime("run_r");
       // set transition animation
       setOverlayScene("transout");
@@ -2014,6 +2014,9 @@ let sceneList = {
       }
       else if (isKeyPressedNow("r") && stageId < saveDataObject.progress) { // next stage
         stageId++;
+      }
+      else if (isKeyPressedNow("x")) { // back to title
+        setTransition("title");
       }
       else if (isKeyPressedNow("z") && stageId < stageData.length) { // start game
         // reset level status
@@ -2791,7 +2794,7 @@ window.onload = () => {
 font.load().then((loadedFace) => {
   console.log("フォントを読み込みました！");
   document.fonts.add(loadedFace);
-  document.body.style.fontFamily = '"MaruMonica"';
+  //document.body.style.fontFamily = '"MaruMonica"';
   backgCtx.font = "16px MaruMonica";
   charaCtx.font = "16px MaruMonica";
   useriCtx.font = "16px MaruMonica";
