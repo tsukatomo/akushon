@@ -187,8 +187,8 @@ let animeData = {
   "flying_camera": {
     "float_l": { frames: 4, dulation: 4, img: [4, 5, 6, 7], repeat: false },
     "float_r": { frames: 4, dulation: 4, img: [12, 13, 14, 15], repeat: false },
-    "glow_l" : { frames: 12, dulation: 4, img: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3], repeat: false },
-    "glow_r" : { frames: 12, dulation: 4, img: [8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11], repeat: false },
+    "glow_l" : { frames: 4, dulation: 4, img: [0, 1, 2, 3], repeat: false },
+    "glow_r" : { frames: 4, dulation: 4, img: [8, 9, 10, 11], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "slime": {
@@ -205,8 +205,9 @@ let animeData = {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "electrojar": {
-    "launch": { frames: 3, dulation: 4, img: [0, 1, 2], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+    "launch": { frames: 4, dulation: 5, img: [0, 0, 1, 2], repeat: false },
+    "launch_fast": { frames: 4, dulation: 2, img: [0, 0, 1, 2], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [2], repeat: true }
   },
   "minionslime": {
     "walk_l": {frames: 2, dulation: 6, img: [0, 1], repeat: true },
@@ -313,7 +314,7 @@ const mapChip = {
   "≤": { id: [25, 26, 27, 28], dulation: 2, type: "wall", subtype: "right_conv" },
   "»": { id: [21, 22, 23, 24], dulation: 1, type: "wall", subtype: "left_conv_fast" }, // alt + shift + ]
   "«": { id: [25, 26, 27, 28], dulation: 1, type: "wall", subtype: "right_conv_fast" }, // alt + ]
-  "=": { id: [29], dulation: 1, type: "wall", subtype: "none" },
+  "/": { id: [29], dulation: 1, type: "wall", subtype: "none" },
   "&": { id: [30], dulation: 1, type: "wall", subtype: "none" },
   "ƒ": { id: [31, 32, 31, 33], dulation: 4, type: "wall", subtype: "reverse_switch"}, // alt + f
   "º": { id: [34], dulation: 1, type: "wall", subtype: "lock"}, // alt + 0
@@ -396,8 +397,14 @@ let stageData = [
 
 // jump to level (debug)
 let goToLevel = (lName) => {
+  collectedMedal = [false, false, false];
+  collectedKey = [false, false, false];
+  collectedKeyNum = 0;
+  changedMapList.length = 0;
+  plc.hp = plcMaxHp;
   levelName = lName;
-  levelStart = 'A';
+  levelStart = "A";
+  coinCounter = collectedCoins;
   setTransition("game");
 }
 
@@ -493,16 +500,22 @@ class Sprite {
 
 // character class
 class CharacterSprite extends Sprite{
-  constructor(id, type, x, y, w, h, ltx, lty, rbx, rby, hp, img, shadow, anime) {
+  constructor(id, type, x, y, w, h, ltx, lty, rbx, rby, hltx, hlty, hrbx, hrby, hp, img, shadow, anime) {
     super(id, x, y, w, h, img, shadow, anime);
     // type
     this.type = type;
-    // ltx,lty = left top of hitbox
+    // ltx, lty = left top of hitbox (for mapchip and gimmick)
     this.ltx = ltx;
     this.lty = lty;
-    // rbx, rby = right bottom of hitbox
+    // rbx, rby = right bottom of hitbox (for mapchip and gimmick)
     this.rbx = rbx;
     this.rby = rby;
+    // hltx, hlty = left top of hitbox (for other objects)
+    this.hltx = hltx;
+    this.hlty = hlty;
+    // rbx, rby = right bottom of hitbox (for other objects)
+    this.hrbx = hrbx;
+    this.hrby = hrby;
     // hit point
     this.hp = hp;
     // initial parameter
@@ -527,6 +540,11 @@ class CharacterSprite extends Sprite{
   rBottomX () { return this.x + this.rbx; };
   rBottomY () { return this.y + this.rby; };
 
+  hLTopX () { return this.x + this.hltx; };
+  hLTopY () { return this.y + this.hlty; };
+  hRBottomX () { return this.x + this.hrbx; };
+  hRBottomY () { return this.y + this.hrby; };
+
   // タイプ判定
   isType (typename) {
     return this.type === typename;
@@ -536,8 +554,8 @@ class CharacterSprite extends Sprite{
   isHit (opponent) {
     if (this.isNoHit || opponent.isNoHit) return false;
     return (
-      opponent.lTopX() <= this.rBottomX() && this.lTopX() <= opponent.rBottomX()
-      && opponent.lTopY() <= this.rBottomY() && this.lTopY() <= opponent.rBottomY()
+      opponent.hLTopX() <= this.hRBottomX() && this.hLTopX() <= opponent.hRBottomX()
+      && opponent.hLTopY() <= this.hRBottomY() && this.hLTopY() <= opponent.hRBottomY()
     );
   };
 
@@ -654,7 +672,7 @@ let isOnLand = (character) => {
     isTouching |= getMapType(character.lTopX() + x, character.rBottomY() + 0.0625) === "wall";
   }
   isTouching |= getMapType(character.rBottomX(), character.rBottomY() + 0.0625) === "wall";
-  if (character.dy >= 0) {
+  if (character.dy + character.py + character.ry >= 0) {
     for (let x = 0; x < character.rBottomX() - character.lTopX(); x += gridSize) {
       isTouching |= getMapType(character.lTopX() + x, character.rBottomY() + 0.0625) === "bridge";
     }
@@ -727,7 +745,7 @@ let moveAndCheckCollisionWithMap = (character) => {
   }
   if (isTouching) character.y += slideLength * loopMax;
   // bottom (bridge)
-  if (character.dy >= 0) {
+  if (character.dy + character.py + character.ry >= 0) {
     for (let i = 0; i < loopMax; i++) {
       let isTouching = false;
       for (let x = 0; x < character.rBottomX() - character.lTopX(); x += gridSize) {
@@ -797,6 +815,7 @@ const enemyData = {
     "w" : 16,
     "h" : 16,
     "box" : [3, 3, 12, 12],
+    "hit" : [3, 3, 12, 12],
     "hp" : 4,
     "img" : imgWatage,
     "anime": "watage",
@@ -848,6 +867,7 @@ const enemyData = {
     "w" : 16,
     "h" : 16,
     "box" : [3, 3, 12, 12],
+    "hit" : [3, 3, 12, 12],
     "hp" : 2,
     "img" : imgWatage,
     "anime": "watage",
@@ -875,7 +895,8 @@ const enemyData = {
     "type": "normal",
     "w" : 16,
     "h" : 16,
-    "box" : [3, 3, 12, 15],
+    "box" : [1, 3, 14, 15],
+    "hit" : [3, 3, 12, 14],
     "hp" : 3,
     "img" : imgPumpkin,
     "anime": "pumpkin",
@@ -917,6 +938,7 @@ const enemyData = {
     "w" : 32,
     "h" : 32,
     "box" : [8, 16, 23, 31],
+    "hit" : [8, 16, 23, 31],
     "hp" : 8,
     "img" : imgSlime,
     "anime": "slime",
@@ -954,26 +976,34 @@ const enemyData = {
     "w" : 16,
     "h" : 16,
     "box" : [3, 3, 12, 12],
-    "hp" : 6,
+    "hit" : [3, 3, 12, 12],
+    "hp" : 3,
     "img" : imgFlyingCamera,
     "anime": "flying_camera",
     "move": (me) => {
       if (me.param.length === 0) {
-        me.param.push(me.x); // 初期座標（X）
+        me.param.push(me.x + 8 * me.initParam); // 初期座標（X）(initParam=1 で半マス右にずれます)
         me.param.push(me.y); // 初期座標（Y）
         me.param.push(randInt(0,199)); // 移動時間
-        me.param.push(0); // 行動切り替えカウント
+        me.param.push(0); // クールタイム
+        me.param.push(0); // 点滅回数カウント
         me.changeAnime("float_l");
       }
       if (me.isEndAnime()) {
-        if (me.anitype === "glow_l" || me.anitype === "glow_r" ) {
-          let theta = Math.atan2(plc.y - me.y, plc.x - me.x)
-          createEnemy("danmaku_white", me.x, me.y, Math.cos(theta) * 1.75, Math.sin(theta) * 1.75);
-          me.param[3] = randInt(0, 20) + 60;
-          me.startAnime(plc.x < me.x ? "float_l" : "float_r");
+        if ((me.anitype === "glow_l" || me.anitype === "glow_r") ) {
+          if (++me.param[4] >= 3) {
+            let theta = Math.atan2(plc.y - me.y, plc.x - me.x)
+            createEnemy("danmaku_white", me.x, me.y, Math.cos(theta) * 1.75, Math.sin(theta) * 1.75);
+            me.param[3] = 60 + randInt(0, 20);
+            me.param[4] = 0;
+            me.startAnime(plc.x < me.x ? "float_l" : "float_r");
+          }
+          else {
+            me.startAnime(plc.x < me.x ? "glow_l" : "glow_r");
+          }
         }
         else {
-          if (Math.abs(plc.x - me.x) < 150 && Math.abs(plc.y - me.y) < 150 && me.param[3] <= 0) {
+          if (me.param[3] <= 0 && Math.abs(plc.x - me.x) < 150 && Math.abs(plc.y - me.y) < 75) {
             me.startAnime(plc.x < me.x ? "glow_l" : "glow_r");
           }
           else {
@@ -994,12 +1024,14 @@ const enemyData = {
     "w" : 32,
     "h" : 32,
     "box" : [2, 4, 29, 31],
+    "hit" : [2, 4, 29, 31],
     "hp" : 8,
     "img" : imgSlimeLauncher,
     "anime": "slimelauncher",
     "move": (me) => {
       if (me.param.length === 0) {
         me.param.push(0);
+        if (me.initParam === 1) me.x += 8; // 初期パラメータを1にすると半マスずれる
       }
       if (!isOnLand(me)) {
         me.dy += 0.125;
@@ -1032,24 +1064,28 @@ const enemyData = {
     "type": "normal",
     "w" : 32,
     "h" : 32,
-    "box" : [8, 8, 23, 31],
+    "box" : [1, 8, 30, 31],
+    "hit" : [8, 8, 23, 24],
     "hp" : 12,
     "img" : imgElectroJar,
     "anime": "electrojar",
     "move": (me) => {
+      if (me.initParam === 0) { // 初期変数を指定しない時は5に自動設定する
+        me.initParam = 5;
+      }
       if (me.param.length === 0) {
-        me.param.push(me.initParam * 10);
+        me.param.push(randInt(0, me.initParam * 10));
       }
       updateVelocity(me);
       moveAndCheckCollisionWithMap(me);
       me.param[0]++;
-      if (me.param[0] === 30) {
-        me.startAnime("launch");
+      if (me.param[0] === me.initParam * 10) {
+        me.startAnime(me.initParam <= 2 ? "launch_fast" : "launch");
         createEnemy("danmaku_yellow", me.x + 8, me.y - 8, -1.000 + randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
       }
-      if (me.param[0] >= 60) {
+      if (me.param[0] >= me.initParam * 20) {
         me.param[0] = 0;
-        me.startAnime("launch");
+        me.startAnime(me.initParam <= 2 ? "launch_fast" : "launch");
         createEnemy("danmaku_yellow", me.x + 8, me.y - 8,  1.000 - randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
       }
     }
@@ -1059,6 +1095,7 @@ const enemyData = {
     "w" : 16,
     "h" : 16,
     "box" : [2, 4, 13, 15],
+    "hit" : [2, 4, 13, 15],
     "hp" : 4,
     "img" : imgMinionSlime,
     "anime": "minionslime",
@@ -1095,6 +1132,7 @@ const enemyData = {
     "w" : 16,
     "h" : 16,
     "box" : [3, 3, 12, 12],
+    "hit" : [3, 3, 12, 12],
     "hp" : 1,
     "img" : imgDanmakuYellow,
     "anime": "danmakuyellow",
@@ -1120,6 +1158,7 @@ const enemyData = {
     "w" : 16,
     "h" : 16,
     "box" : [5, 5, 10, 10],
+    "hit" : [5, 5, 10, 10],
     "hp" : 1,
     "img" : imgDanmakuWhite,
     "anime": "danmakuwhite",
@@ -1146,6 +1185,7 @@ const enemyData = {
     "w" : 64,
     "h" : 64,
     "box" : [3, 16, 60, 63],
+    "hit" : [3, 16, 60, 63],
     "hp" : 80,
     "img" : imgBigPumpkin,
     "anime": "bigpumpkin",
@@ -1241,6 +1281,7 @@ const enemyData = {
     "w" : 96,
     "h" : 48,
     "box" : [36, 18, 88, 47],
+    "hit" : [36, 18, 88, 47],
     "hp" : 100,
     "img" : imgRenchin,
     "anime": "renchin",
@@ -1407,10 +1448,14 @@ let createEnemy = (enemyId, x, y, dx, dy) => {
     y, // start position y
     enemyData[enemyId].w, // width
     enemyData[enemyId].h, // height
-    enemyData[enemyId].box[0], // hit box 
+    enemyData[enemyId].box[0], // hit box (map)
     enemyData[enemyId].box[1],
     enemyData[enemyId].box[2],
     enemyData[enemyId].box[3],
+    enemyData[enemyId].hit[0], // hit box (character)
+    enemyData[enemyId].hit[1],
+    enemyData[enemyId].hit[2],
+    enemyData[enemyId].hit[3],
     enemyData[enemyId].hp, // hp
     enemyData[enemyId].img, // sprite sheet
     animeData[enemyData[enemyId].anime]
@@ -1430,13 +1475,14 @@ let itemData = {
     "type": "gravity",
     "w": 16,
     "h": 16,
-    "box" : [2, 0, 13, 15],
+    "box" : [0, 6, 14, 15],
+    "hit" : [0, 6, 14, 15],
     "img": imgKey,
     "anime": "key",
     "move": (me) => {
       if (collectedKey[0]) me.hp = 0;
       else if (mapAnimeCount % 20 === 1) {
-        createEffect("yellow_glitter", randInt(me.x - 8, me.x + 16), randInt(me.y - 8, me.y + 16), 0, 0);
+        createEffect("yellow_glitter", randInt(me.lTopX() - 8, me.rBottomX()), randInt(me.lTopY() - 8, me.rBottomY()), 0, 0);
       }
     },
     "obtained": (me) => {
@@ -1451,13 +1497,14 @@ let itemData = {
     "type": "gravity",
     "w": 16,
     "h": 16,
-    "box" : [2, 0, 13, 15],
+    "box" : [0, 6, 14, 15],
+    "hit" : [0, 6, 14, 15],
     "img": imgKey,
     "anime": "key",
     "move": (me) => {
       if (collectedKey[1]) me.hp = 0;
       else if (mapAnimeCount % 20 === 1) {
-        createEffect("yellow_glitter", randInt(me.x - 8, me.x + 16), randInt(me.y - 8, me.y + 16), 0, 0);
+        createEffect("yellow_glitter", randInt(me.lTopX() - 8, me.rBottomX()), randInt(me.lTopY() - 8, me.rBottomY()), 0, 0);
       }
     },
     "obtained": (me) => {
@@ -1472,13 +1519,14 @@ let itemData = {
     "type": "gravity",
     "w": 16,
     "h": 16,
-    "box" : [2, 0, 13, 15],
+    "box" : [0, 6, 14, 15],
+    "hit" : [0, 6, 14, 15],
     "img": imgKey,
     "anime": "key",
     "move": (me) => {
       if (collectedKey[2]) me.hp = 0;
       else if (mapAnimeCount % 20 === 1) {
-        createEffect("yellow_glitter", randInt(me.x - 8, me.x + 16), randInt(me.y - 8, me.y + 16), 0, 0);
+        createEffect("yellow_glitter", randInt(me.lTopX() - 8, me.rBottomX()), randInt(me.lTopY() - 8, me.rBottomY()), 0, 0);
       }
     },
     "obtained": (me) => {
@@ -1495,6 +1543,7 @@ let itemData = {
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
+    "hit" : [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
@@ -1523,6 +1572,7 @@ let itemData = {
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
+    "hit" : [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
@@ -1551,6 +1601,7 @@ let itemData = {
     "w": 32,
     "h": 32,
     "box" : [6, 6, 25, 25],
+    "hit" : [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
@@ -1602,10 +1653,14 @@ let createItem = (itemId, x, y) => {
     y, // start position y
     itemData[itemId].w, // width
     itemData[itemId].h, // height
-    itemData[itemId].box[0], // hit box 
+    itemData[itemId].box[0], // hit box (map)
     itemData[itemId].box[1],
     itemData[itemId].box[2],
     itemData[itemId].box[3],
+    itemData[itemId].hit[0], // hit box (character)
+    itemData[itemId].hit[1],
+    itemData[itemId].hit[2],
+    itemData[itemId].hit[3],
     1, // hp
     itemData[itemId].img, // sprite sheet
     animeData[itemData[itemId].anime]
@@ -1623,6 +1678,7 @@ const gimmickData = {
     "w": 32,
     "h": 32,
     "box" : [0, 0, 31, 5],
+    "hit" : [0, 0, 31, 5],
     "img": imgMoveFloor,
     "anime": "movefloor",
     "move": (me) => {
@@ -1648,10 +1704,15 @@ let createGimmick = (gimmickId, x, y) => {
     y, // start position y
     gimmickData[gimmickId].w, // width
     gimmickData[gimmickId].h, // height
-    gimmickData[gimmickId].box[0], // hit box 
+    gimmickData[gimmickId].box[0], // hit box (map)
     gimmickData[gimmickId].box[1],
     gimmickData[gimmickId].box[2],
     gimmickData[gimmickId].box[3],
+    gimmickData[gimmickId].hit[0], // hit box (character)
+    gimmickData[gimmickId].hit[1],
+    gimmickData[gimmickId].hit[2],
+    gimmickData[gimmickId].hit[3],
+    
     1, // hp
     gimmickData[gimmickId].img, // sprite sheet
     animeData[gimmickData[gimmickId].anime]
@@ -2066,10 +2127,14 @@ let sceneList = {
         // gimmick move
         plc.riding = null;
         enemyArray.forEach( (enemy) => {enemy.riding = null;} );
+        itemArray.forEach( (enemy) => {enemy.riding = null;} );
         gimmickArray.forEach((vehicle) => {
           plc.checkRiding(vehicle);
           enemyArray.forEach((enemy) => {
             if (enemyData[enemy.id].type === "normal") enemy.checkRiding(vehicle);
+          });
+          itemArray.forEach((item) => {
+            if (itemData[item.id].type === "gravity") item.checkRiding(vehicle);
           });
           gimmickData[vehicle.id].move(vehicle);
         });
@@ -2125,8 +2190,12 @@ let sceneList = {
         // player character move
         // *********************
         // hit wall -> stop
-        if ((isTouchingLeftWall(plc) && plc.dx < 0) || (isTouchingRightWall(plc) && plc.dx > 0)) plc.dx = 0;
-        if (isHeading(plc) && plc.dy < 0) plc.dy = 0;
+        if ((isTouchingLeftWall(plc) && plc.dx < 0) || (isTouchingRightWall(plc) && plc.dx > 0)) {
+          plc.dx = 0;
+        }
+        if (isHeading(plc) && plc.dy < 0) {
+          plc.dy = 0;
+        }
         // key inputs
         if (isOnLand(plc) || plc.riding != null) {
           plc.dy = 0;
@@ -2205,7 +2274,7 @@ let sceneList = {
         }
         // create shot
         if (isKeyPressedNow("x") && shotArray.length < shotMax) {
-          let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
+          let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
           newShot.dx = plc.direction === "left" ? -2 : 2;
           newShot.changeAnime("shot");
           newShot.param.push(0);
@@ -2713,7 +2782,7 @@ window.onload = () => {
     shadowList[key][1].src = createShadowURL(shadowList[key][0]);
   });
   // create Player Character
-  plc = new CharacterSprite("player", "player", 0, 0, 16, 16, 3, 3, 12, 15, plcMaxHp, imgPlayer, animeData["player"]);
+  plc = new CharacterSprite("player", "player", 0, 0, 16, 16, 3, 3, 12, 15, 3, 3, 12, 12, plcMaxHp, imgPlayer, animeData["player"]);
   // start game loop
   setInterval(gameLoop, 1000/60); // 60fps
 };
