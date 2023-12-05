@@ -359,6 +359,7 @@ let readSaveData = async (saveDataName) => {
   if (saveDataJson === null) {
     console.log("データが存在しません！");
     await createNewSaveData(saveDataName);
+    saveDataJson = localStorage.getItem(saveDataName);
   }
   saveDataObject = JSON.parse(saveDataJson);
 };
