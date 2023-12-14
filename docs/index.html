@@ -61,25 +61,28 @@
     <footer>
     </footer>
     <style>
+      :root {
+        --canvas-width: 960px;
+        --canvas-height: 720px;
+      }
       #canv {
-        width: 640px;
-        height: 480px;
+        width: var(--canvas-width);
+        height: var(--canvas-height);
         position: relative;
         border: 2px solid black;
         margin-left: auto;
         margin-right: auto;
         image-rendering: pixelated;
         -webkit-font-smoothing: none;
-        -webkit-font-smoothing: none;
-	      -moz-font-smoothing: none;
-        -ms-font-smoothing: none;
-        -o-font-smoothing: none;
+	      -moz-osx-font-smoothing: grayscale;
+        -ms-font-smoothing: grayscale;
+        -o-font-smoothing: grayscale;
       }
       #canv canvas { position: absolute; }
-      #backg_lay { z-index: 1; width: 640px; height: 480px; }
-      #chara_lay { z-index: 2; width: 640px; height: 480px; }
-      #useri_lay { z-index: 3; width: 640px; height: 480px; }
-      #trans_lay { z-index: 4; width: 640px; height: 480px; }
+      #backg_lay { z-index: 1; width: var(--canvas-width); height: var(--canvas-height); }
+      #chara_lay { z-index: 2; width: var(--canvas-width); height: var(--canvas-height); }
+      #useri_lay { z-index: 3; width: var(--canvas-width); height: var(--canvas-height); }
+      #trans_lay { z-index: 4; width: var(--canvas-width); height: var(--canvas-height); }
       #howto {
         position: relative;
         margin-left: auto;
@@ -95,7 +98,7 @@
       }
       table, td {
         padding: 0.5em;
-        border: 1px solid black;
+        border: 2px solid black;
       }
       footer {
         font-family: '筑紫a丸ゴシック', "system-ui";

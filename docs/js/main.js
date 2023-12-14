@@ -14,6 +14,13 @@ const useriCtx = useriLay.getContext("2d");
 const transLay = document.getElementById("trans_lay");
 const transCtx = transLay.getContext("2d");
 
+let imageSmoothing = (ctx, isEnabled) => {
+  ctx.imageSmoothingEnabled = isEnabled;
+  ctx.mozImageSmoothingEnabled = isEnabled;
+  ctx.webkitImageSmoothingEnabled = isEnabled;
+  ctx.msImageSmoothingEnabled = isEnabled;
+}
+
 // get font
 let font = new FontFace("MaruMonica", "url(./fonts/x12y16pxMaruMonica.ttf)");
 
@@ -902,6 +909,9 @@ const enemyData = {
     "img" : imgPumpkin,
     "anime": "pumpkin",
     "move": (me) => {
+      if (me.param.length === 0) {
+        me.param.push(0);
+      }
       if (me.reaction > 0) {
         me.changeAnime("damaged");
         if (me.anicount === 0) me.dy = 0;
@@ -910,15 +920,19 @@ const enemyData = {
         me.changeAnime("laugh");
       }
       if (isOnLand(me)) {
-        if (Math.abs(me.x - plc.x) < 100 && cameraY < me.y + me.h && me.y < cameraY + charaLay.height) {
+        if (Math.abs(me.x - plc.x) < 100 && cameraY < me.y + me.h && me.y < cameraY + charaLay.height && me.param[0] <= 0) {
           me.dy = -3.0;
           me.direction = (me.x < plc.x) ? "right" : "left";
-          if (me.reaction <= 0) me.dx = me.direction === "right" ? 0.5 : -0.5;
+          me.dx = me.direction === "right" ? 0.5 : -0.5;
         }
         else {
           me.dx = 0;
           me.dy = 0;
+          me.param[0]--;
         }
+      }
+      else {
+        me.param[0] = 8;
       }
       if (isHeading(me)) {
         me.dy = -me.dy;
@@ -1144,7 +1158,7 @@ const enemyData = {
         me.dy = 0;
         me.changeAnime("vanish");
       }
-      else {
+      else if (me.anitype != "vanish") {
         me.dy += 0.0625;
         me.changeAnime("shot");
       }
@@ -1170,7 +1184,7 @@ const enemyData = {
         me.dy = 0;
         me.changeAnime("vanish");
       }
-      else {
+      else  if (me.anitype != "vanish") {
         me.changeAnime("shot");
       }
       if (me.isEndAnime()) {
@@ -2781,6 +2795,11 @@ window.onload = () => {
   initFlag = true;
   overLayInitFlag = true;
   nowLoading = true;
+  // smoothing disabled
+  imageSmoothing(backgCtx, false);
+  imageSmoothing(charaCtx, false);
+  imageSmoothing(useriCtx, false);
+  imageSmoothing(transCtx, false);
   // create shadow sprite
   Object.keys(shadowList).forEach((key) => {
     shadowList[key][1].src = createShadowURL(shadowList[key][0]);
