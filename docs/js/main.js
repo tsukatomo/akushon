@@ -1399,7 +1399,7 @@ const enemyData = {
               me.changeAnime(me.hp > halfHp ? "open_2" : "open_2_red");
             }
             if (me.anitype === "open_2" || me.anitype === "open_2_red"){
-              me.ltx = me.isEndAnime() ? 36 : 16; // 扉によるダメージ
+              me.hltx = me.isEndAnime() ? 36 : 16; // 扉によるダメージ
               me.isInvincible = false;
             }
             if ((me.param[0] > 40 && me.param[0] % 35 === 15 && me.anitype === "open_2") || (me.param[0] > 40 && me.param[0] % 20 === 15 && me.anitype === "open_2_red")) {
