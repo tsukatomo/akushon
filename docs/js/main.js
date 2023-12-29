@@ -469,6 +469,7 @@ class Sprite {
     this.param = [];
   };
 
+  // === animation ===
   startAnime (anitype) {
     this.anitype = anitype;
     this.anicount = 0;
@@ -502,6 +503,23 @@ class Sprite {
 
   drawShadow (ctx, drawX, drawY) {
     ctx.drawImage(this.img[1], this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
+  };
+
+  // === parameter ===
+  setParam (idx, value) {
+    while (this.param.length <= idx) {
+      this.param.push(0);
+    }
+    this.param[idx] = value;
+  };
+
+  getParam (idx) {
+    if (this.param.length <= idx) return null;
+    return this.param[idx];
+  };
+
+  isParamEmpty () {
+    return this.param.length === 0;
   };
 
 };
@@ -828,27 +846,27 @@ const enemyData = {
     "img" : imgWatage,
     "anime": "watage",
     "move": (me) => {
-      if (me.param.length === 0) {
-        me.param.push(me.x);
-        me.param.push(me.y);
-        me.param.push(randInt(0,799));
-        me.param.push(randInt(0,799));
+      if (me.isParamEmpty()) {
+        me.setParam(0, me.x);
+        me.setParam(1, me.y);
+        me.setParam(2, randInt(0,799));
+        me.setParam(3, randInt(0,799));
       }
       if (me.hp >= 3) { // float
         if (me.reaction > 0) {
           me.changeAnime("damaged1");
-          me.param[2] = (me.param[2] + 1) % 800;
-          me.param[3] = (me.param[3] + 1) % 800;
+          me.setParam(2, (me.getParam(2) + 1) % 800);
+          me.setParam(3, (me.getParam(3) + 1) % 800);
         }
         else {
           me.changeAnime("float1");
-          me.param[2] = (me.param[2] + 2) % 800;
-          me.param[3] = (me.param[3] + 2) % 800;
+          me.setParam(2, (me.getParam(2) + 2) % 800);
+          me.setParam(3, (me.getParam(3) + 2) % 800);
         }
-        me.dx = Math.cos(2 * Math.PI * me.param[2] / 800 * 2) * 24;
-        me.dy = Math.sin(2 * Math.PI * me.param[3] / 800 * 3) * 24;
-        me.x = me.param[0] + me.dx;
-        me.y = me.param[1] + me.dy;
+        me.dx = Math.cos(2 * Math.PI * me.getParam(2) / 800 * 2) * 24;
+        me.dy = Math.sin(2 * Math.PI * me.getParam(3) / 800 * 3) * 24;
+        me.x = me.getParam(0) + me.dx;
+        me.y = me.getParam(1) + me.dy;
       }
       else { // chase
         me.dx += Math.sign(plc.x - me.x) * 0.03125;
@@ -880,23 +898,23 @@ const enemyData = {
     "img" : imgWatage,
     "anime": "watage",
     "move": (me) => {
-      if (me.param.length === 0) {
-        me.param.push(me.x);
-        me.param.push(me.y);
-        me.param.push(randInt(0,799));
+      if (me.isParamEmpty()) {
+        me.setParam(0, me.x);
+        me.setParam(1, me.y);
+        me.setParam(2, randInt(0,799));
       }
       if (me.reaction > 0) {
         me.changeAnime("damaged2");
-        me.param[2] = (me.param[2] + 1) % 800;
+        me.setParam(2, (me.getParam(2) + 1) % 800);
       }
       else {
         me.changeAnime("float2");
-        me.param[2] = (me.param[2] + 2) % 800;
+        me.setParam(2, (me.getParam(2) + 2) % 800);
       }
       me.dx = 0;
-      me.dy = Math.sin(2 * Math.PI * me.param[2] / 800 * 2) * 24;
-      me.x = me.param[0] + me.dx;
-      me.y = me.param[1] + me.dy;
+      me.dy = Math.sin(2 * Math.PI * me.getParam(2) / 800 * 2) * 24;
+      me.x = me.getParam(0) + me.dx;
+      me.y = me.getParam(1) + me.dy;
     }
   },
   "P" : { // Pumpkin
@@ -909,8 +927,8 @@ const enemyData = {
     "img" : imgPumpkin,
     "anime": "pumpkin",
     "move": (me) => {
-      if (me.param.length === 0) {
-        me.param.push(0);
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
       }
       if (me.reaction > 0) {
         me.changeAnime("damaged");
@@ -920,7 +938,7 @@ const enemyData = {
         me.changeAnime("laugh");
       }
       if (isOnLand(me)) {
-        if (Math.abs(me.x - plc.x) < 100 && cameraY < me.y + me.h && me.y < cameraY + charaLay.height && me.param[0] <= 0) {
+        if (Math.abs(me.x - plc.x) < 100 && cameraY < me.y + me.h && me.y < cameraY + charaLay.height && me.getParam(0) <= 0) {
           me.dy = -3.0;
           me.direction = (me.x < plc.x) ? "right" : "left";
           me.dx = me.direction === "right" ? 0.5 : -0.5;
@@ -928,11 +946,11 @@ const enemyData = {
         else {
           me.dx = 0;
           me.dy = 0;
-          me.param[0]--;
+          me.setParam(0, me.getParam(0) - 1);
         }
       }
       else {
-        me.param[0] = 8;
+        me.setParam(0, 8);
       }
       if (isHeading(me)) {
         me.dy = -me.dy;
@@ -996,21 +1014,22 @@ const enemyData = {
     "img" : imgFlyingCamera,
     "anime": "flying_camera",
     "move": (me) => {
-      if (me.param.length === 0) {
-        me.param.push(me.x + 8 * me.initParam); // 初期座標（X）(initParam=1 で半マス右にずれます)
-        me.param.push(me.y); // 初期座標（Y）
-        me.param.push(randInt(0,199)); // 移動時間
-        me.param.push(0); // クールタイム
-        me.param.push(0); // 点滅回数カウント
+      if (me.isParamEmpty()) {
+        me.setParam(0, me.x + 8 * me.initParam); // 初期座標（X）(initParam=1 で半マス右にずれます)
+        me.setParam(1, me.y); // 初期座標（Y）
+        me.setParam(2, randInt(0,199)); // 移動時間
+        me.setParam(3, 0); // クールタイム
+        me.setParam(4, 0); // 点滅回数カウント
         me.changeAnime("float_l");
       }
       if (me.isEndAnime()) {
         if ((me.anitype === "glow_l" || me.anitype === "glow_r") ) {
-          if (++me.param[4] >= 3) {
+          me.setParam(4, me.getParam(4) + 1);
+          if (me.getParam(4) >= 3) {
             let theta = Math.atan2(plc.y - me.y, plc.x - me.x)
             createEnemy("danmaku_white", me.x, me.y, Math.cos(theta) * 1.75, Math.sin(theta) * 1.75);
-            me.param[3] = 60 + randInt(0, 20);
-            me.param[4] = 0;
+            me.setParam(3, 60 + randInt(0, 20));
+            me.setParam(4, 0);
             me.startAnime(plc.x < me.x ? "float_l" : "float_r");
           }
           else {
@@ -1018,7 +1037,7 @@ const enemyData = {
           }
         }
         else {
-          if (me.param[3] <= 0 && Math.abs(plc.x - me.x) < 150 && Math.abs(plc.y - me.y) < 75) {
+          if (me.getParam(3) <= 0 && Math.abs(plc.x - me.x) < 150 && Math.abs(plc.y - me.y) < 75) {
             me.startAnime(plc.x < me.x ? "glow_l" : "glow_r");
           }
           else {
@@ -1026,12 +1045,12 @@ const enemyData = {
           }
         }
       }
-      me.param[2] = (me.param[2] + 1) % 200;
-      me.param[3]--;
+      me.setParam(2, (me.getParam(2) + 1) % 200);
+      me.setParam(3, me.getParam(3) - 1);
       me.dx = 0;
-      me.dy = Math.sin(2 * Math.PI * me.param[2] / 200) * 16;
-      me.x = me.param[0] + me.dx;
-      me.y = me.param[1] + me.dy;
+      me.dy = Math.sin(2 * Math.PI * me.getParam(2) / 200) * 16;
+      me.x = me.getParam(0) + me.dx;
+      me.y = me.getParam(1) + me.dy;
     }
   },
   "L": { // Slime Launcher
@@ -1044,8 +1063,8 @@ const enemyData = {
     "img" : imgSlimeLauncher,
     "anime": "slimelauncher",
     "move": (me) => {
-      if (me.param.length === 0) {
-        me.param.push(0);
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
         if (me.initParam === 1) me.x += 8; // 初期パラメータを1にすると半マスずれる
       }
       if (!isOnLand(me)) {
@@ -1064,7 +1083,8 @@ const enemyData = {
       moveAndCheckCollisionWithMap(me);
       if (me.anitype != "vomit") {
         me.anitype = (me.reaction > 0) ? "damaged" : "munch";
-        if (++me.param[0] > 120) {
+        me.setParam(0, me.getParam(0) + 1);
+        if (me.getParam(0) > 120) {
           me.param[0] = 0;
           createEnemy("minion", me.x, me.y + 8, -1.0 + me.dx + me.px + me.rx, -2.0 + me.dy + me.py + me.ry).direction = "left";
           me.changeAnime("vomit");
@@ -1088,18 +1108,18 @@ const enemyData = {
       if (me.initParam === 0) { // 初期変数を指定しない時は5に自動設定する
         me.initParam = 5;
       }
-      if (me.param.length === 0) {
-        me.param.push(randInt(0, me.initParam * 10));
+      if (me.isParamEmpty()) {
+        me.setParam(0, randInt(0, me.initParam * 10));
       }
       updateVelocity(me);
       moveAndCheckCollisionWithMap(me);
-      me.param[0]++;
-      if (me.param[0] === me.initParam * 10) {
+      me.setParam(0, me.getParam(0) + 1);
+      if (me.getParam(0) === me.initParam * 10) {
         me.startAnime(me.initParam <= 2 ? "launch_fast" : "launch");
         createEnemy("danmaku_yellow", me.x + 8, me.y - 8, -1.000 + randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
       }
-      if (me.param[0] >= me.initParam * 20) {
-        me.param[0] = 0;
+      if (me.getParam(0) >= me.initParam * 20) {
+        me.setParam(0, 0);
         me.startAnime(me.initParam <= 2 ? "launch_fast" : "launch");
         createEnemy("danmaku_yellow", me.x + 8, me.y - 8,  1.000 - randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
       }
@@ -1222,23 +1242,24 @@ const enemyData = {
           break; 
         case "fight" :
           me.isNoHit = false;
-          if (me.param.length === 0) {
-            me.param.push(200); // 地面での待機時間
-            me.param.push(1); // 滞空時1，着地した瞬間に0に変更
+          if (me.isParamEmpty()) {
+            me.setParam(0, 200); // 地面での待機時間
+            me.setParam(1, 1); // 滞空時1，着地した瞬間に0に変更
           }
           if (!isOnLand(me)) {
-            me.param[0] = me.hp * 2 + 40
-            me.param[1] = 1;
+            me.setParam(0, me.hp * 2 + 40);
+            me.setParam(1, 1);
             me.dy += (me.dy > 0) ? 0.25 : 0.125;
           }
           else {
             //me.direction = (me.x < plc.x) ? "right" : "left";
-            if (me.param[1] === 1) { // 着地
-              me.param[1] = 0;
+            if (me.getParam(1) === 1) { // 着地
+              me.setParam(1, 0);
               quakeTimeY = 15;
               createEnemy("P", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0);
             }
-            if (me.param[0]-- < 0) { // ジャンプ
+            me.setParam(0, me.getParam(0) - 1);
+            if (me.getParam(0) < 0) { // ジャンプ
               me.dx = randInt(2, 6) * 0.25 * (me.direction === "left") ? -1 : 1;
               me.dy = -6;
             }
@@ -1264,21 +1285,21 @@ const enemyData = {
           useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 80)), 12);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
-            me.param[0] = 0;
+            me.setParam(0, 0);
             enemyArray.forEach((e) => {
               e.hp = 0;
             });
           }
           break;
         case "defeated" :
-          me.reaction = me.param[0];
-          me.param[0]++;
-          if (me.param[0] % 8 === 1) {
+          me.reaction = me.getParam(0);
+          me.setParam(0, me.getParam(0) + 1);
+          if (me.getParam(0) % 8 === 1) {
             createEffect("explode", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
             createEffect("explode", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
           }
           me.changeAnime("yarare");
-          if (me.param[0] > 200) {
+          if (me.getParam(0) > 200) {
             for (let i = 0; i < 16; i++) {
               createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
             }
@@ -1316,35 +1337,36 @@ const enemyData = {
         case "fight" :
           me.isNoHit = false;
           if (me.param.length === 0) {
-            me.param.push(100); // 待機時間
-            me.param.push("dash_wait"); // 行動パターン
-            me.param.push(me.x); // 初期位置
+            me.setParam(0, 100); // 待機時間
+            me.setParam(1, "dash_wait"); // 行動パターン
+            me.setParam(2, me.x); // 初期位置
           }
-          if (me.param[1] === "dash_wait") {
+          me.setParam(0, me.getParam(0) - 1);
+          if (me.getParam(1) === "dash_wait") {
             me.isInvincible = true;
             me.dx = 0;
             me.dy = 0;
-            if (me.param[0]-- <= 0) {
-              me.param[0] = 50;
-              me.param[1] = "shake";
+            if (me.getParam(0) <= 0) {
+              me.setParam(0, 50);
+              me.setParam(1, "shake");
               me.changeAnime(me.hp > halfHp ? "shake" : "shake_red");
             }
           }
-          else if (me.param[1] === "shake") {
-            if (me.param[0]-- <= 0) {
+          else if (me.getParam(1) === "shake") {
+            if (me.getParam(0) <= 0) {
               me.dx = 0.25;
-              me.param[1] = "dash";
+              me.setParam(1, "dash");
               me.changeAnime(me.hp > halfHp ? "dash" : "dash_red");
             }
           }
-          else if (me.param[1] === "dash") {
+          else if (me.getParam(1) === "dash") {
             if (me.dx > -8) me.dx -= me.hp > halfHp ? 0.0625 : 0.1875;
             if (me.isHit(plc) && plc.reaction === invincibleTimeMax) {
               plc.dx += me.dx / 2;
               plc.dy = - 2.0;
             }
             if (isTouchingLeftWall(me)) {
-              me.param[1] = "clash";
+              me.setParam(1, "clash");
               me.dy = -1.25;
               quakeTimeX = 15;
               createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width / 2 - 8), -16, 0, 0).direction = "right";
@@ -1353,25 +1375,25 @@ const enemyData = {
               me.changeAnime("clash");
             }
           }
-          else if (me.param[1] === "clash") {
+          else if (me.getParam(1) === "clash") {
             me.dx = 1;
             me.dy += 0.125;
             if (isOnLand(me)) {
-              me.param[0] = 25;
-              me.param[1] = "jump_wait";
+              me.setParam(0, 25);
+              me.setParam(1, "jump_wait");
               me.changeAnime("stand");
             }
           }
-          else if (me.param[1] === "jump_wait") {
+          else if (me.getParam(1) === "jump_wait") {
             me.dx = 0;
             me.dy = 0;
-            if (me.param[0]-- <= 0) {
-              me.param[1] = "jump";
+            if (me.getParam(0) <= 0) {
+              me.setParam(1, "jump");
               me.changeAnime("jump");
               me.dy -= 4;
             }
           }
-          else if (me.param[1] === "jump") {
+          else if (me.getParam(1) === "jump") {
             me.dx = 1.75;
             me.dy += 0.0625;
             if (me.anitype === "jump" && me.dy > 0) me.changeAnime("fall");
@@ -1380,21 +1402,21 @@ const enemyData = {
               quakeTimeY = 20;
               createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0).direction = "right";
               if (me.hp <= halfHp) createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0).direction = "left";
-              me.param[0] = 100;
-              me.param[1] = "open_wait";
+              me.setParam(0, 100);
+              me.setParam(1, "open_wait");
               me.changeAnime("stand");
             }
           }
-          else if (me.param[1] === "open_wait") {
+          else if (me.getParam(1) === "open_wait") {
             me.dx = 0;
             me.dy = 0;
-            if (me.param[0]-- <= 0) {
-              me.param[0] = 225;
-              me.param[1] = "open";
+            if (me.getParam(0) <= 0) {
+              me.setParam(0, 225);
+              me.setParam(1, "open");
               me.changeAnime("open_1");
             }
           }
-          else if (me.param[1] === "open") {
+          else if (me.getParam(1) === "open") {
             if (me.isEndAnime() && me.anitype === "open_1") {
               me.changeAnime(me.hp > halfHp ? "open_2" : "open_2_red");
             }
@@ -1402,17 +1424,17 @@ const enemyData = {
               me.hltx = me.isEndAnime() ? 36 : 16; // 扉によるダメージ
               me.isInvincible = false;
             }
-            if ((me.param[0] > 40 && me.param[0] % 35 === 15 && me.anitype === "open_2") || (me.param[0] > 40 && me.param[0] % 20 === 15 && me.anitype === "open_2_red")) {
+            if ((me.getParam(0) > 40 && me.getParam(0) % 35 === 15 && me.anitype === "open_2") || (me.getParam(0) > 40 && me.getParam(0) % 20 === 15 && me.anitype === "open_2_red")) {
               createEnemy("danmaku_yellow", me.x + 48, me.y + 24, -0.25 - randInt(0, 8) * 0.125, -3.0 - randInt(0, 8) * 0.0625);
             }
             if (me.anitype === "open_2" && me.hp <= 40) { // hpが40以下なら強制的に第2形態へ
-              me.param[0] = 60;
-              me.param[1] = "dash_wait";
+              me.setParam(0, 60);
+              me.setParam(1, "dash_wait");
               me.changeAnime("stand");
             }
-            if (me.param[0]-- <= 0) {
-              me.param[0] = 30;
-              me.param[1] = "dash_wait";
+            if (me.getParam(0) <= 0) {
+              me.setParam(0, 30);
+              me.setParam(1, "dash_wait");
               me.changeAnime("stand");
             }
           }
@@ -1424,21 +1446,21 @@ const enemyData = {
           useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 100)), 12);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
-            me.param[0] = 0;
+            me.setParam(0, 0);
             enemyArray.forEach((e) => {
               e.hp = 0;
             });
           }
           break;
         case "defeated" :
-          me.reaction = me.param[0];
-          me.param[0]++;
-          if (me.param[0] % 8 === 1) {
+          me.reaction = me.getParam(0);
+          me.setParam(0, me.getParam(0) + 1);
+          if (me.getParam(0) % 8 === 1) {
             createEffect("explode", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
             createEffect("explode", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
           }
           me.changeAnime("yarare");
-          if (me.param[0] > 200) {
+          if (me.getParam(0) > 200) {
             for (let i = 0; i < 16; i++) {
               createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
             }
