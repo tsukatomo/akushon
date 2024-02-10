@@ -231,12 +231,12 @@ let animeData = {
   },
   "danmakuyellow": {
     "shot": { frames: 2, dulation: 4, img: [0, 1], repeat: true },
-    "vanish": { frames: 2, dulation: 2, img: [2, 3], repeat: false },
+    "vanish": { frames: 2, dulation: 4, img: [2, 3], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "danmakuwhite": {
     "shot": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true },
-    "vanish": { frames: 3, dulation: 2, img: [4, 5, 6], repeat: false },
+    "vanish": { frames: 3, dulation: 3, img: [4, 5, 6], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "bigpumpkin": {
@@ -923,7 +923,7 @@ const enemyData = {
     "h" : 16,
     "box" : [1, 3, 14, 15],
     "hit" : [3, 3, 12, 14],
-    "hp" : 3,
+    "hp" : 2,
     "img" : imgPumpkin,
     "anime": "pumpkin",
     "move": (me) => {
@@ -950,7 +950,7 @@ const enemyData = {
         }
       }
       else {
-        me.setParam(0, 8);
+        me.setParam(0, 8); // 接地時間
       }
       if (isHeading(me)) {
         me.dy = -me.dy;
@@ -1243,11 +1243,11 @@ const enemyData = {
         case "fight" :
           me.isNoHit = false;
           if (me.isParamEmpty()) {
-            me.setParam(0, 200); // 地面での待機時間
+            me.setParam(0, 160); // 地面での待機時間
             me.setParam(1, 1); // 滞空時1，着地した瞬間に0に変更
           }
           if (!isOnLand(me)) {
-            me.setParam(0, me.hp * 2 + 40);
+            me.setParam(0, me.hp * 2 + 36);
             me.setParam(1, 1);
             me.dy += (me.dy > 0) ? 0.25 : 0.125;
           }
@@ -2390,7 +2390,12 @@ let sceneList = {
           replaceMap(Math.floor((plc.x + 8) / gridSize), Math.floor((plc.y + 8) / gridSize), '.');
         }
         if (getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "heart") {
-          if (plc.hp < plcMaxHp) plc.hp += 1;
+          if (plc.hp < plcMaxHp) {
+            plc.hp += 1;
+          }
+          else {
+            collectedCoins += 5;
+          }
           replaceMap(Math.floor((plc.x + 8) / gridSize), Math.floor((plc.y + 8) / gridSize), '.');
         }
         // get item (Object)
