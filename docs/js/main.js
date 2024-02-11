@@ -49,13 +49,16 @@ let imgDanmakuYellow = [new Image(), new Image()];
 imgDanmakuYellow[0].src = "./img/danmaku_yellow.png";
 let imgDanmakuWhite = [new Image(), new Image()];
 imgDanmakuWhite[0].src = "./img/danmaku_white.png";
-
+let imgWatageSatelite = [new Image(), new Image()];
+imgWatageSatelite[0].src = "./img/bigwatage_satelite.png";
 
 // enemy (Boss)
 let imgBigPumpkin = [new Image(), new Image()];
 imgBigPumpkin[0].src = "./img/bigpumpkin.png";
 let imgRenchin = [new Image(), new Image()];
 imgRenchin[0].src = "./img/renchin.png";
+let imgBigWatage = [new Image(), new Image()];
+imgBigWatage[0].src = "./img/bigwatage.png";
 
 // item
 let imgKey = [new Image(), new Image()];
@@ -119,8 +122,10 @@ let shadowList = [
   imgMinionSlime,
   imgDanmakuYellow,
   imgDanmakuWhite,
+  imgWatageSatelite,
   imgBigPumpkin,
   imgRenchin,
+  imgBigWatage,
   imgKey,
   imgMedal,
   imgMoveFloor,
@@ -239,6 +244,9 @@ let animeData = {
     "vanish": { frames: 3, dulation: 3, img: [4, 5, 6], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
+  "watage_satelite": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
   "bigpumpkin": {
     "laugh": { frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true },
     "yarare": { frames: 1, dulation: 8, img: [4], repeat: true },
@@ -257,6 +265,11 @@ let animeData = {
     "open_2": { frames: 3, dulation: 2, img: [12, 13, 14], repeat: false },
     "open_2_red": { frames: 3, dulation: 2, img: [12, 23, 24], repeat: false },
     "yarare": { frames: 1, dulation: 8, img: [12], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
+  "bigwatage": {
+    "damage": { frames: 2, dulation: 4, img: [2, 1], repeat: false },
+    "yarare": { frames: 1, dulation: 8, img: [3], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "key": {
@@ -280,6 +293,9 @@ let animeData = {
   },
   "star": {
     "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
+  },
+  "watage_satelite_fade": {
+    "default": { frames: 4, dulation: 4, img: [4, 1, 2, 3], repeat: false }
   },
   "sscursor": {
     "default": { frames: 4, dulation: 8, img: [0, 1, 2, 1], repeat: true }
@@ -520,6 +536,18 @@ class Sprite {
 
   isParamEmpty () {
     return this.param.length === 0;
+  };
+
+  incParam (idx) {
+    if (this.param.length <= idx) return null;
+    this.setParam(idx, this.getParam(idx) + 1);
+    return this.param[idx];
+  };
+
+  decParam (idx) {
+    if (this.param.length <= idx) return null;
+    this.setParam(idx, this.getParam(idx) - 1);
+    return this.param[idx];
   };
 
 };
@@ -1213,6 +1241,25 @@ const enemyData = {
       moveAndCheckCollisionWithMap(me);
     }
   },
+  "watage_satelite": { // danmaku (white)
+    "type": "normal",
+    "w" : 16,
+    "h" : 16,
+    "box" : [5, 5, 10, 10],
+    "hit" : [5, 5, 10, 10],
+    "hp" : 1,
+    "img" : imgWatageSatelite,
+    "anime": "watage_satelite",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+        me.isInvincible = true;
+      }
+      if (me.incParam(0) % 8 === 0) {
+        createEffect("satelite_fade", me.x, me.y, 0, 0);
+      }
+    }
+  },
   //-------------------------------BOSS----------------------------------
   // big pumpkin
   "p": { 
@@ -1451,10 +1498,131 @@ const enemyData = {
               e.hp = 0;
             });
           }
+          // アニメーション
+
           break;
         case "defeated" :
           me.reaction = me.getParam(0);
           me.setParam(0, me.getParam(0) + 1);
+          if (me.getParam(0) % 8 === 1) {
+            createEffect("explode", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+            createEffect("explode", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+          }
+          me.changeAnime("yarare");
+          if (me.getParam(0) > 200) {
+            for (let i = 0; i < 16; i++) {
+              createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
+            }
+            quakeTimeY = 20;
+            bossBattlePhase = "end";
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  },
+  "V": { // Big watage
+    "type": "boss",
+    "w" : 96,
+    "h" : 96,
+    "box" : [16, 16, 79, 79],
+    "hit" : [20, 20, 75, 75],
+    "hp" : 100,
+    "img" : imgBigWatage,
+    "anime": "bigwatage",
+    "move": (me) => {
+      me.isNoHit = true; // 戦闘中以外衝突判定しない
+      switch(bossBattlePhase) {
+        case "none" :
+          me.isInvincible = true;
+          me.changeAnime("default");
+          break;
+        case "entrance" :
+          bossBattlePhase = "fight";
+          moveAndCheckCollisionWithMap(me);
+          break; 
+        case "fight" :
+          me.isInvincible = false;
+          me.isNoHit = false;
+          if (me.isParamEmpty()) {
+            me.setParam(0, 0); // 時間カウンター
+            me.setParam(1, createEnemy("watage_satelite", me.x + me.w / 2 - 8, me.y, 0, 0)); // 衛星（上から時計回り）
+            me.setParam(2, createEnemy("watage_satelite", me.x + me.w - 8, me.y + me.h / 2 - 8, 0, 0));
+            me.setParam(3, createEnemy("watage_satelite", me.x + me.w / 2 - 8 , me.y + me.h - 8, 0, 0));
+            me.setParam(4, createEnemy("watage_satelite", me.x, me.y + me.h / 2 - 8, 0, 0));
+            me.setParam(5, 0); // 行動カウンター
+            me.setParam(6, "wait1") // 行動タグ
+            me.setParam(7, 0); // 衛星との距離
+            me.setParam(8, me.x); // 初期位置x
+            me.setParam(9, me.y); // 初期位置y
+            me.setParam(10, me.hp); // HP変動チェック
+          }
+          me.incParam(0);
+          me.incParam(5);
+          if (me.getParam(6) === "wait1") {
+            me.x = me.getParam(8);
+            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 24;
+            if (me.getParam(5) >= 240) {
+              me.setParam(6, "spread");
+              me.setParam(5, 0);
+            }
+          }
+          else if (me.getParam(6) === "spread") {
+            me.setParam(7, 100 - Math.abs(me.getParam(5) - 100));
+            if (me.getParam(5) > 200) {
+              me.setParam(6, "wait2");
+              me.setParam(5, 0);
+            }
+          }
+          if (me.getParam(6) === "wait2") {
+            me.x = me.getParam(8);
+            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 24;
+            if (me.getParam(5) >= 180) {
+              me.setParam(6, "move");
+              me.setParam(5, 0);
+            }
+          }
+          else if (me.getParam(6) === "move") {
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * 120;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * 90;
+            if (me.getParam(5) >= 180) {
+              me.setParam(6, "wait1");
+              me.setParam(5, -60);
+            }
+          }
+          // 自分の移動
+          me.x += me.dx;
+          me.y += me.dy;
+          // 衛星の移動
+          for (let i = 1; i <= 4; i++) {
+            let rad = 2 * Math.PI * ((me.getParam(0) % 160 + i * 40)/ 160);
+            me.getParam(i).x = me.x + me.w / 2 - 8 + Math.cos(rad) * (me.w / 2 + me.getParam(7));
+            me.getParam(i).y = me.y + me.h / 2 - 8 + Math.sin(rad) * (me.h / 2 + me.getParam(7));
+          }
+          // アニメ
+          if (me.hp < me.getParam(10)) {
+            me.setParam(10, me.hp);
+            me.startAnime("damage");
+          }
+          else if (me.reaction <= 0){
+            me.changeAnime("default");
+          }
+          // HPバーの描画
+          useriCtx.fillStyle = "#2a2349";
+          useriCtx.fillRect(0, 222, 320, 16);
+          useriCtx.fillStyle = "#c16c5b";
+          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 100)), 12);
+          if (me.hp <= 0) { // ぐえ〜〜
+            bossBattlePhase = "defeated";
+            me.setParam(0, 0);
+            enemyArray.forEach((e) => {
+              e.hp = 0;
+            });
+          }
+          break;
+        case "defeated" :
+          me.reaction = me.incParam(0);
           if (me.getParam(0) % 8 === 1) {
             createEffect("explode", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
             createEffect("explode", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
@@ -1803,6 +1971,13 @@ let effectData = {
     "img": imgStar,
     "anime": "star",
     "move": "gravity"
+  },
+  "satelite_fade": {
+    "w": 16,
+    "h": 16,
+    "img": imgWatageSatelite,
+    "anime": "watage_satelite_fade",
+    "move": "behind"
   }
 };
 
@@ -2181,7 +2356,7 @@ let sceneList = {
         // enemy move
         enemyArray.forEach((e) => {
           enemyData[e.id].move(e);
-          if (e.y > mapHeight * gridSize) e.hp = 0; // 落下死
+          if (e.y > mapHeight * gridSize + 64) e.hp = 0; // 落下死
           if (e.hp <= 0 && !e.isType("boss") && !e.isType("danmaku")) { // やられた時 (ボスと弾幕を除く)
             if (e.y > mapHeight * gridSize) return;
             createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty) - 32) / 2, 0, 0);
@@ -2643,6 +2818,12 @@ let sceneList = {
       }
 
       // draw character
+      effectArray.forEach((e => {
+        if (effectData[e.id].move != "behind") return; // behind
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
+      }));
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
@@ -2665,6 +2846,7 @@ let sceneList = {
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
       effectArray.forEach((e => {
+        if (effectData[e.id].move === "behind") return; // behindじゃない
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
