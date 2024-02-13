@@ -270,7 +270,8 @@ let animeData = {
   "bigwatage": {
     "damage": { frames: 2, dulation: 4, img: [2, 1], repeat: false },
     "yarare": { frames: 1, dulation: 8, img: [3], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "angry": { frames: 1, dulation: 8, img: [4], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "key": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
@@ -1245,8 +1246,8 @@ const enemyData = {
     "type": "normal",
     "w" : 16,
     "h" : 16,
-    "box" : [5, 5, 10, 10],
-    "hit" : [5, 5, 10, 10],
+    "box" : [3, 3, 12, 12],
+    "hit" : [3, 3, 12, 12],
     "hp" : 1,
     "img" : imgWatageSatelite,
     "anime": "watage_satelite",
@@ -1528,77 +1529,111 @@ const enemyData = {
     "h" : 96,
     "box" : [16, 16, 79, 79],
     "hit" : [20, 20, 75, 75],
-    "hp" : 100,
+    "hp" : 150,
     "img" : imgBigWatage,
     "anime": "bigwatage",
     "move": (me) => {
       me.isNoHit = true; // 戦闘中以外衝突判定しない
+      if (me.isParamEmpty()) { // 変数初期化
+        me.setParam(0, 0); // 時間カウンター
+        me.setParam(1, createEnemy("watage_satelite", me.x + me.w / 2 - 8, me.y, 0, 0)); // 衛星（上から時計回り）
+        me.setParam(2, createEnemy("watage_satelite", me.x + me.w - 8, me.y + me.h / 2 - 8, 0, 0));
+        me.setParam(3, createEnemy("watage_satelite", me.x + me.w / 2 - 8 , me.y + me.h - 8, 0, 0));
+        me.setParam(4, createEnemy("watage_satelite", me.x, me.y + me.h / 2 - 8, 0, 0));
+        me.setParam(5, 0); // 行動タイムカウンター
+        me.setParam(6, "wait") // 行動タグ
+        me.setParam(7, 0); // 衛星との距離
+        me.setParam(8, me.x); // 初期位置x
+        me.setParam(9, me.y); // 初期位置y
+        me.setParam(10, me.hp); // HP変動チェック
+        me.setParam(11, 240); // 待機カウントの上限値
+        me.setParam(12, 0); // 行動回数カウンター
+      }
       switch(bossBattlePhase) {
         case "none" :
-          me.isInvincible = true;
+          me.y = -128;
           me.changeAnime("default");
           break;
         case "entrance" :
-          bossBattlePhase = "fight";
-          moveAndCheckCollisionWithMap(me);
+          me.y += 2;
+          if (me.y >= me.getParam(9)) {
+            bossBattlePhase = "fight";
+            me.y = me.getParam(9); 
+          }
           break; 
         case "fight" :
-          me.isInvincible = false;
           me.isNoHit = false;
-          if (me.isParamEmpty()) {
-            me.setParam(0, 0); // 時間カウンター
-            me.setParam(1, createEnemy("watage_satelite", me.x + me.w / 2 - 8, me.y, 0, 0)); // 衛星（上から時計回り）
-            me.setParam(2, createEnemy("watage_satelite", me.x + me.w - 8, me.y + me.h / 2 - 8, 0, 0));
-            me.setParam(3, createEnemy("watage_satelite", me.x + me.w / 2 - 8 , me.y + me.h - 8, 0, 0));
-            me.setParam(4, createEnemy("watage_satelite", me.x, me.y + me.h / 2 - 8, 0, 0));
-            me.setParam(5, 0); // 行動カウンター
-            me.setParam(6, "wait1") // 行動タグ
-            me.setParam(7, 0); // 衛星との距離
-            me.setParam(8, me.x); // 初期位置x
-            me.setParam(9, me.y); // 初期位置y
-            me.setParam(10, me.hp); // HP変動チェック
-          }
-          me.incParam(0);
           me.incParam(5);
-          if (me.getParam(6) === "wait1") {
+          let isMoveEnd = false;
+          if (me.getParam(6) === "wait") {
             me.x = me.getParam(8);
             me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 24;
-            if (me.getParam(5) >= 240) {
+            if (me.getParam(5) >= me.getParam(11)) {
+              if (me.incParam(12) % 3 === 1) {
+                me.setParam(6, "gather");
+              }
+              else {
+                let saikoro = randInt(0, 2);
+                if (plc.x < me.x + me.w / 2) {
+                  me.setParam(6, saikoro === 0 ? "guru_r" : saikoro === 1 ? "attack_r" : "eight_r");
+                }
+                else {
+                  me.setParam(6, saikoro === 0 ? "guru_l" : saikoro === 1 ? "attack_l" : "eight_l");
+                }
+              }
+              me.setParam(5, 0);
+              me.incParam(12);
+            }
+          }
+          else if (me.getParam(6) === "gather") {
+            me.setParam(7, - 20 + Math.abs(me.getParam(5) - 20));
+            if (me.getParam(7) < -8) me.setParam(7, -8);
+            if (me.getParam(5) >= 39) {
               me.setParam(6, "spread");
               me.setParam(5, 0);
             }
           }
           else if (me.getParam(6) === "spread") {
             me.setParam(7, 100 - Math.abs(me.getParam(5) - 100));
-            if (me.getParam(5) > 200) {
-              me.setParam(6, "wait2");
-              me.setParam(5, 0);
-            }
+            if (me.getParam(5) >= 200) isMoveEnd = true;
+            
           }
-          if (me.getParam(6) === "wait2") {
-            me.x = me.getParam(8);
-            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 24;
-            if (me.getParam(5) >= 180) {
-              me.setParam(6, "move");
-              me.setParam(5, 0);
-            }
+          else if (me.getParam(6) === "guru_l") {  
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 80;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 40;
+            if (me.getParam(5) >= 480) isMoveEnd = true;
+            
           }
-          else if (me.getParam(6) === "move") {
-            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * 120;
-            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * 90;
-            if (me.getParam(5) >= 180) {
-              me.setParam(6, "wait1");
-              me.setParam(5, -60);
-            }
+          else if (me.getParam(6) === "guru_r") {
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 80;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 40;
+            if (me.getParam(5) >= 480) isMoveEnd = true;
+            
           }
-          // 自分の移動
-          me.x += me.dx;
-          me.y += me.dy;
-          // 衛星の移動
-          for (let i = 1; i <= 4; i++) {
-            let rad = 2 * Math.PI * ((me.getParam(0) % 160 + i * 40)/ 160);
-            me.getParam(i).x = me.x + me.w / 2 - 8 + Math.cos(rad) * (me.w / 2 + me.getParam(7));
-            me.getParam(i).y = me.y + me.h / 2 - 8 + Math.sin(rad) * (me.h / 2 + me.getParam(7));
+          else if (me.getParam(6) === "attack_l") {
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 98;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
+            if (me.getParam(5) >= 180) isMoveEnd = true;
+          }
+          else if (me.getParam(6) === "attack_r") {
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 98;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
+            if (me.getParam(5) >= 180) isMoveEnd = true;
+          }
+          else if (me.getParam(6) === "eight_l") {
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * 120;
+            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 60;
+            if (me.getParam(5) >= 240) isMoveEnd = true;
+          }
+          else if (me.getParam(6) === "eight_r") {
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * 120;
+            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 60;
+            if (me.getParam(5) >= 240) isMoveEnd = true;
+          }
+          if (isMoveEnd) {
+            me.setParam(6, "wait");
+            me.setParam(5, 0);
+            me.setParam(11, me. hp <= 50 ? 0 : me.hp <= 100 ? 120 : 240);
           }
           // アニメ
           if (me.hp < me.getParam(10)) {
@@ -1606,13 +1641,13 @@ const enemyData = {
             me.startAnime("damage");
           }
           else if (me.reaction <= 0){
-            me.changeAnime("default");
+            me.changeAnime(me.hp <= 50 ? "angry" : "default");
           }
           // HPバーの描画
           useriCtx.fillStyle = "#2a2349";
           useriCtx.fillRect(0, 222, 320, 16);
           useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 100)), 12);
+          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 150)), 12);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.setParam(0, 0);
@@ -1638,6 +1673,15 @@ const enemyData = {
           break;
         default:
           break;
+      }
+      // 衛星の移動
+      if (bossBattlePhase != "defeated") {
+        me.incParam(0);
+        for (let i = 1; i <= 4; i++) {
+          let rad = 2 * Math.PI * ((me.getParam(0) % 160 + i * 40)/ 160);
+          me.getParam(i).x = me.x + me.w / 2 - 8 + Math.cos(rad) * (me.w / 2 + me.getParam(7));
+          me.getParam(i).y = me.y + me.h / 2 - 8 + Math.sin(rad) * (me.h / 2 + me.getParam(7));
+        }
       }
     }
   }
