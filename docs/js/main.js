@@ -69,6 +69,8 @@ imgMedal[0].src = "./img/medal.png";
 // gimmick
 let imgMoveFloor = [new Image(), new Image()];
 imgMoveFloor[0].src = "./img/movefloor.png";
+let imgMiniExplode = [new Image(), new Image()];
+imgMiniExplode[0].src = "./img/miniexplode.png";
 
 // shot
 let imgShot = [new Image(), new Image()];
@@ -87,6 +89,9 @@ let imgRedGlitter = [new Image(), new Image()];
 imgRedGlitter[0].src = "./img/red_glitter.png";
 let imgYellowGlitter = [new Image(), new Image()];
 imgYellowGlitter[0].src = "./img/yellow_glitter.png";
+let imgMiniBlock = [new Image(), new Image()];
+imgMiniBlock[0].src = "./img/miniblock.png";
+
 
 // UI
 let imgUiHeart = new Image();
@@ -129,12 +134,14 @@ let shadowList = [
   imgKey,
   imgMedal,
   imgMoveFloor,
+  imgMiniExplode,
   imgShot,
   imgMapChip,
   imgExplode,
   imgStar,
   imgRedGlitter,
   imgYellowGlitter,
+  imgMiniBlock,
   imgSSCursorL,
   imgSSCursorR
 ];
@@ -283,6 +290,9 @@ let animeData = {
   "movefloor": {
     "default": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true }
   },
+  "miniexplode": {
+    "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false } 
+  },
   "explode": {
     "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false } 
   },
@@ -293,6 +303,9 @@ let animeData = {
     "default": { frames: 7, dulation: 3, img: [0, 1, 2, 3, 3, 3, 2], repeat: false } 
   },
   "star": {
+    "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
+  },
+  "miniblock": {
     "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
   },
   "watage_satelite_fade": {
@@ -320,7 +333,7 @@ const mapChip = {
   "[": { id: [4], dulation: 1, type: "bridge", subtype: "none" },
   "-": { id: [5], dulation: 1, type: "bridge", subtype: "none" },
   "]": { id: [6], dulation: 1, type: "bridge", subtype: "none" },
-  "+": { id: [7], dulation: 1, type: "wall", subtype: "none" },
+  "+": { id: [7], dulation: 1, type: "wall", subtype: "hard" },
   "^": { id: [8], dulation: 1, type: "none", subtype: "damage" },
   "~": { id: [9], dulation: 1, type: "none", subtype: "damage" },
   "¥": { id: [10, 11, 12, 13], dulation: 8, type: "none", subtype: "coin" },
@@ -345,6 +358,9 @@ const mapChip = {
   "ø": { id: [35], dulation: 1, type: "wall", subtype: "block" }, // alt + o // red block
   "£": { id: [35], dulation: 1, type: "wall", subtype: "block_coin" }, // alt + 3
   "¿": { id: [35], dulation: 1, type: "wall", subtype: "block_heart" }, // alt + shift + /
+  "¬": { id: [36], dulation: 1, type: "wall", subtype: "none" }, // alt + l
+  "¡": { id: [37], dulation: 1, type: "wall", subtype: "ice" }, // alt + 1
+  "◊": { id: [38, 39], dulation: 8, type: "wall", subtype: "bomb" }, // alt + shift + v
 };
 const mapChipList = Object.keys(mapChip);
 
@@ -515,10 +531,12 @@ class Sprite {
   };
 
   drawAnime (ctx, drawX, drawY) {
+    if (this.img === null) return;
     ctx.drawImage(this.img[0], this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
   };
 
   drawShadow (ctx, drawX, drawY) {
+    if (this.img === null) return;
     ctx.drawImage(this.img[1], this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
   };
 
@@ -1586,9 +1604,9 @@ const enemyData = {
             }
           }
           else if (me.getParam(6) === "gather") {
-            me.setParam(7, - 20 + Math.abs(me.getParam(5) - 20));
-            if (me.getParam(7) < -8) me.setParam(7, -8);
-            if (me.getParam(5) >= 39) {
+            me.setParam(7, - 30 + Math.abs(me.getParam(5) - 30));
+            if (me.getParam(7) < -12) me.setParam(7, -12);
+            if (me.getParam(5) >= 59) {
               me.setParam(6, "spread");
               me.setParam(5, 0);
             }
@@ -1599,14 +1617,14 @@ const enemyData = {
             
           }
           else if (me.getParam(6) === "guru_l") {  
-            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 80;
-            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 40;
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 140;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 80;
             if (me.getParam(5) >= 480) isMoveEnd = true;
             
           }
           else if (me.getParam(6) === "guru_r") {
-            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 80;
-            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 480)/ 480))) * 40;
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 140;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 80;
             if (me.getParam(5) >= 480) isMoveEnd = true;
             
           }
@@ -1922,6 +1940,7 @@ let createItem = (itemId, x, y) => {
  //  gimmick data  //
 // ============== //
 const gimmickData = {
+  // 上下に動く床
   "{" : {
     "type": "floor",
     "w": 32,
@@ -1931,15 +1950,45 @@ const gimmickData = {
     "img": imgMoveFloor,
     "anime": "movefloor",
     "move": (me) => {
-      if (me.param.length === 0) {
-        me.param.push(me.initParam * 30);  
+      if (me.isParamEmpty()) {
+        console.log(me.initParam);
+        me.setParam(0, me.initParam * 60);  
       }
-      me.param = (me.param + 1) % 240;
-      me.dy = (Math.cos(2 * Math.PI * (me.param + 1) / 240) - Math.cos(2 * Math.PI * me.param / 240)) * 32;
+      me.setParam(0, (me.getParam(0) + 1) % 240);
+      me.dy = (Math.cos(2 * Math.PI * (me.getParam(0) + 1) / 240) - Math.cos(2 * Math.PI * me.getParam(0) / 240)) * 32;
       //me.dx = (Math.sin(2 * Math.PI * (me.param + 1) / 240) - Math.sin(2 * Math.PI * me.param / 240)) * 32;
       me.x += me.dx;
       me.y += me.dy;
     },
+  },
+  // 爆風（びっくりブロック破壊時に発生）
+  "mini_explode" : {
+    "type": "explode",
+    "w": 16,
+    "h": 16,
+    "box" : [0, 0, 15, 15],
+    "hit" : [0, 0, 15, 15],
+    "img": imgMiniExplode,
+    "anime": "miniexplode",
+    "move": (me) => {
+      me.isNoHit = true;
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+        for (let i = 0; i < 2; i++) {
+          createEffect("miniblock", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 300) * -0.01);
+        }
+      }
+      if (me.incParam(0) === 8) {
+        let neighborX = [0, 1, 0, -1];
+        let neighborY = [1, 0, -1, 0];
+        for (let i = 0; i < 4; i++) {
+          if (getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]) != "hard" && getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]) != "bomb") continue;
+          createGimmick("mini_explode", me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]);
+          replaceMap(me.x / 16 + neighborX[i], me.y / 16 + neighborY[i], ".");
+        }
+      }
+      if (me.isEndAnime()) me.hp = 0;
+    }
   }
 };
 
@@ -2014,6 +2063,13 @@ let effectData = {
     "h": 8,
     "img": imgStar,
     "anime": "star",
+    "move": "gravity"
+  },
+  "miniblock": {
+    "w": 8,
+    "h": 8,
+    "img": imgMiniBlock,
+    "anime": "miniblock",
     "move": "gravity"
   },
   "satelite_fade": {
@@ -2300,6 +2356,7 @@ let sceneList = {
       itemArray = [];
       gimmickArray = [];
       effectArray = [];
+      effectSubArray = [];
       doorArray = [];
       // 時は動き出す……
       stopFlag = false;
@@ -2386,15 +2443,17 @@ let sceneList = {
         // gimmick move
         plc.riding = null;
         enemyArray.forEach( (enemy) => {enemy.riding = null;} );
-        itemArray.forEach( (enemy) => {enemy.riding = null;} );
+        itemArray.forEach( (item) => {item.riding = null;} );
         gimmickArray.forEach((vehicle) => {
-          plc.checkRiding(vehicle);
-          enemyArray.forEach((enemy) => {
-            if (enemyData[enemy.id].type === "normal") enemy.checkRiding(vehicle);
-          });
-          itemArray.forEach((item) => {
-            if (itemData[item.id].type === "gravity") item.checkRiding(vehicle);
-          });
+          if (gimmickData[vehicle.id].type === "floor"){
+            plc.checkRiding(vehicle);
+            enemyArray.forEach((enemy) => {
+              if (enemyData[enemy.id].type === "normal") enemy.checkRiding(vehicle);
+            });
+            itemArray.forEach((item) => {
+              if (itemData[item.id].type === "gravity") item.checkRiding(vehicle);
+            });
+          }
           gimmickData[vehicle.id].move(vehicle);
         });
         // enemy move
@@ -2439,6 +2498,10 @@ let sceneList = {
         itemArray = itemArray.filter((e) => {
           return e.hp > 0;
         });
+        // erase item
+        gimmickArray = gimmickArray.filter((e) => {
+          return e.hp > 0;
+        });
         // erase effect
         effectArray = effectArray.filter((e) => {
           return e.isEndAnime() === false;
@@ -2460,16 +2523,23 @@ let sceneList = {
           plc.dy = 0;
           isJumping = false;
           coyoteTime = 7;
+          let accel = 0.125; // 加速度
+          let decay = 0.0625; // 速度減衰量
+          // 氷の上は滑りやすい
+          if (getMapSubType(plc.lTopX(), plc.rBottomY() + 0.0625) === "ice" || getMapSubType(plc.rBottomX(), plc.rBottomY() + 0.0625) === "ice" ) {
+            accel /= 8;
+            decay /= 8;
+          }
           if (isKeyPressed("l")) {
-            if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.125, -plcMaxSpeedX);
+            if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - accel, -plcMaxSpeedX);
             plc.direction = "left";
           }
           else if (isKeyPressed("r")) {
-            if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + 0.125, plcMaxSpeedX);
+            if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + accel, plcMaxSpeedX);
             plc.direction = "right";
           }
           else {
-            plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - 0.0625 > 0 ? Math.abs(plc.dx) - 0.0625 : 0);
+            plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - decay > 0 ? Math.abs(plc.dx) - decay : 0);
           }
           // 最高速を超えている場合は減衰させる
           if (plc.dx < -plcMaxSpeedX) plc.dx = -plcMaxSpeedX;
@@ -2575,6 +2645,10 @@ let sceneList = {
               }
               else if (hitMapSubType === "block_door") {
                 replaceMap(hitMapX, hitMapY, '∑');
+              }
+              else if (hitMapSubType === "bomb") {
+                replaceMap(hitMapX, hitMapY, '.');
+                createGimmick("mini_explode", hitMapX * 16, hitMapY * 16, 0, 0);
               }
               // 解錠
               else if (hitMapSubType === "lock" && collectedKeyNum > 0) {
