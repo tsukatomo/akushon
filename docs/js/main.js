@@ -519,10 +519,12 @@ class Sprite {
   };
 
   isEndAnime () {
+    if (this.anime === null) return false;
     return (!this.anime[this.anitype].repeat && this.anicount > this.anime[this.anitype].dulation * this.anime[this.anitype].frames)
   };
 
   frameNumber () {
+    if (this.anime === null) return false;
     let frameCount = Math.floor(this.anicount / this.anime[this.anitype].dulation);
     if (this.anime[this.anitype].repeat) {
       return frameCount % this.anime[this.anitype].frames;
@@ -1962,32 +1964,33 @@ const gimmickData = {
     },
   },
   // 爆風（びっくりブロック破壊時に発生）
-  "mini_explode" : {
+  "bakufu" : {
     "type": "explode",
     "w": 16,
     "h": 16,
     "box" : [0, 0, 15, 15],
     "hit" : [0, 0, 15, 15],
-    "img": imgMiniExplode,
-    "anime": "miniexplode",
+    "img": null,
+    "anime": null,
     "move": (me) => {
       me.isNoHit = true;
       if (me.isParamEmpty()) {
         me.setParam(0, 0);
+        createEffect("miniexplode", me.x, me.y, 0, 0)
         for (let i = 0; i < 2; i++) {
           createEffect("miniblock", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 300) * -0.01);
         }
       }
       if (me.incParam(0) === 8) {
+        me.hp = 0;
         let neighborX = [0, 1, 0, -1];
         let neighborY = [1, 0, -1, 0];
         for (let i = 0; i < 4; i++) {
           if (getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]) != "hard" && getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]) != "bomb") continue;
-          createGimmick("mini_explode", me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]);
+          createGimmick("bakufu", me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]);
           replaceMap(me.x / 16 + neighborX[i], me.y / 16 + neighborY[i], ".");
         }
       }
-      if (me.isEndAnime()) me.hp = 0;
     }
   }
 };
@@ -2028,6 +2031,13 @@ let effectData = {
     "h": 32,
     "img": imgExplode,
     "anime": "explode",
+    "move": "stop"
+  },
+  "miniexplode": {
+    "w": 16,
+    "h": 16,
+    "img": imgMiniExplode,
+    "anime": "miniexplode",
     "move": "stop"
   },
   "red_glitter": {
@@ -2208,7 +2218,7 @@ let isKeyPressedNow = function(key) {
  //=====================//
 let sceneList = {
   ////---------------//
-  /// title         ///
+  ///    title      ///
   //---------------////
   "title": {
     "init" : async () => {
@@ -2260,7 +2270,7 @@ let sceneList = {
     }
   },
   ////---------------//
-  /// stageselect   ///
+  ///  stageselect  ///
   //---------------////
   "stageselect" : {
     "init" : async () => {
@@ -2646,9 +2656,10 @@ let sceneList = {
               else if (hitMapSubType === "block_door") {
                 replaceMap(hitMapX, hitMapY, '∑');
               }
+              // びっくりブロック◊
               else if (hitMapSubType === "bomb") {
                 replaceMap(hitMapX, hitMapY, '.');
-                createGimmick("mini_explode", hitMapX * 16, hitMapY * 16, 0, 0);
+                createGimmick("bakufu", hitMapX * 16, hitMapY * 16, 0, 0);
               }
               // 解錠
               else if (hitMapSubType === "lock" && collectedKeyNum > 0) {
