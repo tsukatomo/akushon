@@ -69,8 +69,8 @@ imgMedal[0].src = "./img/medal.png";
 // gimmick
 let imgMoveFloor = [new Image(), new Image()];
 imgMoveFloor[0].src = "./img/movefloor.png";
-let imgMiniExplode = [new Image(), new Image()];
-imgMiniExplode[0].src = "./img/miniexplode.png";
+let imgCloudLift = [new Image(), new Image()];
+imgCloudLift[0].src = "./img/cloudlift.png";
 
 // shot
 let imgShot = [new Image(), new Image()];
@@ -81,6 +81,8 @@ let imgMapChip = [new Image(), new Image()];
 imgMapChip[0].src = "./img/mapchip.png";
 
 // effect
+let imgMiniExplode = [new Image(), new Image()];
+imgMiniExplode[0].src = "./img/miniexplode.png";
 let imgExplode = [new Image(), new Image()];
 imgExplode[0].src = "./img/explode.png";
 let imgStar = [new Image(), new Image()];
@@ -134,9 +136,10 @@ let shadowList = [
   imgKey,
   imgMedal,
   imgMoveFloor,
-  imgMiniExplode,
+  imgCloudLift,
   imgShot,
   imgMapChip,
+  imgMiniExplode,
   imgExplode,
   imgStar,
   imgRedGlitter,
@@ -289,6 +292,9 @@ let animeData = {
   },
   "movefloor": {
     "default": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true }
+  },
+  "cloudlift": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "miniexplode": {
     "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false } 
@@ -476,6 +482,8 @@ let setTransition = (nextscene) => {
 }
 
 // for camera
+let unFlooredCameraX;
+let unFlooredCameraY;
 let cameraX;
 let cameraY;
 let quakeTimeX = 0;
@@ -677,6 +685,8 @@ let changedMapList = [];
 let collectedCoins = 0;
 let coinCounter = 0;
 let dataResetCount = 0;
+let snowEffect = [];
+let timeCounter = 0;
 
 // get map type from pixel coordinate (output: type of mapchip Object)
 // 注意：一方通行床はy座標がグリッド上部の時しか検出しません
@@ -1953,12 +1963,39 @@ const gimmickData = {
     "anime": "movefloor",
     "move": (me) => {
       if (me.isParamEmpty()) {
-        console.log(me.initParam);
         me.setParam(0, me.initParam * 60);  
       }
       me.setParam(0, (me.getParam(0) + 1) % 240);
       me.dy = (Math.cos(2 * Math.PI * (me.getParam(0) + 1) / 240) - Math.cos(2 * Math.PI * me.getParam(0) / 240)) * 32;
       //me.dx = (Math.sin(2 * Math.PI * (me.param + 1) / 240) - Math.sin(2 * Math.PI * me.param / 240)) * 32;
+      me.x += me.dx;
+      me.y += me.dy;
+    },
+  },
+  // 左右に動く床
+  "}" : {
+    "type": "floor",
+    "w": 48,
+    "h": 16,
+    "box" : [0, 0, 47, 5],
+    "hit" : [0, 0, 31, 5],
+    "img": imgCloudLift,
+    "anime": "cloudlift",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+        me.direction = me.initParam === 0 ? "left" : "right";  
+      }
+      if (isTouchingLeftWall(me) && isTouchingRightWall(me)) {
+        me.direction = "stop";
+      }
+      else if (isTouchingLeftWall(me)) {
+        me.direction = "right";
+      }
+      else if (isTouchingRightWall(me)) {
+        me.direction = "left";
+      }
+      me.dx = me.direction === "left" ? -0.5 : "right" ? 0.5 : 0;
       me.x += me.dx;
       me.y += me.dy;
     },
@@ -2442,6 +2479,18 @@ let sceneList = {
       //backgCtx.fillStyle = "#32535f"; // 濃い青緑
       //backgCtx.fillStyle = "#74adbb"; // 水色
       backgCtx.fillRect(0, 0, 320, 240);
+      // define snow effect
+      snowEffect.length = Math.floor(mapWidth * mapHeight / 12);
+      for (let i = 0; i < snowEffect.length; i++) {
+        snowEffect[i] = {
+          x: randInt(0, mapWidth * gridSize),
+          y: randInt(0, mapHeight * gridSize),
+          dx: randInt(-50, 0) / 100,
+          isFront: (i % 2 === 0) 
+        };
+      }
+      // reset time counter
+      timeCounter = 0;
       // set transition animation
       setOverlayScene("transout");
       return 0;
@@ -2829,15 +2878,15 @@ let sceneList = {
           e.updateAnime();
         })
         // update camera position
-        cameraX = Math.floor(plc.x - charaLay.width / 2 + 8);
-        cameraY = Math.floor(plc.y - charaLay.height / 2 + 8);
+        unFlooredCameraX = plc.x - charaLay.width / 2 + 8;
+        unFlooredCameraY = plc.y - charaLay.height / 2 + 8;
         if (bossBattlePhase != "none") { // ボスバトル開戦後はx軸固定
-          cameraX = mapWidth * gridSize - charaLay.width;
+          unFlooredCameraX = mapWidth * gridSize - charaLay.width;
         }
-        if (cameraX < 0) cameraX = 0;
-        if (cameraY < 0) cameraY = 0;
-        if (cameraX > mapWidth * gridSize - charaLay.width) {
-          cameraX = mapWidth * gridSize - charaLay.width;
+        if (unFlooredCameraX < 0) unFlooredCameraX = 0;
+        if (unFlooredCameraY < 0) unFlooredCameraY = 0;
+        if (unFlooredCameraX > mapWidth * gridSize - charaLay.width) {
+          unFlooredCameraX = mapWidth * gridSize - charaLay.width;
           // ボスバトル部屋でカメラが右端に到達したら開戦
           if (levelSpecial === "boss" && bossBattlePhase === "none") {
             bossBattlePhase = "entrance";
@@ -2851,16 +2900,18 @@ let sceneList = {
             }
           }
         }
-        if (cameraY > mapHeight * gridSize - charaLay.height) {
-          cameraY = mapHeight * gridSize - charaLay.height;
+        if (unFlooredCameraY > mapHeight * gridSize - charaLay.height) {
+          unFlooredCameraY = mapHeight * gridSize - charaLay.height;
         }
         // 揺れ
         if (quakeTimeX-- > 0) {
-          cameraX -= (Math.floor(((quakeTimeX + 1) / 2) * 2) % 4 - 1) * 2;
+          unFlooredCameraX -= (Math.floor(((quakeTimeX + 1) / 2) * 2) % 4 - 1) * 2;
         }
         if (quakeTimeY-- > 0) {
-          cameraY -= ((Math.floor(quakeTimeY / 2) * 2) % 4 - 1) * 2;
+          unFlooredCameraY -= ((Math.floor(quakeTimeY / 2) * 2) % 4 - 1) * 2;
         }
+        cameraX = Math.floor(unFlooredCameraX);
+        cameraY = Math.floor(unFlooredCameraY);
       }
       
       // change player animation
@@ -2891,6 +2942,17 @@ let sceneList = {
       // update player anime
       plc.updateAnime();
       
+      // 雪の座標を更新，後ろの雪を描画
+      charaCtx.fillStyle = "#bebbb2";
+      snowEffect.forEach((e) => {
+        e.x = (e.x + e.dx < 0 ? e.x + e.dx + mapWidth * gridSize : e.x + e.dx);
+        e.y = (e.y + (e.isFront ? 1 : 0.8)) % (mapHeight * gridSize);
+        if (e.isFront) return;
+        if (e.x + 1 < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + 1 < cameraY || cameraY + charaLay.height < e.y) return;
+        charaCtx.fillRect(Math.floor(e.x - cameraX), Math.floor(e.y - cameraY), 2, 2);
+      });
+
       // draw character shadow
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
@@ -2911,7 +2973,7 @@ let sceneList = {
       gimmickArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
+        e.drawShadow(charaCtx, Math.floor(e.x - unFlooredCameraX + 1), Math.floor(e.y - unFlooredCameraY + 1));
       }));
       effectArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
@@ -2972,7 +3034,7 @@ let sceneList = {
       gimmickArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
+        e.drawAnime(charaCtx, Math.floor(e.x - unFlooredCameraX), Math.floor(e.y - unFlooredCameraY));
       }));
       effectArray.forEach((e => {
         if (effectData[e.id].move === "behind") return; // behindじゃない
@@ -2986,6 +3048,15 @@ let sceneList = {
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
       if (Math.floor(plc.reaction / 3) * 3 % 6 === 0 || plc.hp <= 0) plc.drawAnime(charaCtx, Math.floor(plc.x - cameraX), Math.floor(plc.y - cameraY));
+      
+      // 手前の雪を描画
+      charaCtx.fillStyle = "#fff9e4";
+      snowEffect.forEach((e) => {
+        if (!e.isFront) return;
+        if (e.x + 1 < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + 1 < cameraY || cameraY + charaLay.height < e.y) return;
+        charaCtx.fillRect(Math.floor(e.x - cameraX), Math.floor(e.y - cameraY), 2, 2);
+      });
 
       // draw UI
       // hearts
@@ -3021,6 +3092,8 @@ let sceneList = {
         useriCtx.fillText(collectedKeyNum, gridSize, gridSize * 2 - 2);
         useriCtx.drawImage(imgUiKey, 0, 0, 16, 16, 0, gridSize * 2 - 2, 16, 16);
       }
+      // time counter
+      timeCounter++;
     }
   },
 };
