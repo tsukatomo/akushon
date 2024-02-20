@@ -1324,7 +1324,7 @@ const enemyData = {
             me.setParam(1, 1); // 滞空時1，着地した瞬間に0に変更
           }
           if (!isOnLand(me)) {
-            me.setParam(0, me.hp * 2 + 36);
+            me.setParam(0, me.hp + 36);
             me.setParam(1, 1);
             me.dy += (me.dy > 0) ? 0.25 : 0.125;
           }
@@ -1359,7 +1359,7 @@ const enemyData = {
           useriCtx.fillStyle = "#2a2349";
           useriCtx.fillRect(0, 222, 320, 16);
           useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 80)), 12);
+          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 160)), 12);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.setParam(0, 0);
@@ -1399,7 +1399,7 @@ const enemyData = {
     "img" : imgRenchin,
     "anime": "renchin",
     "move": (me) => {
-      const halfHp = 50;
+      const halfHp = 100;
       me.isNoHit = true; // 戦闘中以外衝突判定しない
       switch(bossBattlePhase) {
         case "none" :
@@ -1504,7 +1504,7 @@ const enemyData = {
             if ((me.getParam(0) > 40 && me.getParam(0) % 35 === 15 && me.anitype === "open_2") || (me.getParam(0) > 40 && me.getParam(0) % 20 === 15 && me.anitype === "open_2_red")) {
               createEnemy("danmaku_yellow", me.x + 48, me.y + 24, -0.25 - randInt(0, 8) * 0.125, -3.0 - randInt(0, 8) * 0.0625);
             }
-            if (me.anitype === "open_2" && me.hp <= 40) { // hpが40以下なら強制的に第2形態へ
+            if (me.anitype === "open_2" && me.hp <= 80) { // hpが80以下なら強制的に第2形態へ
               me.setParam(0, 60);
               me.setParam(1, "dash_wait");
               me.changeAnime("stand");
@@ -1520,7 +1520,7 @@ const enemyData = {
           useriCtx.fillStyle = "#2a2349";
           useriCtx.fillRect(0, 222, 320, 16);
           useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 100)), 12);
+          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 200)), 12);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.setParam(0, 0);
@@ -1662,7 +1662,7 @@ const enemyData = {
           if (isMoveEnd) {
             me.setParam(6, "wait");
             me.setParam(5, 0);
-            me.setParam(11, me. hp <= 50 ? 0 : me.hp <= 100 ? 120 : 240);
+            me.setParam(11, me. hp <= 100 ? 0 : me.hp <= 200 ? 120 : 240);
           }
           // アニメ
           if (me.hp < me.getParam(10)) {
@@ -1670,13 +1670,13 @@ const enemyData = {
             me.startAnime("damage");
           }
           else if (me.reaction <= 0){
-            me.changeAnime(me.hp <= 50 ? "angry" : "default");
+            me.changeAnime(me.hp <= 100 ? "angry" : "default");
           }
           // HPバーの描画
           useriCtx.fillStyle = "#2a2349";
           useriCtx.fillRect(0, 222, 320, 16);
           useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 150)), 12);
+          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 300)), 12);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.setParam(0, 0);
