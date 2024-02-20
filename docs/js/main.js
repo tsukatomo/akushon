@@ -910,7 +910,7 @@ const enemyData = {
         me.setParam(2, randInt(0,799));
         me.setParam(3, randInt(0,799));
       }
-      if (me.hp >= 3) { // float
+      if (me.hp >= 6) { // float
         if (me.reaction > 0) {
           me.changeAnime("damaged1");
           me.setParam(2, (me.getParam(2) + 1) % 800);
@@ -931,12 +931,12 @@ const enemyData = {
         me.dy += Math.sign(plc.y - me.y) * 0.0625;
         if (me.dx > 2) me.dx = 2;
         if (me.dx < -2) me.dx = -2;
-        if (me.dy > 2) me.dy = 2;
-        if (me.dy < -2) me.dy = -2;
+        if (me.dy > 1.5) me.dy = 1.5;
+        if (me.dy < -1.5) me.dy = -1.5;
         if (me.reaction-- > 0) {
           me.changeAnime("damaged1");
           me.dx *= 0.75;
-          me.dy += 0.03125;
+          me.dy = 0.5;
         }
         else {
           me.changeAnime("float1");
