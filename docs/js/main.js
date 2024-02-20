@@ -482,8 +482,6 @@ let setTransition = (nextscene) => {
 }
 
 // for camera
-let unFlooredCameraX;
-let unFlooredCameraY;
 let cameraX;
 let cameraY;
 let quakeTimeX = 0;
@@ -671,6 +669,7 @@ let effectArray = [];
 let effectSubArray = []; // stopFlag が true の時に動くエフェクト
 let doorArray = []; // ドア情報を格納
 const shotMax = 5;
+let shotPower = 2;
 let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
 let isJumping = false;
 const invincibleTimeMax = 120; // muteki jikan san!?
@@ -901,7 +900,7 @@ const enemyData = {
     "h" : 16,
     "box" : [3, 3, 12, 12],
     "hit" : [3, 3, 12, 12],
-    "hp" : 4,
+    "hp" : 8,
     "img" : imgWatage,
     "anime": "watage",
     "move": (me) => {
@@ -953,7 +952,7 @@ const enemyData = {
     "h" : 16,
     "box" : [3, 3, 12, 12],
     "hit" : [3, 3, 12, 12],
-    "hp" : 2,
+    "hp" : 3,
     "img" : imgWatage,
     "anime": "watage",
     "move": (me) => {
@@ -982,7 +981,7 @@ const enemyData = {
     "h" : 16,
     "box" : [1, 3, 14, 15],
     "hit" : [3, 3, 12, 14],
-    "hp" : 2,
+    "hp" : 3,
     "img" : imgPumpkin,
     "anime": "pumpkin",
     "move": (me) => {
@@ -1031,7 +1030,7 @@ const enemyData = {
     "h" : 32,
     "box" : [8, 16, 23, 31],
     "hit" : [8, 16, 23, 31],
-    "hp" : 8,
+    "hp" : 16,
     "img" : imgSlime,
     "anime": "slime",
     "move": (me) => {
@@ -1069,7 +1068,7 @@ const enemyData = {
     "h" : 16,
     "box" : [3, 3, 12, 12],
     "hit" : [3, 3, 12, 12],
-    "hp" : 3,
+    "hp" : 6,
     "img" : imgFlyingCamera,
     "anime": "flying_camera",
     "move": (me) => {
@@ -1118,7 +1117,7 @@ const enemyData = {
     "h" : 32,
     "box" : [2, 4, 29, 31],
     "hit" : [2, 4, 29, 31],
-    "hp" : 8,
+    "hp" : 16,
     "img" : imgSlimeLauncher,
     "anime": "slimelauncher",
     "move": (me) => {
@@ -1160,7 +1159,7 @@ const enemyData = {
     "h" : 32,
     "box" : [1, 8, 30, 31],
     "hit" : [8, 8, 23, 24],
-    "hp" : 12,
+    "hp" : 20,
     "img" : imgElectroJar,
     "anime": "electrojar",
     "move": (me) => {
@@ -1190,7 +1189,7 @@ const enemyData = {
     "h" : 16,
     "box" : [2, 4, 13, 15],
     "hit" : [2, 4, 13, 15],
-    "hp" : 4,
+    "hp" : 8,
     "img" : imgMinionSlime,
     "anime": "minionslime",
     "move": (me) => {
@@ -1299,7 +1298,7 @@ const enemyData = {
     "h" : 64,
     "box" : [3, 16, 60, 63],
     "hit" : [3, 16, 60, 63],
-    "hp" : 80,
+    "hp" : 160,
     "img" : imgBigPumpkin,
     "anime": "bigpumpkin",
     "move": (me) => {
@@ -1396,7 +1395,7 @@ const enemyData = {
     "h" : 48,
     "box" : [36, 18, 88, 47],
     "hit" : [36, 18, 88, 47],
-    "hp" : 100,
+    "hp" : 200,
     "img" : imgRenchin,
     "anime": "renchin",
     "move": (me) => {
@@ -1559,7 +1558,7 @@ const enemyData = {
     "h" : 96,
     "box" : [16, 16, 79, 79],
     "hit" : [20, 20, 75, 75],
-    "hp" : 150,
+    "hp" : 300,
     "img" : imgBigWatage,
     "anime": "bigwatage",
     "move": (me) => {
@@ -1978,7 +1977,7 @@ const gimmickData = {
     "w": 48,
     "h": 16,
     "box" : [0, 0, 47, 5],
-    "hit" : [0, 0, 31, 5],
+    "hit" : [0, 0, 47, 5],
     "img": imgCloudLift,
     "anime": "cloudlift",
     "move": (me) => {
@@ -1986,16 +1985,13 @@ const gimmickData = {
         me.setParam(0, 0);
         me.direction = me.initParam === 0 ? "left" : "right";  
       }
-      if (isTouchingLeftWall(me) && isTouchingRightWall(me)) {
-        me.direction = "stop";
-      }
-      else if (isTouchingLeftWall(me)) {
+      if (isTouchingLeftWall(me)) {
         me.direction = "right";
       }
       else if (isTouchingRightWall(me)) {
         me.direction = "left";
       }
-      me.dx = me.direction === "left" ? -0.5 : "right" ? 0.5 : 0;
+      me.dx = me.direction === "left" ? -0.5 : 0.5;
       me.x += me.dx;
       me.y += me.dy;
     },
@@ -2680,7 +2676,7 @@ let sceneList = {
               if (e.isHit(shotArray[i]) && !e.isType("danmaku")) {
                 isShotVanish = true;
                 if (!e.isInvincible) {
-                  e.hp -= 1;
+                  e.hp -= shotPower;
                   e.reaction = 20;
                 }
               }
@@ -2878,15 +2874,15 @@ let sceneList = {
           e.updateAnime();
         })
         // update camera position
-        unFlooredCameraX = plc.x - charaLay.width / 2 + 8;
-        unFlooredCameraY = plc.y - charaLay.height / 2 + 8;
+        cameraX = plc.x - charaLay.width / 2 + 8;
+        cameraY = plc.y - charaLay.height / 2 + 8;
         if (bossBattlePhase != "none") { // ボスバトル開戦後はx軸固定
-          unFlooredCameraX = mapWidth * gridSize - charaLay.width;
+          cameraX = mapWidth * gridSize - charaLay.width;
         }
-        if (unFlooredCameraX < 0) unFlooredCameraX = 0;
-        if (unFlooredCameraY < 0) unFlooredCameraY = 0;
-        if (unFlooredCameraX > mapWidth * gridSize - charaLay.width) {
-          unFlooredCameraX = mapWidth * gridSize - charaLay.width;
+        if (cameraX < 0) cameraX = 0;
+        if (cameraY < 0) cameraY = 0;
+        if (cameraX > mapWidth * gridSize - charaLay.width) {
+          cameraX = mapWidth * gridSize - charaLay.width;
           // ボスバトル部屋でカメラが右端に到達したら開戦
           if (levelSpecial === "boss" && bossBattlePhase === "none") {
             bossBattlePhase = "entrance";
@@ -2900,19 +2896,25 @@ let sceneList = {
             }
           }
         }
-        if (unFlooredCameraY > mapHeight * gridSize - charaLay.height) {
-          unFlooredCameraY = mapHeight * gridSize - charaLay.height;
+        if (cameraY > mapHeight * gridSize - charaLay.height) {
+          cameraY = mapHeight * gridSize - charaLay.height;
         }
         // 揺れ
         if (quakeTimeX-- > 0) {
-          unFlooredCameraX -= (Math.floor(((quakeTimeX + 1) / 2) * 2) % 4 - 1) * 2;
+          cameraX -= (Math.floor(((quakeTimeX + 1) / 2) * 2) % 4 - 1) * 2;
         }
         if (quakeTimeY-- > 0) {
-          unFlooredCameraY -= ((Math.floor(quakeTimeY / 2) * 2) % 4 - 1) * 2;
+          cameraY -= ((Math.floor(quakeTimeY / 2) * 2) % 4 - 1) * 2;
         }
-        cameraX = Math.floor(unFlooredCameraX);
-        cameraY = Math.floor(unFlooredCameraY);
       }
+
+      // 小数点以下の誤差（動く足場の表示ずれを修正するために使用します）
+      let gosaX = cameraX - Math.floor(cameraX);
+      let gosaY = cameraY - Math.floor(cameraY);
+
+      // カメラ位置を整数値に変換
+      cameraX = Math.floor(cameraX);
+      cameraY = Math.floor(cameraY);
       
       // change player animation
       if (!stopFlag){
@@ -2945,8 +2947,10 @@ let sceneList = {
       // 雪の座標を更新，後ろの雪を描画
       charaCtx.fillStyle = "#bebbb2";
       snowEffect.forEach((e) => {
-        e.x = (e.x + e.dx < 0 ? e.x + e.dx + mapWidth * gridSize : e.x + e.dx);
-        e.y = (e.y + (e.isFront ? 1 : 0.8)) % (mapHeight * gridSize);
+        if (!stopFlag) {
+          e.x = (e.x + e.dx < 0 ? e.x + e.dx + mapWidth * gridSize : e.x + e.dx);
+          e.y = (e.y + (e.isFront ? 1 : 0.8)) % (mapHeight * gridSize);
+        }
         if (e.isFront) return;
         if (e.x + 1 < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + 1 < cameraY || cameraY + charaLay.height < e.y) return;
@@ -2954,6 +2958,16 @@ let sceneList = {
       });
 
       // draw character shadow
+      itemArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
+      }));
+      gimmickArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawShadow(charaCtx, Math.floor(e.x - cameraX - gosaX + 1), Math.floor(e.y - cameraY + 1));
+      }));
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
@@ -2964,16 +2978,6 @@ let sceneList = {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
-      }));
-      itemArray.forEach((e => {
-        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
-        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
-      }));
-      gimmickArray.forEach((e => {
-        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
-        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawShadow(charaCtx, Math.floor(e.x - unFlooredCameraX + 1), Math.floor(e.y - unFlooredCameraY + 1));
       }));
       effectArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
@@ -3015,6 +3019,16 @@ let sceneList = {
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
+      itemArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
+      }));
+      gimmickArray.forEach((e => {
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX - gosaX), Math.floor(e.y - cameraY));
+      }));
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
@@ -3025,16 +3039,6 @@ let sceneList = {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
-      }));
-      itemArray.forEach((e => {
-        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
-        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
-      }));
-      gimmickArray.forEach((e => {
-        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
-        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawAnime(charaCtx, Math.floor(e.x - unFlooredCameraX), Math.floor(e.y - unFlooredCameraY));
       }));
       effectArray.forEach((e => {
         if (effectData[e.id].move === "behind") return; // behindじゃない
