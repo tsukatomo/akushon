@@ -340,6 +340,7 @@ const mapChip = {
   "-": { id: [5], dulation: 1, type: "bridge", subtype: "none" },
   "]": { id: [6], dulation: 1, type: "bridge", subtype: "none" },
   "+": { id: [7], dulation: 1, type: "wall", subtype: "hard" },
+  "¢": { id: [7], dulation: 1, type: "wall", subtype: "hard_coin" },
   "^": { id: [8], dulation: 1, type: "none", subtype: "damage" },
   "~": { id: [9], dulation: 1, type: "none", subtype: "damage" },
   "¥": { id: [10, 11, 12, 13], dulation: 8, type: "none", subtype: "coin" },
@@ -367,6 +368,7 @@ const mapChip = {
   "¬": { id: [36], dulation: 1, type: "wall", subtype: "none" }, // alt + l
   "¡": { id: [37], dulation: 1, type: "wall", subtype: "ice" }, // alt + 1
   "◊": { id: [38, 39], dulation: 8, type: "wall", subtype: "bomb" }, // alt + shift + v
+  "=": { id: [40], dulation: 1, type: "bridge", subtype: "ice" },
 };
 const mapChipList = Object.keys(mapChip);
 
@@ -1261,6 +1263,14 @@ const enemyData = {
         me.dx = 0;
         me.dy = 0;
         me.changeAnime("vanish");
+        // びっくりブロック◊にぶつかったら破壊
+        for (let i = 0; i < 4; i++) {
+          let hitX = i < 2 ? me.lTopX() - 1 : me.rBottomX() + 1;
+          let hitY = i % 2 === 0 ? me.lTopY() - 1: me.rBottomY() + 1;
+          if (getMapSubType(hitX, hitY) != "bomb") continue;
+          replaceMap(Math.floor(hitX / gridSize), Math.floor(hitY / gridSize), '.');
+          createGimmick("bakufu", Math.floor(hitX / gridSize) * 16, Math.floor(hitY / gridSize) * 16, 0, 0);
+        }
       }
       else  if (me.anitype != "vanish") {
         me.changeAnime("shot");
@@ -1528,8 +1538,6 @@ const enemyData = {
               e.hp = 0;
             });
           }
-          // アニメーション
-
           break;
         case "defeated" :
           me.reaction = me.getParam(0);
@@ -2019,9 +2027,10 @@ const gimmickData = {
         let neighborX = [0, 1, 0, -1];
         let neighborY = [1, 0, -1, 0];
         for (let i = 0; i < 4; i++) {
-          if (getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]) != "hard" && getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]) != "bomb") continue;
+          let neighborMapchip = getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]);
+          if (neighborMapchip != "hard" && neighborMapchip != "hard_coin" && neighborMapchip != "bomb") continue;
           createGimmick("bakufu", me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]);
-          replaceMap(me.x / 16 + neighborX[i], me.y / 16 + neighborY[i], ".");
+          replaceMap(me.x / 16 + neighborX[i], me.y / 16 + neighborY[i], neighborMapchip === "hard_coin" ? '¥' : '.');
         }
       }
     }
