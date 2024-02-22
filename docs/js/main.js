@@ -43,6 +43,8 @@ let imgSlimeLauncher = [new Image(), new Image()];
 imgSlimeLauncher[0].src = "./img/slimelauncher.png";
 let imgElectroJar = [new Image(), new Image()];
 imgElectroJar[0].src = "./img/electrojar.png";
+let imgTulip = [new Image(), new Image()];
+imgTulip[0].src = "./img/tulip.png";
 let imgMinionSlime = [new Image(), new Image()];
 imgMinionSlime[0].src = "./img/minionslime.png";
 let imgDanmakuYellow = [new Image(), new Image()];
@@ -126,6 +128,7 @@ let shadowList = [
   imgSlime,
   imgSlimeLauncher,
   imgElectroJar,
+  imgTulip,
   imgMinionSlime,
   imgDanmakuYellow,
   imgDanmakuWhite,
@@ -202,8 +205,10 @@ let animeData = {
   "watage": {
     "float1": { frames: 3, dulation: 6, img: [0, 1, 2], repeat: true },
     "float2": { frames: 3, dulation: 6, img: [4, 5, 6], repeat: true },
+    "float3": { frames: 3, dulation: 6, img: [8, 9, 10], repeat: true },
     "damaged1" : { frames: 1, dulation: 2, img: [3], repeat: true },
     "damaged2" : { frames: 1, dulation: 2, img: [7], repeat: true },
+    "damaged3" : { frames: 1, dulation: 2, img: [11], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "flying_camera": {
@@ -238,11 +243,14 @@ let animeData = {
     "fall_r": {frames: 1, dulation: 8, img: [5], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
-  "minirenchin" :{
-    "sleep": { frames: 1, dulation: 8, img: [0], repeat: true },
-    "open_1": { frames: 1, dulation: 6, img: [1], repeat: false },
-    "open_2": { frames: 2, dulation: 6, img: [2, 3], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true },
+  "tulip" :{
+    "open_l" : { frames: 2, dulation: 8, img: [0, 1], repeat: false},
+    "damaged_l" : { frames: 2, dulation: 4, img: [2, 1], repeat: true},
+    "stop_l": { frames: 1, dulation: 8, img: [1], repeat: true },
+    "open_r" : { frames: 2, dulation: 8, img: [3, 4], repeat: false},
+    "damaged_r" : { frames: 2, dulation: 4, img: [5, 4], repeat: true},
+    "stop_r": { frames: 1, dulation: 8, img: [4], repeat: true },
+    "default" : { frames: 1, dulation: 8, img: [0], repeat: true },
   },
   "danmakuyellow": {
     "shot": { frames: 2, dulation: 4, img: [0, 1], repeat: true },
@@ -906,13 +914,14 @@ const enemyData = {
     "img" : imgWatage,
     "anime": "watage",
     "move": (me) => {
+      let angryHp = 6;
       if (me.isParamEmpty()) {
         me.setParam(0, me.x);
         me.setParam(1, me.y);
         me.setParam(2, randInt(0,799));
         me.setParam(3, randInt(0,799));
       }
-      if (me.hp >= 6) { // float
+      if (me.hp >= angryHp) { // float
         if (me.reaction > 0) {
           me.changeAnime("damaged1");
           me.setParam(2, (me.getParam(2) + 1) % 800);
@@ -936,12 +945,12 @@ const enemyData = {
         if (me.dy > 1.5) me.dy = 1.5;
         if (me.dy < -1.5) me.dy = -1.5;
         if (me.reaction-- > 0) {
-          me.changeAnime("damaged1");
+          me.changeAnime(me.hp >= angryHp ? "damaged1" : "damaged3");
           me.dx *= 0.75;
           me.dy = 0.5;
         }
         else {
-          me.changeAnime("float1");
+          me.changeAnime(me.hp >= angryHp ? "float1" : "float3");
         }
         me.x += me.dx;
         me.y += me.dy;        
@@ -1182,6 +1191,58 @@ const enemyData = {
         me.setParam(0, 0);
         me.startAnime(me.initParam <= 2 ? "launch_fast" : "launch");
         createEnemy("danmaku_yellow", me.x + 8, me.y - 8,  1.000 - randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
+      }
+    }
+  },
+  "T" : { // tulip (left)
+    "type": "wall_stuck",
+    "w" : 16,
+    "h" : 16,
+    "box" : [1, 5, 15, 12],
+    "hit" : [1, 5, 15, 12],
+    "hp" : 8,
+    "img" : imgTulip,
+    "anime": "tulip",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+      }
+      if (me.reaction > 0) {
+        me.changeAnime("damaged_l");
+      }
+      else {
+        if (me.anitype != "open_l") me.changeAnime("stop_l");
+        if (me.incParam(0) > 100) {
+          me.setParam(0, 0);
+          me.startAnime("open_l");
+          createEnemy("danmaku_white", me.x - 8, me.y, -1, 0);
+        }
+      }
+    }
+  },
+  "t" : { // tulip (right)
+    "type": "wall_stuck",
+    "w" : 16,
+    "h" : 16,
+    "box" : [0, 5, 14, 12],
+    "hit" : [0, 5, 14, 12],
+    "hp" : 8,
+    "img" : imgTulip,
+    "anime": "tulip",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+      }
+      if (me.reaction > 0) {
+        me.changeAnime("damaged_r");
+      }
+      else {
+        if (me.anitype != "open_r") me.changeAnime("stop_r");
+        if (me.incParam(0) > 100) {
+          me.setParam(0, 0);
+          me.startAnime("open_r");
+          createEnemy("danmaku_white", me.x + 8, me.y, 1, 0);
+        }
       }
     }
   },
@@ -2980,8 +3041,8 @@ let sceneList = {
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        let shakeX = e.reaction-- > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1) : 0;
-        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1 + shakeX), Math.floor(e.y - cameraY + 1));
+        let shake = e.reaction-- > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1) : 0;
+        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1 + (e.type === "wall_stuck" ? 0 : shake)), Math.floor(e.y - cameraY + 1 + (e.type === "wall_stuck" ? shake : 0)));
       }));
       shotArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
@@ -3041,8 +3102,8 @@ let sceneList = {
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        let shakeX = e.reaction > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1)  : 0;
-        e.drawAnime(charaCtx, Math.floor(e.x - cameraX + shakeX), Math.floor(e.y - cameraY));
+        let shake = e.reaction > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1)  : 0;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX + (e.type === "wall_stuck" ? 0 : shake)), Math.floor(e.y - cameraY + (e.type === "wall_stuck" ? shake : 0)));
       }));
       shotArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
