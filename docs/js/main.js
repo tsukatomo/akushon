@@ -51,6 +51,8 @@ let imgDanmakuYellow = [new Image(), new Image()];
 imgDanmakuYellow[0].src = "./img/danmaku_yellow.png";
 let imgDanmakuWhite = [new Image(), new Image()];
 imgDanmakuWhite[0].src = "./img/danmaku_white.png";
+let imgDanmakuRed = [new Image(), new Image()];
+imgDanmakuRed[0].src = "./img/danmaku_red.png";
 let imgWatageSatelite = [new Image(), new Image()];
 imgWatageSatelite[0].src = "./img/bigwatage_satelite.png";
 
@@ -73,6 +75,8 @@ let imgMoveFloor = [new Image(), new Image()];
 imgMoveFloor[0].src = "./img/movefloor.png";
 let imgCloudLift = [new Image(), new Image()];
 imgCloudLift[0].src = "./img/cloudlift.png";
+let imgCloudLiftSmall = [new Image(), new Image()];
+imgCloudLiftSmall[0].src = "./img/cloudlift_small.png";
 
 // shot
 let imgShot = [new Image(), new Image()];
@@ -132,6 +136,7 @@ let shadowList = [
   imgMinionSlime,
   imgDanmakuYellow,
   imgDanmakuWhite,
+  imgDanmakuRed,
   imgWatageSatelite,
   imgBigPumpkin,
   imgRenchin,
@@ -140,6 +145,7 @@ let shadowList = [
   imgMedal,
   imgMoveFloor,
   imgCloudLift,
+  imgCloudLiftSmall,
   imgShot,
   imgMapChip,
   imgMiniExplode,
@@ -244,12 +250,15 @@ let animeData = {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
   "tulip" :{
-    "open_l" : { frames: 2, dulation: 8, img: [0, 1], repeat: false},
+    "open_l" : { frames: 2, dulation: 16, img: [0, 1], repeat: false},
     "damaged_l" : { frames: 2, dulation: 4, img: [2, 1], repeat: true},
     "stop_l": { frames: 1, dulation: 8, img: [1], repeat: true },
-    "open_r" : { frames: 2, dulation: 8, img: [3, 4], repeat: false},
+    "open_r" : { frames: 2, dulation: 16, img: [3, 4], repeat: false},
     "damaged_r" : { frames: 2, dulation: 4, img: [5, 4], repeat: true},
     "stop_r": { frames: 1, dulation: 8, img: [4], repeat: true },
+    "open_d" : { frames: 2, dulation: 16, img: [6, 7], repeat: false},
+    "damaged_d" : { frames: 2, dulation: 4, img: [8, 7], repeat: true},
+    "stop_d": { frames: 1, dulation: 8, img: [7], repeat: true },
     "default" : { frames: 1, dulation: 8, img: [0], repeat: true },
   },
   "danmakuyellow": {
@@ -259,6 +268,11 @@ let animeData = {
   },
   "danmakuwhite": {
     "shot": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true },
+    "vanish": { frames: 3, dulation: 3, img: [4, 5, 6], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+  },
+  "danmakured": {
+    "shot": { frames: 4, dulation: 3, img: [0, 1, 2, 3], repeat: true },
     "vanish": { frames: 3, dulation: 3, img: [4, 5, 6], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   },
@@ -302,6 +316,9 @@ let animeData = {
     "default": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true }
   },
   "cloudlift": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "cloudliftsmall": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "miniexplode": {
@@ -696,6 +713,8 @@ let coinCounter = 0;
 let dataResetCount = 0;
 let snowEffect = [];
 let timeCounter = 0;
+let isResumedNow = false;
+let backToSelectCount = 0;
 
 // get map type from pixel coordinate (output: type of mapchip Object)
 // 注意：一方通行床はy座標がグリッド上部の時しか検出しません
@@ -1200,7 +1219,7 @@ const enemyData = {
     "h" : 16,
     "box" : [1, 5, 15, 12],
     "hit" : [1, 5, 15, 12],
-    "hp" : 8,
+    "hp" : 5,
     "img" : imgTulip,
     "anime": "tulip",
     "move": (me) => {
@@ -1212,10 +1231,10 @@ const enemyData = {
       }
       else {
         if (me.anitype != "open_l") me.changeAnime("stop_l");
-        if (me.incParam(0) > 100) {
+        if (me.incParam(0) > 180) {
           me.setParam(0, 0);
           me.startAnime("open_l");
-          createEnemy("danmaku_white", me.x - 8, me.y, -1, 0);
+          createEnemy("danmaku_red", me.x - 8, me.y, -0.75, 0);
         }
       }
     }
@@ -1226,7 +1245,7 @@ const enemyData = {
     "h" : 16,
     "box" : [0, 5, 14, 12],
     "hit" : [0, 5, 14, 12],
-    "hp" : 8,
+    "hp" : 5,
     "img" : imgTulip,
     "anime": "tulip",
     "move": (me) => {
@@ -1238,10 +1257,36 @@ const enemyData = {
       }
       else {
         if (me.anitype != "open_r") me.changeAnime("stop_r");
-        if (me.incParam(0) > 100) {
+        if (me.incParam(0) > 180) {
           me.setParam(0, 0);
           me.startAnime("open_r");
-          createEnemy("danmaku_white", me.x + 8, me.y, 1, 0);
+          createEnemy("danmaku_red", me.x + 8, me.y, 0.75, 0);
+        }
+      }
+    }
+  },
+  "u" : { // tulip (down)
+    "type": "flight",
+    "w" : 16,
+    "h" : 16,
+    "box" : [5, 0, 12, 14],
+    "hit" : [5, 0, 12, 14],
+    "hp" : 5,
+    "img" : imgTulip,
+    "anime": "tulip",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+      }
+      if (me.reaction > 0) {
+        me.changeAnime("damaged_d");
+      }
+      else {
+        if (me.anitype != "open_d") me.changeAnime("stop_d");
+        if (me.incParam(0) > 180) {
+          me.setParam(0, 0);
+          me.startAnime("open_d");
+          createEnemy("danmaku_red", me.x, me.y + 8, 0, 0.75);
         }
       }
     }
@@ -1334,6 +1379,31 @@ const enemyData = {
         }
       }
       else  if (me.anitype != "vanish") {
+        me.changeAnime("shot");
+      }
+      if (me.isEndAnime()) {
+        me.hp = 0;
+      }
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
+  "danmaku_red": { // danmaku (white)
+    "type": "danmaku",
+    "w" : 16,
+    "h" : 16,
+    "box" : [5, 5, 10, 10],
+    "hit" : [5, 5, 10, 10],
+    "hp" : 1,
+    "img" : imgDanmakuRed,
+    "anime": "danmakured",
+    "move": (me) => {
+      if (isOnLand(me) || isTouchingLeftWall(me) || isTouchingRightWall(me) || isHeading(me)) {
+        me.isNoHit = true;
+        me.dx = 0;
+        me.dy = 0;
+        me.changeAnime("vanish");
+      }
+      else if (me.anitype != "vanish") {
         me.changeAnime("shot");
       }
       if (me.isEndAnime()) {
@@ -2040,13 +2110,13 @@ const gimmickData = {
       me.y += me.dy;
     },
   },
-  // 左右に動く床
+  // 左右に動く床（壁で跳ね返る）
   "}" : {
     "type": "floor",
     "w": 48,
     "h": 16,
-    "box" : [0, 0, 47, 5],
-    "hit" : [0, 0, 47, 5],
+    "box" : [0, 0, 46, 5],
+    "hit" : [0, 0, 46, 5],
     "img": imgCloudLift,
     "anime": "cloudlift",
     "move": (me) => {
@@ -2063,7 +2133,71 @@ const gimmickData = {
       me.dx = me.direction === "left" ? -0.5 : 0.5;
       me.x += me.dx;
       me.y += me.dy;
-    },
+    }
+  },
+  // 動く床を同じ行に発生させる装置
+  "Æ" : { // alt + shift + * 
+    "type": "floorgen",
+    "w": 0,
+    "h": 0,
+    "box" : [0, 0, 0, 0],
+    "hit" : [0, 0, 0, 0],
+    "img": null,
+    "anime": null,
+    "move": (me) => {
+      if (me.initParam === 0) me.initParam = 5;
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+        me.direction = "left";
+        for (let i = 0; i <= mapWidth / me.initParam + 1; i++) {
+          createGimmick("minicloud", mapWidth * gridSize - (i * gridSize * me.initParam), me.y).direction = me.direction;
+        }
+      }
+      if (me.incParam(0) > me.initParam * gridSize / 0.5) {
+        me.setParam(0, 0);
+        createGimmick("minicloud", mapWidth * gridSize, me.y).direction = me.direction;
+      }
+    }
+  },
+  "æ" : { // alt + * 
+    "type": "floorgen",
+    "w": 0,
+    "h": 0,
+    "box" : [0, 0, 0, 0],
+    "hit" : [0, 0, 0, 0],
+    "img": null,
+    "anime": null,
+    "move": (me) => {
+      if (me.initParam === 0) me.initParam = 5;
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+        me.direction = "right";
+        for (let i = 0; i <= mapWidth / me.initParam + 1; i++) {
+          createGimmick("minicloud", i * gridSize * me.initParam - 32, me.y).direction = me.direction;
+        }
+      }
+      if (me.incParam(0) > me.initParam * gridSize / 0.5) {
+        me.setParam(0, 0);
+        createGimmick("minicloud", -32, me.y).direction = me.direction;
+      }
+    }
+  },
+  // 左（右）に動き続ける床
+  "minicloud" : {
+    "type": "floor",
+    "w": 32,
+    "h": 16,
+    "box" : [0, 0, 31, 5],
+    "hit" : [0, 0, 31, 5],
+    "img": imgCloudLiftSmall,
+    "anime": "cloudliftsmall",
+    "move": (me) => {
+      me.dx = me.direction === "left" ? -0.5 : 0.5;
+      me.x += me.dx;
+      me.y += me.dy;
+      if (me.x < - 96) me.hp = 0;
+      if (me.x > mapWidth * gridSize + 64) me.hp = 0;
+    }
   },
   // 爆風（びっくりブロック破壊時に発生）
   "bakufu" : {
@@ -2263,6 +2397,9 @@ window.onkeydown = function (e) {
   if (e.code === "KeyX" || e.code === "IntlRo" || e.code === "ShiftRight") {
     if (keyInput.indexOf("x") == -1) keyInput.push("x");
   }
+  if (e.code === "KeyQ") {
+    if (keyInput.indexOf("q") == -1) keyInput.push("q");
+  }
   // prevent default key input
   if (!e.metaKey && !e.shiftKey && !e.ctrlKey){
     e.preventDefault();
@@ -2296,6 +2433,10 @@ window.onkeyup = function (e) {
   }
   if (e.code === "KeyX" || e.code === "IntlRo" || e.code === "ShiftRight") {
     idx = keyInput.indexOf("x");
+    if (idx != -1) keyInput.splice(idx, 1);
+  }
+  if (e.code === "KeyQ") {
+    idx = keyInput.indexOf("q");
     if (idx != -1) keyInput.splice(idx, 1);
   }
   // prevent default key input
@@ -2546,7 +2687,7 @@ let sceneList = {
       //backgCtx.fillStyle = "#74adbb"; // 水色
       backgCtx.fillRect(0, 0, 320, 240);
       // define snow effect
-      snowEffect.length = Math.floor(mapWidth * mapHeight / 12);
+      snowEffect.length = levelSpecial === "snow" ? Math.floor(mapWidth * mapHeight / 12) : 0;
       for (let i = 0; i < snowEffect.length; i++) {
         snowEffect[i] = {
           x: randInt(0, mapWidth * gridSize),
@@ -2841,7 +2982,7 @@ let sceneList = {
             plc.reaction = invincibleTimeMax;
             plc.hp -= 1;
             plc.dx = - plc.dx;
-            plc.dy = plc.dy >= 0 ? -1.5 : 0;
+            plc.dy = -1.5;
           };
         }
         // fall
@@ -2987,7 +3128,7 @@ let sceneList = {
       cameraY = Math.floor(cameraY);
       
       // change player animation
-      if (!stopFlag){
+      if (!stopFlag || sceneOverLay === "pause"){
         if (isOnLand(plc) || plc.riding != null) {
           if (plc.dx === 0) {
             plc.changeAnime(plc.direction === "left" ? "stand_l" : "stand_r");
@@ -3012,7 +3153,7 @@ let sceneList = {
         }
       }
       // update player anime
-      plc.updateAnime();
+      if (sceneOverLay != "pause") plc.updateAnime();
       
       // 雪の座標を更新，後ろの雪を描画
       charaCtx.fillStyle = "#bebbb2";
@@ -3168,6 +3309,12 @@ let sceneList = {
       }
       // time counter
       timeCounter++;
+      // ポーズ画面
+      if (isKeyPressedNow("q") && !stopFlag && !isResumedNow) {
+        setOverlayScene("pause");
+        stopFlag = true;
+      }
+      isResumedNow = false;
     }
   },
 };
@@ -3232,6 +3379,59 @@ let sceneOverLayList = {
     }
   },
 
+  // pause
+  "pause" : {
+    init: () => {
+
+    },
+    update: () => {
+      // key input
+      if (isKeyPressedNow("q")) { // Qでゲーム再開
+        setOverlayScene("none");
+        stopFlag = false;
+        isResumedNow = true;
+      }
+      else if (keyInput.indexOf("x") != -1) { // X長押しでデータを保存してステージセレクトへ
+        backToSelectCount++;
+        if (backToSelectCount > 80) {
+          saveDataObject["coins"] = collectedCoins;
+          if (!saveDataObject["medal"].hasOwnProperty(stageId)) {
+            saveDataObject["medal"][stageId] = collectedMedal;
+          }
+          else {
+            for (let i = 0; i < collectedMedal.length; i++) {
+              saveDataObject["medal"][stageId][i] |= collectedMedal[i];
+            }
+          }
+          writeSaveData(currentSaveData);
+          setTransition("stageselect");
+        }
+      }
+      else {
+        backToSelectCount = 0;
+      }
+      // drawing
+      useriCtx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      useriCtx.fillRect(0, 0, useriLay.width, useriLay.height);
+      useriCtx.textAlign = "left";
+      useriCtx.textBaseline = "top";
+      useriCtx.fillStyle = "#fff9e4";
+      let displayText = "- P A U S E -";
+      let displaySize = useriCtx.measureText(displayText);
+      useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 64);
+      displayText = "Q: 再開    X長押し: ステージを出る";
+      displaySize = useriCtx.measureText(displayText);
+      useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 112);
+      if (backToSelectCount > 0) {
+        useriCtx.fillStyle = "#c16c5b";
+        useriCtx.fillRect(0, 220, backToSelectCount * 4, 8);
+        useriCtx.fillStyle = "#bebbb2";
+        useriCtx.fillText("ステージを脱出！", 0, 204); 
+      }
+    }
+  },
+
+  // none（何もしない，でもこの処理は必要）
   "none" : {
     init: () => {
       return 0;
