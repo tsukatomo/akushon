@@ -123,6 +123,16 @@ imgSSCursorR[0].src = "./img/sscursor_r.png";
 let imgWip = new Image();
 imgWip.src = "./img/work_in_progress.png";
 
+// shop
+let imgMerchan = [new Image(), new Image()];
+imgMerchan[0].src = "./img/merchan.png";
+let imgTool = [new Image(), new Image()];
+imgTool[0].src = "./img/tool.png";
+let imgToolCursor = [new Image(), new Image()];
+imgToolCursor[0].src = "./img/cursor.png";
+let imgShopBg = new Image();
+imgShopBg.src = "./img/shop_bg.png";
+
 // list of shadowing objects
 let shadowList = [
   imgPlayer,
@@ -155,7 +165,10 @@ let shadowList = [
   imgYellowGlitter,
   imgMiniBlock,
   imgSSCursorL,
-  imgSSCursorR
+  imgSSCursorR,
+  imgMerchan,
+  imgTool,
+  imgToolCursor
 ];
 
 // create shadow image
@@ -345,6 +358,21 @@ let animeData = {
   "sscursor": {
     "default": { frames: 4, dulation: 8, img: [0, 1, 2, 1], repeat: true }
   },
+  "merchan": {
+    "normal": { frames: 1, dulation: 8, img: [0], repeat: true },
+    "bad": { frames: 1, dulation: 8, img: [1], repeat: true },
+    "happy": { frames: 1, dulation: 8, img: [2], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "tool": {
+    "lifeup": { frames: 1, dulation: 8, img: [0], repeat: true },
+    "shotup": { frames: 1, dulation: 8, img: [1], repeat: true },
+    "bottle": { frames: 1, dulation: 8, img: [2], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [2], repeat: true }
+  },
+  "toolcursor": {
+    "default": { frames: 4, dulation: 8, img: [0, 1, 2, 1], repeat: true }
+  },
   "default": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
   }
@@ -424,7 +452,8 @@ let currentSaveData = "Akushon1";
 let saveDataObject = {
   "coins": 0,
   "progress": 0,
-  "medal": {}
+  "medal": {},
+  "tool": {}
 };
 
 let readSaveData = async (saveDataName) => {
@@ -482,7 +511,7 @@ let goToLevel = (lName) => {
   setTransition("game");
 }
 
-// game scene
+// scene
 let scene;
 let sceneOverLay;
 let initFlag, overLayInitFlag;
@@ -608,8 +637,8 @@ class Sprite {
 
 // character class
 class CharacterSprite extends Sprite{
-  constructor(id, type, x, y, w, h, ltx, lty, rbx, rby, hltx, hlty, hrbx, hrby, hp, img, shadow, anime) {
-    super(id, x, y, w, h, img, shadow, anime);
+  constructor(id, type, x, y, w, h, ltx, lty, rbx, rby, hltx, hlty, hrbx, hrby, hp, img, anime) {
+    super(id, x, y, w, h, img, anime);
     // type
     this.type = type;
     // ltx, lty = left top of hitbox (for mapchip and gimmick)
@@ -2364,6 +2393,73 @@ let createEffectSub = (effectId, x, y, dx, dy) => {
   return newEffect;
 };
 
+  //---------------//
+ //   shop/tool   //
+//---------------//
+let shopScene = "enter";
+let merchan;
+let cursorSprite;
+let boughtTool = []; // element : Object {id, is_activated}
+let shelf = [];
+let shopCursor = 0;
+let toolCursor = 0;
+
+const toolData = {
+  "lifeup1" : {
+    anime: "lifeup",
+    price: 10,
+    name: "ライフアップ",
+    explain_merchan: "最大HPが1増えるよー",
+    explain_normal: "最大HP+1",
+    sell_condition : () => {
+      return true;
+    },
+    effect: () => {
+      plcMaxHp += 1;
+    }
+  },
+  "lifeup2" : {
+    anime: "lifeup",
+    price: 200,
+    name: "ライフアップ",
+    explain_merchan: "最大HPが1増えるよー",
+    explain_normal: "最大HP+1",
+    sell_condition : () => {
+      return saveDataObject.progress > 0;
+    },
+    effect: () => {
+      plcMaxHp += 1;
+    }
+  },
+  "shotup1" : {
+    anime: "shotup",
+    price: 30000,
+    name: "ショット威力アップ",
+    explain_merchan: "ショットで与えるダメージが増えるよー",
+    explain_normal: "ショット威力アップ",
+    sell_condition : () => {
+      return saveDataObject.progress > 1;
+    },
+    effect: () => {
+      shotPower += 1;
+    }
+  }
+};
+
+const toolDataKeys = Object.keys(toolData);
+
+let drawToolImage = (toolId, x, y, ctx) => {
+  if (toolDataKeys.indexOf(toolId) === -1) return;
+  let toolSprite = new Sprite(toolId, x, y, 32, 32, imgTool, animeData["tool"]);
+  toolSprite.changeAnime(toolData[toolId].anime);
+  toolSprite.drawShadow(ctx, x + 2, y + 2);
+  toolSprite.drawAnime(ctx, x, y);
+};
+
+let applyToolEffect = (toolId) => {
+  toolData[toolId].effect();
+};
+
   // --------------//
  // get key event //
 // --------------//
@@ -2596,6 +2692,139 @@ let sceneList = {
         coinCounter = collectedCoins;
         // start game
         setTransition("game");
+      }
+      else if (isKeyPressedNow("u")) { // shop
+        setTransition("shop");
+      }
+    }
+  },
+  ////---------------//
+  /// shop          ///
+  //---------------////
+  "shop" : {
+    "init" : async () => {
+      // シーンリセット
+      shopScene = "enter";
+      shopCursor = 0;
+      collectedCoins = saveDataObject["coins"];
+      merchan = new Sprite("merchan", 180, 120, 64, 64, imgMerchan, animeData["merchan"]);
+      cursorSprite = new Sprite("tool_cursor", 24, 120, 48, 48, imgToolCursor, animeData["toolcursor"]);
+      // 品揃えの更新
+      boughtTool = saveDataObject["tool"];
+      shelf.length = 0;
+      toolDataKeys.forEach((e) => {
+        if (shelf.length >= 4) return;
+        if (!toolData[e].sell_condition) return;
+        if (boughtTool.findIndex((bought) => { return bought.id === e; }) != -1) return;
+        shelf.push(e);
+      });
+      while (shelf.length < 4) {
+        shelf.push("no_item");
+      }
+      // 背景
+      backgCtx.fillStyle = "#2a2349";
+      backgCtx.drawImage(imgShopBg, 0, 0);
+      setOverlayScene("transout");
+      return 0;
+    },
+    "update" : async () => {
+      let serifuX = 16;
+      let serifuY = 32;
+      let toolOnCursor = shelf[shopCursor] === "no_item" ? -1 : toolData[shelf[shopCursor]];
+      // 文字描画設定
+      useriCtx.textBaseline = "top";
+      useriCtx.textAlign = "left";
+      useriCtx.fillStyle = "#fff9e4";
+      // お金
+      useriCtx.fillText(collectedCoins.toString().padStart(4, "0"), gridSize, 0);
+      useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, 0, 16, 16);
+      // まーちゃん
+      merchan.updateAnime();
+      merchan.drawAnime(charaCtx, 240, 144);
+      // カーソル
+      cursorSprite.updateAnime();
+      cursorSprite.drawAnime(useriCtx, 24 + 48 * shopCursor, 112);
+      // 品揃え
+      for (let i = 0; i < shelf.length; i++) {
+        if (shelf[i] === "no_item") continue;
+        drawToolImage(shelf[i], 32 + i * 48, 120, charaCtx);
+        let priceText = toolData[shelf[i]].price.toString();
+        let priceSize = useriCtx.measureText(priceText);
+        useriCtx.fillText(priceText, 32 + i * 48 + (16 - priceSize.width / 2), 156);
+      }
+      // 文字描画色変更
+      useriCtx.fillStyle = "#2a2349";
+      // シーンごとの描画・操作
+      if (shopScene === "enter") { // シーン：入店
+        merchan.changeAnime("happy");
+        useriCtx.fillText("ごゆっくりー", serifuX, serifuY);
+        if (isKeyPressedNow("z")) {
+          shopScene = "choose";
+        }
+      }
+      else if (shopScene === "choose") { // シーン：商品選択
+        merchan.changeAnime("normal");
+        if (toolOnCursor === -1) {
+          useriCtx.fillText("そこには何もないよー", serifuX, serifuY);  
+        }
+        else {
+          useriCtx.fillText(toolOnCursor.name, serifuX, serifuY);
+          useriCtx.fillText(toolOnCursor.explain_merchan, serifuX, serifuY + 16);
+        }
+        if (isKeyPressedNow("l") && shopCursor > 0) {
+          shopCursor--;
+        }
+        else if (isKeyPressedNow("r") && shopCursor < 3) {
+          shopCursor++;
+        }
+        else if (isKeyPressedNow("z") && toolOnCursor != -1) {
+          shopScene = "select";
+        }
+        else if (isKeyPressedNow("x")) {
+          shopScene = "exit";
+        }
+      }
+      else if (shopScene === "select") { // シーン：購入確認
+        useriCtx.fillText(toolOnCursor.name + "は" + toolOnCursor.price + "コインだよー どうする？", serifuX, serifuY);
+        useriCtx.fillText("Z:買う    X:やめる", serifuX, serifuY + 16);
+        if (isKeyPressedNow("z")) { 
+          if (collectedCoins < toolOnCursor.price) {
+            shopScene = "tarinai";
+          }
+          else { // 購入処理はここで行う
+            boughtTool.push({ id : shelf[shopCursor], is_activated : true });
+            collectedCoins -= toolOnCursor.price;
+            shelf[shopCursor] = "no_item";
+            shopScene = "okaiage";
+          }
+        }
+        else if (isKeyPressedNow("x")) {
+          shopScene = "choose";
+        }
+      }
+      else if (shopScene === "tarinai") { // シーン：お金足りない
+        merchan.changeAnime("bad");
+        useriCtx.fillText("コインが足りないよー……", serifuX, serifuY);
+        if (isKeyPressedNow("z")) {
+          shopScene = "choose";
+        }
+      }
+      else if (shopScene === "okaiage") { // シーン：お買い上げ
+        merchan.changeAnime("happy");
+        useriCtx.fillText("まいどありー♪", serifuX, serifuY);
+        if (isKeyPressedNow("z")) {
+          shopScene = "choose";
+        }
+      }
+      else { // シーン：退店
+        merchan.changeAnime("happy");
+        useriCtx.fillText("またねー", serifuX, serifuY);
+        if (isKeyPressedNow("z")) {
+          saveDataObject["coins"] = collectedCoins;
+          saveDataObject["tool"] = boughtTool;
+          writeSaveData(currentSaveData);
+          setTransition("stageselect");
+        }
       }
     }
   },
@@ -2974,13 +3203,13 @@ let sceneList = {
         // damage
         if (plc.reaction > 0) plc.reaction--;
         if (plc.reaction <= 0) {
-          let isDamaged = getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "damage";
+          let isDamaged = (getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "damage");
           enemyArray.forEach((e) => {
             isDamaged |= e.isHit(plc);
           });
           if (isDamaged) {
             plc.reaction = invincibleTimeMax;
-            plc.hp -= 1;
+            if ((bossBattlePhase != "defeated") && (bossBattlePhase != "end")) plc.hp -= 1;
             plc.dx = - plc.dx;
             plc.dy = -1.5;
           };
