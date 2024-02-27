@@ -2719,6 +2719,7 @@ let sceneList = {
     "init" : async () => {
       // load save data
       await readSaveData(currentSaveData);
+      modifySaveData();
       collectedCoins = saveDataObject["coins"];
       ssCursorL = new Sprite("c",  3 * gridSize, 6 * gridSize, 32, 64, imgSSCursorL, animeData["sscursor"]);
       ssCursorR = new Sprite("c", 15 * gridSize, 6 * gridSize, 32, 64, imgSSCursorR, animeData["sscursor"]);
