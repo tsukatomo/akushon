@@ -1634,7 +1634,7 @@ const enemyData = {
               quakeTimeX = 15;
               createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width / 2 - 8), -16, 0, 0).direction = "right";
               createEnemy("minion", randInt(cameraX + charaLay.width / 2 - 8, cameraX + charaLay.width - 48), -16, 0, 0).direction = "left";
-              if (me.hp <= 50) createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0).direction = "left";
+              if (me.hp <= halfHp) createEnemy("minion", randInt(cameraX + 32, cameraX + charaLay.width - 48), -16, 0, 0).direction = "left";
               me.changeAnime("clash");
             }
           }
