@@ -757,6 +757,11 @@ let collectedCoins = 0;
 let coinCounter = 0;
 let dataResetCount = 0;
 let snowEffect = [];
+let bossMaxHp = 0;
+let bossHpBarWhite = 0;
+let bossHpBarRed = 0;
+let bossHpBarRedPrev = 0;
+let bossHpBarReduceCounter = 100;
 let timeCounter = 0;
 let isResumedNow = false;
 let backToSelectCount = 0;
@@ -955,6 +960,20 @@ let moveAndCheckCollisionWithMap = (character) => {
     character.x -= slideLength;
   }
   if (isTouching) character.x += slideLength * loopMax;
+};
+
+// reset boss hp bar
+let initBossHpBar = (maxHp) => {
+  bossMaxHp = maxHp;
+  bossHpBarRed = maxHp;
+  bossHpBarRedPrev = maxHp;
+  bossHpBarWhite = maxHp;
+  bossHpBarReduceCounter = 0;
+};
+
+// update boss hp bar
+let updateBossHpBar = (hp) => {
+  bossHpBarRed = hp;
 };
 
 // get random integer (min ≤ r ≤ max)
@@ -1498,6 +1517,7 @@ const enemyData = {
             me.dy += (me.dy > 0) ? 0.25 : 0.125;
           }
           else {
+            initBossHpBar(me.hp);
             bossBattlePhase = "fight";
           }
           me.changeAnime("laugh");
@@ -1542,10 +1562,7 @@ const enemyData = {
           me.changeAnime("laugh");
           moveAndCheckCollisionWithMap(me);
           // HPバーの描画
-          useriCtx.fillStyle = "#2a2349";
-          useriCtx.fillRect(0, 222, 320, 16);
-          useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 160)), 12);
+          updateBossHpBar(me.hp);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.setParam(0, 0);
@@ -1593,6 +1610,7 @@ const enemyData = {
           me.changeAnime("default");
           break;
         case "entrance" :
+          initBossHpBar(me.hp);
           bossBattlePhase = "fight";
           me.changeAnime("stand");
           moveAndCheckCollisionWithMap(me);
@@ -1703,10 +1721,7 @@ const enemyData = {
           }
           moveAndCheckCollisionWithMap(me);
           // HPバーの描画
-          useriCtx.fillStyle = "#2a2349";
-          useriCtx.fillRect(0, 222, 320, 16);
-          useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 200)), 12);
+          updateBossHpBar(me.hp);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.setParam(0, 0);
@@ -1770,6 +1785,7 @@ const enemyData = {
         case "entrance" :
           me.y += 2;
           if (me.y >= me.getParam(9)) {
+            initBossHpBar(me.hp);
             bossBattlePhase = "fight";
             me.y = me.getParam(9); 
           }
@@ -1857,10 +1873,7 @@ const enemyData = {
             me.changeAnime(me.hp <= 100 ? "angry" : "default");
           }
           // HPバーの描画
-          useriCtx.fillStyle = "#2a2349";
-          useriCtx.fillRect(0, 222, 320, 16);
-          useriCtx.fillStyle = "#c16c5b";
-          useriCtx.fillRect(0, 224, Math.ceil(320 * (me.hp / 300)), 12);
+          updateBossHpBar(me.hp);
           if (me.hp <= 0) { // ぐえ〜〜
             bossBattlePhase = "defeated";
             me.setParam(0, 0);
@@ -3744,6 +3757,34 @@ let sceneList = {
         useriCtx.fillText(collectedKeyNum, gridSize, gridSize * 2 - 2);
         useriCtx.drawImage(imgUiKey, 0, 0, 16, 16, 0, gridSize * 2 - 2, 16, 16);
       }
+      // boss hp bar
+      if (bossBattlePhase === "fight") {
+        // update reduce counter
+        if (bossHpBarRed < bossHpBarRedPrev) {
+          /*
+          if (bossHpBarRedPrev < bossHpBarWhite && bossHpBarReduceCounter <= 0) {
+            bossHpBarWhite = bossHpBarRed;
+          }
+          */
+          bossHpBarReduceCounter = 32; // この値が0より大きいときは白ゲージが減らない
+          bossHpBarRedPrev = bossHpBarRed;
+        }
+        else if (bossHpBarReduceCounter > 0){
+          bossHpBarReduceCounter--;
+        }
+        // reduce white bar
+        if (bossHpBarReduceCounter <= 0 && bossHpBarRed < bossHpBarWhite) {
+          bossHpBarWhite--;
+        }
+        // drawing
+        useriCtx.fillStyle = "#2a2349";
+        useriCtx.fillRect(0, 222, 320, 16);
+        useriCtx.fillStyle = "#fff9e4";
+        useriCtx.fillRect(0, 224, Math.ceil(320 * (bossHpBarWhite / bossMaxHp)), 12);
+        useriCtx.fillStyle = "#c16c5b";
+        useriCtx.fillRect(0, 224, Math.ceil(320 * (bossHpBarRed / bossMaxHp)), 12);
+      }
+      
       // time counter
       timeCounter++;
       // ポーズ画面
