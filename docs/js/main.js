@@ -45,6 +45,8 @@ let imgElectroJar = [new Image(), new Image()];
 imgElectroJar[0].src = "./img/electrojar.png";
 let imgTulip = [new Image(), new Image()];
 imgTulip[0].src = "./img/tulip.png";
+let imgBomb = [new Image(), new Image()];
+imgBomb[0].src = "./img/the_bomb2.png";
 let imgMinionSlime = [new Image(), new Image()];
 imgMinionSlime[0].src = "./img/minionslime.png";
 let imgDanmakuYellow = [new Image(), new Image()];
@@ -99,6 +101,8 @@ let imgYellowGlitter = [new Image(), new Image()];
 imgYellowGlitter[0].src = "./img/yellow_glitter.png";
 let imgMiniBlock = [new Image(), new Image()];
 imgMiniBlock[0].src = "./img/miniblock.png";
+let imgBombEffect = [new Image(), new Image()];
+imgBombEffect[0].src = "./img/bomb_effect.png";
 
 // UI
 let imgUiHeart = new Image();
@@ -147,6 +151,7 @@ let shadowList = [
   imgSlimeLauncher,
   imgElectroJar,
   imgTulip,
+  imgBomb,
   imgMinionSlime,
   imgDanmakuYellow,
   imgDanmakuWhite,
@@ -166,6 +171,7 @@ let shadowList = [
   imgStar,
   imgRedGlitter,
   imgYellowGlitter,
+  imgBombEffect,
   imgMiniBlock,
   imgSSCursorL,
   imgSSCursorR,
@@ -277,6 +283,14 @@ let animeData = {
     "stop_d": { frames: 1, dulation: 8, img: [7], repeat: true },
     "default" : { frames: 1, dulation: 8, img: [0], repeat: true },
   },
+  "bomb" :{
+    "count_4" : { frames: 2, dulation: 6, img: [0, 1], repeat: true },
+    "count_3" : { frames: 2, dulation: 6, img: [2, 3], repeat: true },
+    "count_2" : { frames: 2, dulation: 6, img: [4, 5], repeat: true },
+    "count_1" : { frames: 2, dulation: 6, img: [6, 7], repeat: true },
+    "bomb!" : { frames: 1, dulation: 8, img: [8], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [9], repeat: true }
+  },
   "danmakuyellow": {
     "shot": { frames: 2, dulation: 4, img: [0, 1], repeat: true },
     "vanish": { frames: 2, dulation: 4, img: [2, 3], repeat: false },
@@ -351,6 +365,12 @@ let animeData = {
   },
   "star": {
     "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
+  },
+  "bomb_type1": {
+    "default": { frames: 8, dulation: 4, img: [0,1,2,3,4,5,6,7], repeat: false }
+  },
+  "bomb_type2":  {
+    "default": { frames: 8, dulation: 4, img: [8,9,10,11,12,13,14,15], repeat: false }
   },
   "miniblock": {
     "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
@@ -677,6 +697,8 @@ class CharacterSprite extends Sprite{
     this.reaction = 0;
     // trueのとき、他キャラクターとの衝突判定を行わない
     this.isNoHit = false;
+    // trueのとき、プレイヤーとの衝突判定を行わない
+    this.isNoHitWithPlc = false;
     // trueのとき、無敵
     this.isInvincible = false;
     // 地形から受ける移動量（慣性が乗る）
@@ -723,7 +745,7 @@ class CharacterSprite extends Sprite{
   // 乗り物に追従する
   rideOn () {
     if (this.riding === null) return;
-    this.y = this.riding.y - this.h;
+    this.y = this.riding.y - this.rby - 1;
     this.rx = this.riding.dx;
     this.ry = this.riding.dy;
     this.px = 0;
@@ -759,6 +781,8 @@ let dataResetCount = 0;
 let snowEffect = [];
 let bossMaxHp = 0;
 let bossHpBarWhite = 0;
+let bossHpBarWhiteReduceto = 0;
+let bossHpBarWhiteReduceFlag = false;
 let bossHpBarRed = 0;
 let bossHpBarRedPrev = 0;
 let bossHpBarReduceCounter = 100;
@@ -968,6 +992,8 @@ let initBossHpBar = (maxHp) => {
   bossHpBarRed = maxHp;
   bossHpBarRedPrev = maxHp;
   bossHpBarWhite = maxHp;
+  bossHpBarWhiteReduceto = maxHp;
+  bossHpBarWhiteReduceFlag = false;
   bossHpBarReduceCounter = 0;
 };
 
@@ -1352,6 +1378,88 @@ const enemyData = {
           me.startAnime("open_d");
           createEnemy("danmaku_red", me.x, me.y + 8, 0, 0.75);
         }
+      }
+    }
+  },
+  // 爆弾
+  "b" : { // bomb TODO: Infinite respawn
+    "type": "normal",
+    "w" : 32,
+    "h" : 32,
+    "box": [6, 10, 25, 30],
+    "hit": [8, 12, 23, 27],
+    "hp": 9999,
+    "img" : imgBomb,
+    "anime" : "bomb",
+    "move" : (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0); // カウントダウン
+        me.setParam(1, "normal"); // 状態
+        me.isNoHitWithPlc = true;
+      }
+      // カウントダウン
+      if (me.getParam(1) === "fire") {
+        me.incParam(0);
+        me.changeAnime(me.getParam(0) > 180 ? "count_1" : me.getParam(0) > 120 ? "count_2" : me.getParam(0) > 60 ? "count_3" : "count_4");
+      }
+      // 爆発
+      if (me.getParam(0) > 240 && me.getParam(1) === "fire") {
+        me.startAnime("bomb!");
+        me.setParam(1, "bomb");
+        me.setParam(0, 0);
+        quakeTimeY = 20;
+        for (let i = 0; i < 8; i++) {
+          createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
+        }
+      }
+      // 爆発エフェクト
+      if (me.getParam(1) === "bomb") {
+        me.isNoHit = true;
+        me.incParam(0);
+        if (me.getParam(0) < 30) {
+          if (me.getParam(0) % 6 === 0) {
+            createEffect("bomb_type1", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+          }
+          if (me.getParam(0) % 6 === 3) {
+            createEffect("bomb_type2", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+          }
+        }
+      }
+      // 移動
+      if (me.getParam(1) === "bomb") {
+        me.dx = 0;
+        me.dy = 0;
+        me.px = 0;
+        me.py = 0;
+        me.rx = 0;
+        me.ry = 0;
+      }
+      else {
+        if (isOnLand(me)) {
+          me.dx = 0;
+          me.dy = 0;
+        }
+        else {
+          me.dy += 0.125;
+          if (me.dy > 4) me.dy = 4;
+          if (isTouchingLeftWall(me) && me.dx < 0) me.dx = - me.dx;
+          if (isTouchingRightWall(me) && me.dx > 0) me.dx = - me.dx;
+        }
+        // ショットとの衝突
+        shotArray.forEach((e) => {
+          if (!e.isHit(me)) return;
+          if (me.getParam(1) === "normal") me.setParam(1, "fire");
+          me.dy = -3.5;
+          me.dx = 1.0 * (e.direction === "right" ? 1 : -1);
+        });
+        if (isHeading(me)) me.dy = -me.dy;
+        me.px = 0;
+        me.py = 0;
+        me.rx = 0;
+        me.ry = 0;
+        me.rideOn();
+        movesAffectedByMap(me);
+        moveAndCheckCollisionWithMap(me);
       }
     }
   },
@@ -1968,7 +2076,7 @@ let itemData = {
       }
     }
   },
-  "è": { // key 0 (alt + _ -> e)
+  "è": { // key 1 (alt + _ -> e)
     "type": "gravity",
     "w": 16,
     "h": 16,
@@ -1990,7 +2098,7 @@ let itemData = {
       }
     }
   },
-  "ì": { // key 0 (alt + _ -> i)
+  "ì": { // key 2 (alt + _ -> i)
     "type": "gravity",
     "w": 16,
     "h": 16,
@@ -2287,7 +2395,7 @@ const gimmickData = {
         }
       }
     }
-  }
+  },
 };
 
 let gimmickKeyList = Object.keys(gimmickData);
@@ -2368,6 +2476,20 @@ let effectData = {
     "img": imgStar,
     "anime": "star",
     "move": "gravity"
+  },
+  "bomb_type1": {
+    "w": 32,
+    "h": 32,
+    "img": imgBombEffect,
+    "anime": "bomb_type1",
+    "move": "stop"
+  },
+  "bomb_type2": {
+    "w": 32,
+    "h": 32,
+    "img": imgBombEffect,
+    "anime": "bomb_type2",
+    "move": "stop"
   },
   "miniblock": {
     "w": 8,
@@ -3321,6 +3443,7 @@ let sceneList = {
         if (isKeyPressedNow("x") && shotArray.length < shotMax) {
           let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
           newShot.dx = plc.direction === "left" ? -2 : 2;
+          newShot.direction = plc.direction;
           newShot.changeAnime("shot");
           newShot.param.push(0);
           shotArray.push(newShot);
@@ -3331,8 +3454,9 @@ let sceneList = {
           shotArray[i].x += shotArray[i].dx;
           shotArray[i].param[0]++;
           if (shotArray[i].anitype === "shot") {
-            let isShotVanish = shotArray[i].param[0] >= 30;
-            isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall";
+            let isShotVanish = shotArray[i].param[0] >= 30; // 自然消滅
+            isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"; // 壁に激突
+            // 敵にヒット
             enemyArray.forEach((e) => {
               if (e.isHit(shotArray[i]) && !e.isType("danmaku")) {
                 isShotVanish = true;
@@ -3426,7 +3550,7 @@ let sceneList = {
         if (plc.reaction <= 0) {
           let isDamaged = (getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "damage");
           enemyArray.forEach((e) => {
-            isDamaged |= e.isHit(plc);
+            isDamaged |= (e.isHit(plc) && !e.isNoHitWithPlc);
           });
           if (isDamaged) {
             plc.reaction = invincibleTimeMax;
@@ -3761,20 +3885,21 @@ let sceneList = {
       if (bossBattlePhase === "fight") {
         // update reduce counter
         if (bossHpBarRed < bossHpBarRedPrev) {
-          /*
-          if (bossHpBarRedPrev < bossHpBarWhite && bossHpBarReduceCounter <= 0) {
-            bossHpBarWhite = bossHpBarRed;
-          }
-          */
-          bossHpBarReduceCounter = 32; // この値が0より大きいときは白ゲージが減らない
           bossHpBarRedPrev = bossHpBarRed;
-        }
-        else if (bossHpBarReduceCounter > 0){
-          bossHpBarReduceCounter--;
+          bossHpBarReduceCounter = 32; // この値が0より大きいときは白ゲージが減らない
         }
         // reduce white bar
-        if (bossHpBarReduceCounter <= 0 && bossHpBarRed < bossHpBarWhite) {
-          bossHpBarWhite--;
+        if (bossHpBarWhiteReduceFlag) {
+          bossHpBarWhite -= 1;
+          if (bossHpBarWhite <= bossHpBarWhiteReduceto) {
+            bossHpBarWhiteReduceFlag = false;
+          }
+        }
+        else if (bossHpBarReduceCounter > 0) {
+          if (--bossHpBarReduceCounter <= 0) {
+            bossHpBarWhiteReduceFlag = true;
+            bossHpBarWhiteReduceto = bossHpBarRed;
+          }
         }
         // drawing
         useriCtx.fillStyle = "#2a2349";
