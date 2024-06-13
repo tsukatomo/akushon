@@ -1108,13 +1108,6 @@ const enemyData = {
       if (me.isParamEmpty()) {
         me.setParam(0, 0);
       }
-      if (me.reaction > 0) {
-        me.changeAnime("damaged");
-        if (me.anicount === 0) me.dy = 0;
-      }
-      else {
-        me.changeAnime("laugh");
-      }
       if (isOnLand(me)) {
         if (Math.abs(me.x - plc.x) < 100 && cameraY < me.y + me.h && me.y < cameraY + charaLay.height && me.getParam(0) <= 0) {
           me.dy = -3.0;
@@ -1130,8 +1123,18 @@ const enemyData = {
       else {
         me.setParam(0, 8); // 接地時間
       }
-      if (isHeading(me)) {
+      if (isHeading(me)) { // 天井に衝突
         me.dy = -me.dy;
+      }
+      if (me.reaction > 0) { // 被弾
+        me.changeAnime("damaged");
+        if (me.anicount === 0) {
+          me.dx = - me.dx / 2;
+          me.dy = 0;
+        }
+      }
+      else {
+        me.changeAnime("laugh");
       }
       me.dy += 0.125;
       if (me.dy > 4) me.dy = 4;
@@ -1386,7 +1389,7 @@ const enemyData = {
     "type": "normal",
     "w" : 32,
     "h" : 32,
-    "box": [6, 10, 25, 30],
+    "box": [6, 11, 25, 30],
     "hit": [8, 12, 23, 27],
     "hp": 9999,
     "img" : imgBomb,
