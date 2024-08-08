@@ -283,13 +283,18 @@ let animeData = {
     "stop_d": { frames: 1, dulation: 8, img: [7], repeat: true },
     "default" : { frames: 1, dulation: 8, img: [0], repeat: true },
   },
-  "bomb" :{
+  "bomb": {
     "count_4" : { frames: 2, dulation: 6, img: [0, 1], repeat: true },
     "count_3" : { frames: 2, dulation: 6, img: [2, 3], repeat: true },
     "count_2" : { frames: 2, dulation: 6, img: [4, 5], repeat: true },
     "count_1" : { frames: 2, dulation: 6, img: [6, 7], repeat: true },
     "bomb!" : { frames: 1, dulation: 8, img: [8], repeat: false },
     "default": { frames: 1, dulation: 8, img: [9], repeat: true }
+  },
+  "bomb_bakuhu": {
+    "type_1": { frames: 8, dulation: 4, img: [0,1,2,3,4,5,6,7], repeat: false },
+    "type_2": { frames: 8, dulation: 4, img: [8,9,10,11,12,13,14,15], repeat: false },
+    "default": { frames: 8, dulation: 4, img: [0,1,2,3,4,5,6,7], repeat: false }
   },
   "danmakuyellow": {
     "shot": { frames: 2, dulation: 4, img: [0, 1], repeat: true },
@@ -686,7 +691,7 @@ class CharacterSprite extends Sprite{
     // hltx, hlty = left top of hitbox (for other objects)
     this.hltx = hltx;
     this.hlty = hlty;
-    // rbx, rby = right bottom of hitbox (for other objects)
+    // hrbx, hrby = right bottom of hitbox (for other objects)
     this.hrbx = hrbx;
     this.hrby = hrby;
     // hit point
@@ -699,6 +704,8 @@ class CharacterSprite extends Sprite{
     this.isNoHit = false;
     // trueのとき、プレイヤーとの衝突判定を行わない
     this.isNoHitWithPlc = false;
+    // trueのとき、プレイヤーの弾との衝突判定を行わない
+    this.isNoHitWithShot = false;
     // trueのとき、無敵
     this.isInvincible = false;
     // 地形から受ける移動量（慣性が乗る）
@@ -789,6 +796,7 @@ let bossHpBarReduceCounter = 100;
 let timeCounter = 0;
 let isResumedNow = false;
 let backToSelectCount = 0;
+let isGensui = false;
 
 // get map type from pixel coordinate (output: type of mapchip Object)
 // 注意：一方通行床はy座標がグリッド上部の時しか検出しません
@@ -1407,6 +1415,8 @@ const enemyData = {
       }
       // 爆発
       if (me.getParam(0) > 240 && me.getParam(1) === "fire") {
+        me.isNoHitWithShot = true;
+        me.type = "danmaku";
         me.startAnime("bomb!");
         me.setParam(1, "bomb");
         me.setParam(0, 0);
@@ -1414,18 +1424,33 @@ const enemyData = {
         for (let i = 0; i < 8; i++) {
           createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
         }
+        // 自機と衝突判定のある爆風を発生
+        createEnemy("bomb_bakuhu", me.lTopX() - 20, me.lTopY() - 20, 0, 0);
+        createEnemy("bomb_bakuhu", me.rBottomX() - 12, me.lTopY() - 20, 0, 0);
+        createEnemy("bomb_bakuhu", me.lTopX() - 20, me.rBottomY() - 12, 0, 0);
+        createEnemy("bomb_bakuhu", me.rBottomX() - 12, me.rBottomY() - 12, 0, 0);
+        // 爆弾の衝突判定を拡張
+        [me.hltx, me.hlty, me.hrbx, me.hrby] = [me.hltx - 16, me.hlty - 16, me.hrbx + 16, me.hrby + 16];
+        // 敵を破壊
+        enemyArray.forEach((e) => {
+          if (me.isHit(e) && e.type != "danmaku") {
+            e.hp -= 50;
+          }
+        });
       }
-      // 爆発エフェクト
+      // 爆発後
       if (me.getParam(1) === "bomb") {
-        me.isNoHit = true;
         me.incParam(0);
-        if (me.getParam(0) < 30) {
+        if (me.getParam(0) < 30) { // 爆発エフェクト
           if (me.getParam(0) % 6 === 0) {
-            createEffect("bomb_type1", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+            createEnemy("bomb_bakuhu", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
           }
-          if (me.getParam(0) % 6 === 3) {
-            createEffect("bomb_type2", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+          else if (me.getParam(0) % 6 === 3) {
+            createEnemy("bomb_bakuhu", randInt((me.hLTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
           }
+        }
+        else { // スプライト消去
+          me.hp = 0;
         }
       }
       // 移動
@@ -1585,6 +1610,28 @@ const enemyData = {
         me.hp = 0;
       }
       moveAndCheckCollisionWithMap(me);
+    }
+  },
+  "bomb_bakuhu": { // 爆弾から発生する爆風
+    "type": "danmaku",
+    "w" : 32,
+    "h" : 32,
+    "box": [8, 8, 23, 23],
+    "hit": [8, 8, 23, 23],
+    "hp" : 1,
+    "img": imgBombEffect,
+    "anime": "bomb_bakuhu",
+    "move": (me) => {
+      if (me.isParamEmpty()){
+        me.setParam(0, 0);
+        me.startAnime(randInt(0, 1) === 0 ? "type_1" : "type_2");
+      }
+      if (me.incParam(0) > 4){
+        me.isNoHit = true;
+      }
+      if (me.isEndAnime()){
+        me.hp = 0;
+      }
     }
   },
   "watage_satelite": { // ボスわたげの周囲のビット
@@ -3420,6 +3467,7 @@ let sceneList = {
             plc.rx = 0;
           }
           coyoteTime--;
+          // 左右移動
           if (isKeyPressed("l")) {
             if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.0625, -plcMaxSpeedX);
             plc.direction = "left";
@@ -3427,6 +3475,9 @@ let sceneList = {
           else if (isKeyPressed("r")) {
             if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + 0.0625, plcMaxSpeedX);
             plc.direction = "right";
+          }
+          else if (isGensui){ // キーが押されていなければ減衰
+            plc.dx = plc.dx > 0 ? plc.dx - 0.03125 : plc.dx < 0 ? plc.dx + 0.03125 : 0;
           }
           if (isKeyPressed("z") && isJumping) {
             plc.dy += 0.0625;
@@ -3461,7 +3512,7 @@ let sceneList = {
             isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"; // 壁に激突
             // 敵にヒット
             enemyArray.forEach((e) => {
-              if (e.isHit(shotArray[i]) && !e.isType("danmaku")) {
+              if (e.isHit(shotArray[i]) && !e.isType("danmaku") && !e.isNoHitWithShot) {
                 isShotVanish = true;
                 if (!e.isInvincible) {
                   e.hp -= shotPower;
@@ -3687,13 +3738,14 @@ let sceneList = {
         if (cameraY > mapHeight * gridSize - charaLay.height) {
           cameraY = mapHeight * gridSize - charaLay.height;
         }
-        // 揺れ
-        if (quakeTimeX-- > 0) {
-          cameraX -= (Math.floor(((quakeTimeX + 1) / 2) * 2) % 4 - 1) * 2;
-        }
-        if (quakeTimeY-- > 0) {
-          cameraY -= ((Math.floor(quakeTimeY / 2) * 2) % 4 - 1) * 2;
-        }
+      }
+
+      // 揺れ
+      if (quakeTimeX-- > 0) {
+        cameraX -= (Math.floor(((quakeTimeX + 1) / 2) * 2) % 4 - 1) * 2;
+      }
+      if (quakeTimeY-- > 0) {
+        cameraY -= ((Math.floor(quakeTimeY / 2) * 2) % 4 - 1) * 2;
       }
 
       // 小数点以下の誤差（動く足場の表示ずれを修正するために使用します）
