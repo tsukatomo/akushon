@@ -79,6 +79,8 @@ let imgCloudLift = [new Image(), new Image()];
 imgCloudLift[0].src = "./img/cloudlift.png";
 let imgCloudLiftSmall = [new Image(), new Image()];
 imgCloudLiftSmall[0].src = "./img/cloudlift_small.png";
+let imgMagma = [new Image(), new Image()];
+imgMagma[0].src = "./img/kappazushi.png";
 
 // shot
 let imgShot = [new Image(), new Image()];
@@ -165,6 +167,7 @@ let shadowList = [
   imgMoveFloor,
   imgCloudLift,
   imgCloudLiftSmall,
+  imgMagma,
   imgShot,
   imgMiniExplode,
   imgExplode,
@@ -354,6 +357,11 @@ let animeData = {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "cloudliftsmall": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "magma": {
+    "top": { frames: 4, dulation: 4, img: [0, 1, 2, 3], repeat: true},
+    "mid": { frames: 4, dulation: 4, img: [4, 5, 6, 7], repeat: true},
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "miniexplode": {
@@ -786,6 +794,8 @@ let collectedCoins = 0;
 let coinCounter = 0;
 let dataResetCount = 0;
 let snowEffect = [];
+let magmaTopY = 9999;
+let magmaSpeed = 0.125;
 let bossMaxHp = 0;
 let bossHpBarWhite = 0;
 let bossHpBarWhiteReduceto = 0;
@@ -1998,14 +2008,14 @@ const enemyData = {
             
           }
           else if (me.getParam(6) === "attack_l") {
-            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 98;
-            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
-            if (me.getParam(5) >= 180) isMoveEnd = true;
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 200)/ 200)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 200)/ 200))) * 98;
+            //me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
+            if (me.getParam(5) >= 200) isMoveEnd = true;
           }
           else if (me.getParam(6) === "attack_r") {
-            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 98;
-            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
-            if (me.getParam(5) >= 180) isMoveEnd = true;
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 200)/ 200)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 200)/ 200))) * 98;
+            //me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
+            if (me.getParam(5) >= 200) isMoveEnd = true;
           }
           else if (me.getParam(6) === "eight_l") {
             me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * 120;
@@ -2063,8 +2073,8 @@ const enemyData = {
         me.incParam(0);
         for (let i = 1; i <= 4; i++) {
           let rad = 2 * Math.PI * ((me.getParam(0) % 160 + i * 40)/ 160);
-          me.getParam(i).x = me.x + me.w / 2 - 8 + Math.cos(rad) * (me.w / 2 + me.getParam(7));
-          me.getParam(i).y = me.y + me.h / 2 - 8 + Math.sin(rad) * (me.h / 2 + me.getParam(7));
+          me.getParam(i).x = me.x + me.w / 2 - 8 + Math.cos(rad) * (48 + me.getParam(7));
+          me.getParam(i).y = me.y + me.h / 2 - 8 + Math.sin(rad) * (48 + me.getParam(7));
         }
       }
     }
@@ -3318,6 +3328,8 @@ let sceneList = {
           isFront: (i % 2 === 0) 
         };
       }
+      // reset magma rising
+      magmaTopY = mapHeight * gridSize;
       // reset time counter
       timeCounter = 0;
       // set transition animation
@@ -3376,6 +3388,8 @@ let sceneList = {
             e.dy *= 0.90;
           }
         });
+        // magma move
+        magmaTopY -= magmaSpeed;
         
         //============================ erase character ================================
         // erase enemy
@@ -3621,7 +3635,13 @@ let sceneList = {
             createEffectSub("star", plc.lTopX() + ((plc.rbx - plc.ltx) - 8) / 2, cameraY + charaLay.height, randInt(0, 60) * 0.01 * (i % 2 * 2 - 1), randInt(200, 500) * -0.01);
           }
         }
-        if (plc.hp <= 0) { // ぐえ〜〜
+        // dive into magma
+        if (plc.y + 12 > magmaTopY && levelSpecial === "magma") { // "12" is a magic number
+          plc.reaction = invincibleTimeMax;
+          plc.hp = 0;
+        }
+        // ぐえ〜〜
+        if (plc.hp <= 0) {
           yarareAnimeCounter = 0;
           stopFlag = true;
           plc.dx = 0;
@@ -3901,6 +3921,20 @@ let sceneList = {
         if (e.y + 1 < cameraY || cameraY + charaLay.height < e.y) return;
         charaCtx.fillRect(Math.floor(e.x - cameraX), Math.floor(e.y - cameraY), 2, 2);
       });
+
+      // マグマの描画
+      if (levelSpecial === "magma") {
+        const magmaFrame = 4;
+        const magmaDulation = 8;
+        for (let x = 0; x <= charaLay.width / gridSize; x++) {
+          charaCtx.drawImage(imgMagma[0], (Math.floor(mapAnimeCount / magmaDulation) % magmaFrame) * 16, 0, 16, 16, Math.floor(x * gridSize - cameraX % gridSize), Math.floor(magmaTopY - cameraY), gridSize, gridSize);
+        }
+        for (let y = 1; y <= (cameraY + charaLay.height - magmaTopY)/ gridSize; y++) {
+          for (let x = 0; x <= charaLay.width / gridSize; x++) {
+            charaCtx.drawImage(imgMagma[0], (Math.floor(mapAnimeCount / magmaDulation) % magmaFrame + magmaFrame) * 16, 0, 16, 16, Math.floor(x * gridSize - cameraX % gridSize), Math.floor(magmaTopY - cameraY) + y * gridSize, gridSize, gridSize);
+          }
+        }
+      }
 
       // draw UI
       // hearts
