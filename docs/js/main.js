@@ -3636,7 +3636,7 @@ let sceneList = {
           }
         }
         // dive into magma
-        if (plc.y + 12 > magmaTopY && levelSpecial === "magma") { // "12" is a magic number
+        if (plc.y + 10 > magmaTopY && levelSpecial === "magma") { // "10" is a magic number
           plc.reaction = invincibleTimeMax;
           plc.hp = 0;
         }
@@ -3934,6 +3934,13 @@ let sceneList = {
             charaCtx.drawImage(imgMagma[0], (Math.floor(mapAnimeCount / magmaDulation) % magmaFrame + magmaFrame) * 16, 0, 16, 16, Math.floor(x * gridSize - cameraX % gridSize), Math.floor(magmaTopY - cameraY) + y * gridSize, gridSize, gridSize);
           }
         }
+        charaCtx.fillStyle = "#e89973";
+        charaCtx.globalAlpha = 0.10;
+        charaCtx.fillRect(0, Math.floor(magmaTopY - cameraY - 8), charaLay.width, charaLay.height);
+        charaCtx.fillRect(0, Math.floor(magmaTopY - cameraY - 4), charaLay.width, charaLay.height);
+        charaCtx.globalAlpha = Math.abs((mapAnimeCount % 48) - 24) / 72;
+        charaCtx.fillRect(0, Math.floor(magmaTopY - cameraY - 0), charaLay.width, charaLay.height);
+        charaCtx.globalAlpha = 1.0;
       }
 
       // draw UI
