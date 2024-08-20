@@ -105,6 +105,8 @@ let imgMiniBlock = [new Image(), new Image()];
 imgMiniBlock[0].src = "./img/miniblock.png";
 let imgBombEffect = [new Image(), new Image()];
 imgBombEffect[0].src = "./img/bomb_effect.png";
+let imgAfterimage = [new Image(), new Image()];
+imgAfterimage[0].src = "./img/afterimage.png";
 
 // UI
 let imgUiHeart = new Image();
@@ -175,6 +177,7 @@ let shadowList = [
   imgRedGlitter,
   imgYellowGlitter,
   imgBombEffect,
+  imgAfterimage,
   imgMiniBlock,
   imgSSCursorL,
   imgSSCursorR,
@@ -184,7 +187,7 @@ let shadowList = [
 ];
 
 // create shadow image
-let createShadowURL = function(originalImg) {
+let createShadowURL = function (originalImg) {
   // create new canvas
   const workCanvas = document.createElement('canvas');
   const workCtx = workCanvas.getContext("2d");
@@ -193,7 +196,7 @@ let createShadowURL = function(originalImg) {
   workCtx.drawImage(originalImg, 0, 0);
   const sImageData = workCtx.getImageData(0, 0, workCanvas.width, workCanvas.height);
   const data = sImageData.data;
-  for (let i = 0; i < data.length; i+=4) {
+  for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] === 0) continue; // ignore transparent cell
     data[i] = 0; // red = 0
     data[i + 1] = 0; // green = 0
@@ -209,58 +212,60 @@ let createShadowURL = function(originalImg) {
 
 // animation data
 let animeData = {
-  "player":  {
+  "player": {
     "stand_l": { frames: 1, dulation: 8, img: [0], repeat: true },
-    "stand_r": {frames: 1, dulation: 8, img: [3], repeat: true },
-    "run_l": {frames: 4, dulation: 6, img: [0, 2, 0, 1], repeat: true },
-    "run_r": {frames: 4, dulation: 6, img: [3, 5, 3, 4], repeat: true },
-    "jump_l": {frames: 1, dulation: 8, img: [1], repeat: true },
-    "jump_r": {frames: 1, dulation: 8, img: [4], repeat: true },
-    "back_l": {frames: 1, dulation: 8, img: [6], repeat: false },
-    "back_r": {frames: 1, dulation: 8, img: [7], repeat: false },
-    "yarare": {frames: 1, dulation: 8, img: [8], repeat: false },
-    "spin": {frames: 4, dulation: 4, img: [0, 7, 6, 3], repeat: true },
-    "fever": {frames: 2, dulation: 8, img: [9, 10], repeat: true },
-    "default": {frames: 1, dulation: 8, img: [0], repeat: true }
+    "stand_r": { frames: 1, dulation: 8, img: [3], repeat: true },
+    "run_l": { frames: 4, dulation: 6, img: [0, 2, 0, 1], repeat: true },
+    "run_r": { frames: 4, dulation: 6, img: [3, 5, 3, 4], repeat: true },
+    "dash_l": { frames: 2, dulation: 3, img: [11, 12], repeat: true },
+    "dash_r": { frames: 2, dulation: 3, img: [13, 14], repeat: true },
+    "jump_l": { frames: 1, dulation: 8, img: [1], repeat: true },
+    "jump_r": { frames: 1, dulation: 8, img: [4], repeat: true },
+    "back_l": { frames: 1, dulation: 8, img: [6], repeat: false },
+    "back_r": { frames: 1, dulation: 8, img: [7], repeat: false },
+    "yarare": { frames: 1, dulation: 8, img: [8], repeat: false },
+    "spin": { frames: 4, dulation: 4, img: [0, 7, 6, 3], repeat: true },
+    "fever": { frames: 2, dulation: 8, img: [9, 10], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "shot": {
     "shot": { frames: 1, dulation: 8, img: [0], repeat: true },
-    "vanish": { frames: 2, dulation: 3, img: [1, 2], repeat: false }, 
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "vanish": { frames: 2, dulation: 3, img: [1, 2], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "pumpkin": {
     "laugh": { frames: 2, dulation: 8, img: [0, 1], repeat: true },
-    "damaged" : { frames: 1, dulation: 2, img: [2], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "damaged": { frames: 1, dulation: 2, img: [2], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "watage": {
     "float1": { frames: 3, dulation: 6, img: [0, 1, 2], repeat: true },
     "float2": { frames: 3, dulation: 6, img: [4, 5, 6], repeat: true },
     "float3": { frames: 3, dulation: 6, img: [8, 9, 10], repeat: true },
-    "damaged1" : { frames: 1, dulation: 2, img: [3], repeat: true },
-    "damaged2" : { frames: 1, dulation: 2, img: [7], repeat: true },
-    "damaged3" : { frames: 1, dulation: 2, img: [11], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "damaged1": { frames: 1, dulation: 2, img: [3], repeat: true },
+    "damaged2": { frames: 1, dulation: 2, img: [7], repeat: true },
+    "damaged3": { frames: 1, dulation: 2, img: [11], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "flying_camera": {
     "float_l": { frames: 4, dulation: 4, img: [4, 5, 6, 7], repeat: false },
     "float_r": { frames: 4, dulation: 4, img: [12, 13, 14, 15], repeat: false },
-    "glow_l" : { frames: 4, dulation: 4, img: [0, 1, 2, 3], repeat: false },
-    "glow_r" : { frames: 4, dulation: 4, img: [8, 9, 10, 11], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "glow_l": { frames: 4, dulation: 4, img: [0, 1, 2, 3], repeat: false },
+    "glow_r": { frames: 4, dulation: 4, img: [8, 9, 10, 11], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "slime": {
-    "walk_l": {frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true },
-    "walk_r": {frames: 4, dulation: 8, img: [4, 5, 6, 7], repeat: true },
-    "turn_to_l" : {frames: 3, dulation: 6, img: [8, 9, 10], repeat: false },
-    "turn_to_r" : {frames: 3, dulation: 6, img: [10, 9, 8], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "walk_l": { frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true },
+    "walk_r": { frames: 4, dulation: 8, img: [4, 5, 6, 7], repeat: true },
+    "turn_to_l": { frames: 3, dulation: 6, img: [8, 9, 10], repeat: false },
+    "turn_to_r": { frames: 3, dulation: 6, img: [10, 9, 8], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "slimelauncher": {
-    "munch": {frames: 4, dulation: 6, img: [0, 1, 2, 3], repeat: true },
-    "vomit": {frames: 3, dulation: 8, img: [4, 5, 6], repeat: false },
-    "damaged": {frames: 1, dulation: 8, img: [7], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "munch": { frames: 4, dulation: 6, img: [0, 1, 2, 3], repeat: true },
+    "vomit": { frames: 3, dulation: 8, img: [4, 5, 6], repeat: false },
+    "damaged": { frames: 1, dulation: 8, img: [7], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "electrojar": {
     "launch": { frames: 4, dulation: 5, img: [0, 0, 1, 2], repeat: false },
@@ -268,59 +273,59 @@ let animeData = {
     "default": { frames: 1, dulation: 8, img: [2], repeat: true }
   },
   "minionslime": {
-    "walk_l": {frames: 2, dulation: 6, img: [0, 1], repeat: true },
-    "walk_r": {frames: 2, dulation: 6, img: [2, 3], repeat: true },
-    "fall_l": {frames: 1, dulation: 8, img: [4], repeat: true },
-    "fall_r": {frames: 1, dulation: 8, img: [5], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "walk_l": { frames: 2, dulation: 6, img: [0, 1], repeat: true },
+    "walk_r": { frames: 2, dulation: 6, img: [2, 3], repeat: true },
+    "fall_l": { frames: 1, dulation: 8, img: [4], repeat: true },
+    "fall_r": { frames: 1, dulation: 8, img: [5], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
-  "tulip" :{
-    "open_l" : { frames: 2, dulation: 16, img: [0, 1], repeat: false},
-    "damaged_l" : { frames: 2, dulation: 4, img: [2, 1], repeat: true},
+  "tulip": {
+    "open_l": { frames: 2, dulation: 16, img: [0, 1], repeat: false },
+    "damaged_l": { frames: 2, dulation: 4, img: [2, 1], repeat: true },
     "stop_l": { frames: 1, dulation: 8, img: [1], repeat: true },
-    "open_r" : { frames: 2, dulation: 16, img: [3, 4], repeat: false},
-    "damaged_r" : { frames: 2, dulation: 4, img: [5, 4], repeat: true},
+    "open_r": { frames: 2, dulation: 16, img: [3, 4], repeat: false },
+    "damaged_r": { frames: 2, dulation: 4, img: [5, 4], repeat: true },
     "stop_r": { frames: 1, dulation: 8, img: [4], repeat: true },
-    "open_d" : { frames: 2, dulation: 16, img: [6, 7], repeat: false},
-    "damaged_d" : { frames: 2, dulation: 4, img: [8, 7], repeat: true},
+    "open_d": { frames: 2, dulation: 16, img: [6, 7], repeat: false },
+    "damaged_d": { frames: 2, dulation: 4, img: [8, 7], repeat: true },
     "stop_d": { frames: 1, dulation: 8, img: [7], repeat: true },
-    "default" : { frames: 1, dulation: 8, img: [0], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true },
   },
   "bomb": {
-    "count_4" : { frames: 2, dulation: 6, img: [0, 1], repeat: true },
-    "count_3" : { frames: 2, dulation: 6, img: [2, 3], repeat: true },
-    "count_2" : { frames: 2, dulation: 6, img: [4, 5], repeat: true },
-    "count_1" : { frames: 2, dulation: 6, img: [6, 7], repeat: true },
-    "bomb!" : { frames: 1, dulation: 8, img: [8], repeat: false },
+    "count_4": { frames: 2, dulation: 6, img: [0, 1], repeat: true },
+    "count_3": { frames: 2, dulation: 6, img: [2, 3], repeat: true },
+    "count_2": { frames: 2, dulation: 6, img: [4, 5], repeat: true },
+    "count_1": { frames: 2, dulation: 6, img: [6, 7], repeat: true },
+    "bomb!": { frames: 1, dulation: 8, img: [8], repeat: false },
     "default": { frames: 1, dulation: 8, img: [9], repeat: true }
   },
   "bomb_bakuhu": {
-    "type_1": { frames: 8, dulation: 4, img: [0,1,2,3,4,5,6,7], repeat: false },
-    "type_2": { frames: 8, dulation: 4, img: [8,9,10,11,12,13,14,15], repeat: false },
-    "default": { frames: 8, dulation: 4, img: [0,1,2,3,4,5,6,7], repeat: false }
+    "type_1": { frames: 8, dulation: 4, img: [0, 1, 2, 3, 4, 5, 6, 7], repeat: false },
+    "type_2": { frames: 8, dulation: 4, img: [8, 9, 10, 11, 12, 13, 14, 15], repeat: false },
+    "default": { frames: 8, dulation: 4, img: [0, 1, 2, 3, 4, 5, 6, 7], repeat: false }
   },
   "danmakuyellow": {
     "shot": { frames: 2, dulation: 4, img: [0, 1], repeat: true },
     "vanish": { frames: 2, dulation: 4, img: [2, 3], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "danmakuwhite": {
     "shot": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true },
     "vanish": { frames: 3, dulation: 3, img: [4, 5, 6], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "danmakured": {
     "shot": { frames: 4, dulation: 3, img: [0, 1, 2, 3], repeat: true },
     "vanish": { frames: 3, dulation: 3, img: [4, 5, 6], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "watage_satelite": {
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "bigpumpkin": {
     "laugh": { frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true },
     "yarare": { frames: 1, dulation: 8, img: [4], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "renchin": {
     "stand": { frames: 2, dulation: 8, img: [0, 1], repeat: true },
@@ -335,7 +340,7 @@ let animeData = {
     "open_2": { frames: 3, dulation: 2, img: [12, 13, 14], repeat: false },
     "open_2_red": { frames: 3, dulation: 2, img: [12, 23, 24], repeat: false },
     "yarare": { frames: 1, dulation: 8, img: [12], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "bigwatage": {
     "damage": { frames: 2, dulation: 4, img: [2, 1], repeat: false },
@@ -360,33 +365,39 @@ let animeData = {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "magma": {
-    "top": { frames: 4, dulation: 4, img: [0, 1, 2, 3], repeat: true},
-    "mid": { frames: 4, dulation: 4, img: [4, 5, 6, 7], repeat: true},
+    "top": { frames: 4, dulation: 4, img: [0, 1, 2, 3], repeat: true },
+    "mid": { frames: 4, dulation: 4, img: [4, 5, 6, 7], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "miniexplode": {
-    "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false } 
+    "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false }
   },
   "explode": {
-    "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false } 
+    "default": { frames: 5, dulation: 5, img: [0, 1, 2, 3, 4], repeat: false }
   },
   "glitter": {
-    "default": { frames: 6, dulation: 2, img: [0, 1, 2, 2, 1, 0], repeat: false } 
+    "default": { frames: 6, dulation: 2, img: [0, 1, 2, 2, 1, 0], repeat: false }
   },
   "glitter_slow": {
-    "default": { frames: 7, dulation: 3, img: [0, 1, 2, 3, 3, 3, 2], repeat: false } 
+    "default": { frames: 7, dulation: 3, img: [0, 1, 2, 3, 3, 3, 2], repeat: false }
   },
   "star": {
-    "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
+    "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false }
   },
   "bomb_type1": {
-    "default": { frames: 8, dulation: 4, img: [0,1,2,3,4,5,6,7], repeat: false }
+    "default": { frames: 8, dulation: 4, img: [0, 1, 2, 3, 4, 5, 6, 7], repeat: false }
   },
-  "bomb_type2":  {
-    "default": { frames: 8, dulation: 4, img: [8,9,10,11,12,13,14,15], repeat: false }
+  "bomb_type2": {
+    "default": { frames: 8, dulation: 4, img: [8, 9, 10, 11, 12, 13, 14, 15], repeat: false }
   },
   "miniblock": {
-    "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false } 
+    "default": { frames: 2, dulation: 64, img: [0, 0], repeat: false }
+  },
+  "afterimage_l": {
+    "default": { frames: 3, dulation: 2, img: [0, 1, 2], repeat: false }
+  },
+  "afterimage_r": {
+    "default": { frames: 3, dulation: 2, img: [3, 4, 5], repeat: false }
   },
   "watage_satelite_fade": {
     "default": { frames: 4, dulation: 4, img: [4, 1, 2, 3], repeat: false }
@@ -410,7 +421,7 @@ let animeData = {
     "default": { frames: 4, dulation: 8, img: [0, 1, 2, 1], repeat: true }
   },
   "default": {
-    "default": { frames: 1, dulation: 8, img: [0], repeat: true } 
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   }
 };
 
@@ -436,21 +447,21 @@ const mapChip = {
   "|": { id: [14], dulation: 1, type: "background", subtype: "none" },
   "@": { id: [15], dulation: 1, type: "background", subtype: "door" },
   "?": { id: [16, 16, 16, 16, 16, 17, 18, 17], dulation: 8, type: "none", subtype: "heart" },
-  "!": { id: [1], dulation: 1, type: "wall", subtype: "block_heart"},
+  "!": { id: [1], dulation: 1, type: "wall", subtype: "block_heart" },
   "π": { id: [19], dulation: 1, type: "wall", subtype: "block" }, // alt + p // hidden block
   "∂": { id: [19], dulation: 1, type: "wall", subtype: "block_coin" }, // alt + d
   "†": { id: [19], dulation: 1, type: "wall", subtype: "block_heart" }, // alt + t
   "∆": { id: [19], dulation: 1, type: "wall", subtype: "block_door" }, // alt + j
   "∑": { id: [20], dulation: 1, type: "none", subtype: "door" }, // alt + w
   ";": { id: [0], dulation: 1, type: "none", subtype: "boss_gate" },
-  "≥": { id: [21, 22, 23, 24], dulation: 2, type: "wall", subtype: "left_conv" },
-  "≤": { id: [25, 26, 27, 28], dulation: 2, type: "wall", subtype: "right_conv" },
-  "»": { id: [21, 22, 23, 24], dulation: 1, type: "wall", subtype: "left_conv_fast" }, // alt + shift + ]
-  "«": { id: [25, 26, 27, 28], dulation: 1, type: "wall", subtype: "right_conv_fast" }, // alt + ]
+  "≥": { id: [21, 22, 23, 24], dulation: 2, type: "wall", subtype: "right_conv" },
+  "≤": { id: [25, 26, 27, 28], dulation: 2, type: "wall", subtype: "left_conv" },
+  "»": { id: [21, 22, 23, 24], dulation: 1, type: "wall", subtype: "right_conv_fast" }, // alt + shift + ]
+  "«": { id: [25, 26, 27, 28], dulation: 1, type: "wall", subtype: "left_conv_fast" }, // alt + ]
   "/": { id: [29], dulation: 1, type: "wall", subtype: "none" },
   "&": { id: [30], dulation: 1, type: "wall", subtype: "none" },
-  "ƒ": { id: [31, 32, 31, 33], dulation: 4, type: "wall", subtype: "reverse_switch"}, // alt + f
-  "º": { id: [34], dulation: 1, type: "wall", subtype: "lock"}, // alt + 0
+  "ƒ": { id: [31, 32, 31, 33], dulation: 4, type: "wall", subtype: "reverse_switch" }, // alt + f
+  "º": { id: [34], dulation: 1, type: "wall", subtype: "lock" }, // alt + 0
   "ø": { id: [35], dulation: 1, type: "wall", subtype: "block" }, // alt + o // red block
   "£": { id: [35], dulation: 1, type: "wall", subtype: "block_coin" }, // alt + 3
   "¿": { id: [35], dulation: 1, type: "wall", subtype: "block_heart" }, // alt + shift + /
@@ -458,6 +469,10 @@ const mapChip = {
   "¡": { id: [37], dulation: 1, type: "wall", subtype: "ice" }, // alt + 1
   "◊": { id: [38, 39], dulation: 8, type: "wall", subtype: "bomb" }, // alt + shift + v
   "=": { id: [40], dulation: 1, type: "bridge", subtype: "ice" },
+  "©": { id: [41], dulation: 1, type: "wall", subtype: "none" }, // alt + g
+  "•": { id: [42], dulation: 1, type: "wall", subtype: "none" }, // alt + 8
+  "<": { id: [43, 44, 45, 46], dulation: 2, type: "wall", subtype: "left_dash_floor" },
+  ">": { id: [47, 48, 49, 50], dulation: 2, type: "wall", subtype: "right_dash_floor" },
 };
 const mapChipList = Object.keys(mapChip);
 
@@ -470,7 +485,7 @@ let mapHeight = 15;
 let mapData;
 let nextData;
 async function getLevelData(levelName) {
-  const requestURL = "./js/levels/level" + levelName +".json";
+  const requestURL = "./js/levels/level" + levelName + ".json";
   const request = new Request(requestURL);
   const response = await fetch(request);
   const levelData = await response.json();
@@ -526,7 +541,7 @@ let createNewSaveData = async (saveDataName) => {
 
 let isMedalcollected = (stageId, medalId) => {
   if (!saveDataObject["medal"].hasOwnProperty(stageId)) return false;
-  return  saveDataObject["medal"][stageId][medalId];
+  return saveDataObject["medal"][stageId][medalId];
 }
 
 // stage select
@@ -614,27 +629,28 @@ class Sprite {
   };
 
   // === animation ===
-  startAnime (anitype) {
+  startAnime(anitype) {
     this.anitype = anitype;
     this.anicount = 0;
   };
 
-  changeAnime (new_anitype) {
+  changeAnime(new_anitype) {
     if (new_anitype === this.anitype) return;
     this.anitype = new_anitype;
     this.anicount = 0;
+    //console.log("change to:" + new_anitype);
   };
 
-  updateAnime () {
+  updateAnime() {
     this.anicount++;
   };
 
-  isEndAnime () {
+  isEndAnime() {
     if (this.anime === null) return false;
     return (!this.anime[this.anitype].repeat && this.anicount > this.anime[this.anitype].dulation * this.anime[this.anitype].frames)
   };
 
-  frameNumber () {
+  frameNumber() {
     if (this.anime === null) return false;
     let frameCount = Math.floor(this.anicount / this.anime[this.anitype].dulation);
     if (this.anime[this.anitype].repeat) {
@@ -643,40 +659,40 @@ class Sprite {
     return frameCount < this.anime[this.anitype].frames ? frameCount : this.anime[this.anitype].frames - 1;
   };
 
-  drawAnime (ctx, drawX, drawY) {
+  drawAnime(ctx, drawX, drawY) {
     if (this.img === null) return;
     ctx.drawImage(this.img[0], this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
   };
 
-  drawShadow (ctx, drawX, drawY) {
+  drawShadow(ctx, drawX, drawY) {
     if (this.img === null) return;
     ctx.drawImage(this.img[1], this.w * this.anime[this.anitype].img[this.frameNumber()], 0, this.w, this.h, drawX, drawY, this.w, this.h);
   };
 
   // === parameter ===
-  setParam (idx, value) {
+  setParam(idx, value) {
     while (this.param.length <= idx) {
       this.param.push(0);
     }
     this.param[idx] = value;
   };
 
-  getParam (idx) {
+  getParam(idx) {
     if (this.param.length <= idx) return null;
     return this.param[idx];
   };
 
-  isParamEmpty () {
+  isParamEmpty() {
     return this.param.length === 0;
   };
 
-  incParam (idx) {
+  incParam(idx) {
     if (this.param.length <= idx) return null;
     this.setParam(idx, this.getParam(idx) + 1);
     return this.param[idx];
   };
 
-  decParam (idx) {
+  decParam(idx) {
     if (this.param.length <= idx) return null;
     this.setParam(idx, this.getParam(idx) - 1);
     return this.param[idx];
@@ -685,7 +701,7 @@ class Sprite {
 };
 
 // character class
-class CharacterSprite extends Sprite{
+class CharacterSprite extends Sprite {
   constructor(id, type, x, y, w, h, ltx, lty, rbx, rby, hltx, hlty, hrbx, hrby, hp, img, anime) {
     super(id, x, y, w, h, img, anime);
     // type
@@ -725,23 +741,23 @@ class CharacterSprite extends Sprite{
     this.ry = 0;
   };
 
-  lTopX () { return this.x + this.ltx; };
-  lTopY () { return this.y + this.lty; };
-  rBottomX () { return this.x + this.rbx; };
-  rBottomY () { return this.y + this.rby; };
+  lTopX() { return this.x + this.ltx; };
+  lTopY() { return this.y + this.lty; };
+  rBottomX() { return this.x + this.rbx; };
+  rBottomY() { return this.y + this.rby; };
 
-  hLTopX () { return this.x + this.hltx; };
-  hLTopY () { return this.y + this.hlty; };
-  hRBottomX () { return this.x + this.hrbx; };
-  hRBottomY () { return this.y + this.hrby; };
+  hLTopX() { return this.x + this.hltx; };
+  hLTopY() { return this.y + this.hlty; };
+  hRBottomX() { return this.x + this.hrbx; };
+  hRBottomY() { return this.y + this.hrby; };
 
   // タイプ判定
-  isType (typename) {
+  isType(typename) {
     return this.type === typename;
   }
 
   // 衝突判定
-  isHit (opponent) {
+  isHit(opponent) {
     if (this.isNoHit || opponent.isNoHit) return false;
     return (
       opponent.hLTopX() <= this.hRBottomX() && this.hLTopX() <= opponent.hRBottomX()
@@ -750,7 +766,7 @@ class CharacterSprite extends Sprite{
   };
 
   // 物体に乗っているかチェックし、乗っていたら riding 情報を記録する
-  checkRiding (vehicle) {
+  checkRiding(vehicle) {
     if (this.dy < 0) return;
     if (this.rBottomY() + 1 < vehicle.lTopY() || vehicle.rBottomY() < this.rBottomY() + 1) return;
     if (this.rBottomX() < vehicle.lTopX() || vehicle.rBottomX() < this.lTopX()) return;
@@ -758,7 +774,7 @@ class CharacterSprite extends Sprite{
   };
 
   // 乗り物に追従する
-  rideOn () {
+  rideOn() {
     if (this.riding === null) return;
     this.y = this.riding.y - this.rby - 1;
     this.rx = this.riding.dx;
@@ -781,6 +797,7 @@ const shotMax = 5;
 let shotPower = 2;
 let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
 let isJumping = false;
+let isDashing = false;
 const invincibleTimeMax = 120; // muteki jikan san!?
 let stopFlag = false;
 let bossBattlePhase = "none";
@@ -806,7 +823,6 @@ let bossHpBarReduceCounter = 100;
 let timeCounter = 0;
 let isResumedNow = false;
 let backToSelectCount = 0;
-let isGensui = false;
 
 // get map type from pixel coordinate (output: type of mapchip Object)
 // 注意：一方通行床はy座標がグリッド上部の時しか検出しません
@@ -818,7 +834,7 @@ let getMapType = (x, y) => {
   if (mapHeight <= mapY) mapY = mapHeight - 1; // マップより下は最下部のマップチップを参照
   if (mapChipList.indexOf(mapData[mapY][mapX]) === -1) return "none"; // 定義されてないマップチップは全部虚無
   if (mapChip[mapData[mapY][mapX]].type === "bridge") { // 一方通行床は上4ドットのみ衝突判定
-    if (y % gridSize < 4){
+    if (y % gridSize < 4) {
       return "bridge";
     }
     else {
@@ -895,17 +911,29 @@ let movesAffectedByMap = (character) => {
   footData.push(getMapSubType(character.rBottomX(), character.rBottomY() + 0.0625));
   // belt conv
   if (footData.indexOf("left_conv") != -1) {
-    character.px = 0.5;
-  }
-  else if (footData.indexOf("right_conv") != -1) {
     character.px = -0.5;
   }
-  else if (footData.indexOf("left_conv_fast") != -1) {
-    character.px = 1;
+  else if (footData.indexOf("right_conv") != -1) {
+    character.px = 0.5;
   }
-  else if (footData.indexOf("right_conv_fast") != -1) {
+  else if (footData.indexOf("left_conv_fast") != -1) {
     character.px = -1;
   }
+  else if (footData.indexOf("right_conv_fast") != -1) {
+    character.px = 1;
+  }
+  // dash floor (only player character)
+  else if (footData.indexOf("left_dash_floor") != -1 && character === plc) {
+    isDashing = true;
+    character.direction = "left";
+    character.px = 0;
+  }
+  else if (footData.indexOf("right_dash_floor") != -1 && character === plc) {
+    isDashing = true;
+    character.direction = "right";
+    character.px = 0;
+  }
+  // normal
   else {
     character.px = 0;
     character.py = 0;
@@ -1021,32 +1049,32 @@ let updateBossHpBar = (hp) => {
 };
 
 // get random integer (min ≤ r ≤ max)
-let randInt = function(min, max) {
+let randInt = function (min, max) {
   let minInt = Math.ceil(min);
   let maxInt = Math.floor(max);
   return Math.floor(Math.random() * (maxInt - minInt + 1)) + minInt;
 };
 
-  // ============= //
- //  enemy data   //
+// ============= //
+//  enemy data   //
 // ============= //
 const enemyData = {
-  "W" : { // watage 1
+  "W": { // watage 1
     "type": "flight",
-    "w" : 16,
-    "h" : 16,
-    "box" : [3, 3, 12, 12],
-    "hit" : [3, 3, 12, 12],
-    "hp" : 8,
-    "img" : imgWatage,
+    "w": 16,
+    "h": 16,
+    "box": [3, 3, 12, 12],
+    "hit": [3, 3, 12, 12],
+    "hp": 8,
+    "img": imgWatage,
     "anime": "watage",
     "move": (me) => {
       let angryHp = 6;
       if (me.isParamEmpty()) {
         me.setParam(0, me.x);
         me.setParam(1, me.y);
-        me.setParam(2, randInt(0,799));
-        me.setParam(3, randInt(0,799));
+        me.setParam(2, randInt(0, 799));
+        me.setParam(3, randInt(0, 799));
       }
       if (me.hp >= angryHp) { // float
         if (me.reaction > 0) {
@@ -1080,24 +1108,24 @@ const enemyData = {
           me.changeAnime(me.hp >= angryHp ? "float1" : "float3");
         }
         me.x += me.dx;
-        me.y += me.dy;        
+        me.y += me.dy;
       }
     }
   },
-  "w" : { // watage 2
+  "w": { // watage 2
     "type": "flight",
-    "w" : 16,
-    "h" : 16,
-    "box" : [3, 3, 12, 12],
-    "hit" : [3, 3, 12, 12],
-    "hp" : 3,
-    "img" : imgWatage,
+    "w": 16,
+    "h": 16,
+    "box": [3, 3, 12, 12],
+    "hit": [3, 3, 12, 12],
+    "hp": 3,
+    "img": imgWatage,
     "anime": "watage",
     "move": (me) => {
       if (me.isParamEmpty()) {
         me.setParam(0, me.x);
         me.setParam(1, me.y);
-        me.setParam(2, randInt(0,799));
+        me.setParam(2, randInt(0, 799));
       }
       if (me.reaction > 0) {
         me.changeAnime("damaged2");
@@ -1113,14 +1141,14 @@ const enemyData = {
       me.y = me.getParam(1) + me.dy;
     }
   },
-  "P" : { // Pumpkin
+  "P": { // Pumpkin
     "type": "normal",
-    "w" : 16,
-    "h" : 16,
-    "box" : [1, 3, 14, 15],
-    "hit" : [3, 3, 12, 14],
-    "hp" : 3,
-    "img" : imgPumpkin,
+    "w": 16,
+    "h": 16,
+    "box": [1, 3, 14, 15],
+    "hit": [3, 3, 12, 14],
+    "hp": 3,
+    "img": imgPumpkin,
     "anime": "pumpkin",
     "move": (me) => {
       if (me.isParamEmpty()) {
@@ -1167,12 +1195,12 @@ const enemyData = {
   },
   "S": { // Slime
     "type": "normal",
-    "w" : 32,
-    "h" : 32,
-    "box" : [8, 16, 23, 31],
-    "hit" : [8, 16, 23, 31],
-    "hp" : 16,
-    "img" : imgSlime,
+    "w": 32,
+    "h": 32,
+    "box": [8, 16, 23, 31],
+    "hit": [8, 16, 23, 31],
+    "hp": 16,
+    "img": imgSlime,
     "anime": "slime",
     "move": (me) => {
       if (!isOnLand(me)) {
@@ -1205,24 +1233,24 @@ const enemyData = {
   },
   "f": { // flying camera
     "type": "flight",
-    "w" : 16,
-    "h" : 16,
-    "box" : [3, 3, 12, 12],
-    "hit" : [3, 3, 12, 12],
-    "hp" : 6,
-    "img" : imgFlyingCamera,
+    "w": 16,
+    "h": 16,
+    "box": [3, 3, 12, 12],
+    "hit": [3, 3, 12, 12],
+    "hp": 6,
+    "img": imgFlyingCamera,
     "anime": "flying_camera",
     "move": (me) => {
       if (me.isParamEmpty()) {
         me.setParam(0, me.x + 8 * me.initParam); // 初期座標（X）(initParam=1 で半マス右にずれます)
         me.setParam(1, me.y); // 初期座標（Y）
-        me.setParam(2, randInt(0,199)); // 移動時間
+        me.setParam(2, randInt(0, 199)); // 移動時間
         me.setParam(3, 0); // クールタイム
         me.setParam(4, 0); // 点滅回数カウント
         me.changeAnime("float_l");
       }
       if (me.isEndAnime()) {
-        if ((me.anitype === "glow_l" || me.anitype === "glow_r") ) {
+        if ((me.anitype === "glow_l" || me.anitype === "glow_r")) {
           me.setParam(4, me.getParam(4) + 1);
           if (me.getParam(4) >= 3) {
             let theta = Math.atan2(plc.y - me.y, plc.x - me.x)
@@ -1254,12 +1282,12 @@ const enemyData = {
   },
   "L": { // Slime Launcher
     "type": "normal",
-    "w" : 32,
-    "h" : 32,
-    "box" : [2, 4, 29, 31],
-    "hit" : [2, 4, 29, 31],
-    "hp" : 16,
-    "img" : imgSlimeLauncher,
+    "w": 32,
+    "h": 32,
+    "box": [2, 4, 29, 31],
+    "hit": [2, 4, 29, 31],
+    "hp": 16,
+    "img": imgSlimeLauncher,
     "anime": "slimelauncher",
     "move": (me) => {
       if (me.isParamEmpty()) {
@@ -1287,21 +1315,21 @@ const enemyData = {
           me.param[0] = 0;
           createEnemy("minion", me.x, me.y + 8, -1.0 + me.dx + me.px + me.rx, -2.0 + me.dy + me.py + me.ry).direction = "left";
           me.changeAnime("vomit");
-        } 
+        }
       }
       else if (me.isEndAnime()) {
         me.changeAnime("munch");
       }
     }
   },
-  "e" : { // electro jar
+  "e": { // electro jar
     "type": "normal",
-    "w" : 32,
-    "h" : 32,
-    "box" : [1, 8, 30, 31],
-    "hit" : [8, 8, 23, 24],
-    "hp" : 20,
-    "img" : imgElectroJar,
+    "w": 32,
+    "h": 32,
+    "box": [1, 8, 30, 31],
+    "hit": [8, 8, 23, 24],
+    "hp": 20,
+    "img": imgElectroJar,
     "anime": "electrojar",
     "move": (me) => {
       if (me.initParam === 0) { // 初期変数を指定しない時は5に自動設定する
@@ -1320,18 +1348,18 @@ const enemyData = {
       if (me.getParam(0) >= me.initParam * 20) {
         me.setParam(0, 0);
         me.startAnime(me.initParam <= 2 ? "launch_fast" : "launch");
-        createEnemy("danmaku_yellow", me.x + 8, me.y - 8,  1.000 - randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
+        createEnemy("danmaku_yellow", me.x + 8, me.y - 8, 1.000 - randInt(0, 8) * 0.125, -2.5 - randInt(0, 8) * 0.0625);
       }
     }
   },
-  "T" : { // tulip (left)
+  "T": { // tulip (left)
     "type": "wall_stuck",
-    "w" : 16,
-    "h" : 16,
-    "box" : [1, 5, 15, 12],
-    "hit" : [1, 5, 15, 12],
-    "hp" : 5,
-    "img" : imgTulip,
+    "w": 16,
+    "h": 16,
+    "box": [1, 5, 15, 12],
+    "hit": [1, 5, 15, 12],
+    "hp": 5,
+    "img": imgTulip,
     "anime": "tulip",
     "move": (me) => {
       if (me.isParamEmpty()) {
@@ -1350,14 +1378,14 @@ const enemyData = {
       }
     }
   },
-  "t" : { // tulip (right)
+  "t": { // tulip (right)
     "type": "wall_stuck",
-    "w" : 16,
-    "h" : 16,
-    "box" : [0, 5, 14, 12],
-    "hit" : [0, 5, 14, 12],
-    "hp" : 5,
-    "img" : imgTulip,
+    "w": 16,
+    "h": 16,
+    "box": [0, 5, 14, 12],
+    "hit": [0, 5, 14, 12],
+    "hp": 5,
+    "img": imgTulip,
     "anime": "tulip",
     "move": (me) => {
       if (me.isParamEmpty()) {
@@ -1376,14 +1404,14 @@ const enemyData = {
       }
     }
   },
-  "u" : { // tulip (down)
+  "u": { // tulip (down)
     "type": "flight",
-    "w" : 16,
-    "h" : 16,
-    "box" : [5, 0, 12, 14],
-    "hit" : [5, 0, 12, 14],
-    "hp" : 5,
-    "img" : imgTulip,
+    "w": 16,
+    "h": 16,
+    "box": [5, 0, 12, 14],
+    "hit": [5, 0, 12, 14],
+    "hp": 5,
+    "img": imgTulip,
     "anime": "tulip",
     "move": (me) => {
       if (me.isParamEmpty()) {
@@ -1403,16 +1431,16 @@ const enemyData = {
     }
   },
   // 爆弾
-  "b" : { // bomb TODO: Infinite respawn
+  "b": { // bomb TODO: Infinite respawn
     "type": "normal",
-    "w" : 32,
-    "h" : 32,
+    "w": 32,
+    "h": 32,
     "box": [6, 11, 25, 30],
     "hit": [8, 12, 23, 27],
     "hp": 9999,
-    "img" : imgBomb,
-    "anime" : "bomb",
-    "move" : (me) => {
+    "img": imgBomb,
+    "anime": "bomb",
+    "move": (me) => {
       if (me.isParamEmpty()) {
         me.setParam(0, 0); // カウントダウン
         me.setParam(1, "normal"); // 状態
@@ -1503,12 +1531,12 @@ const enemyData = {
   },
   "minion": { // Minion Slime
     "type": "normal",
-    "w" : 16,
-    "h" : 16,
-    "box" : [2, 4, 13, 15],
-    "hit" : [2, 4, 13, 15],
-    "hp" : 8,
-    "img" : imgMinionSlime,
+    "w": 16,
+    "h": 16,
+    "box": [2, 4, 13, 15],
+    "hit": [2, 4, 13, 15],
+    "hp": 8,
+    "img": imgMinionSlime,
     "anime": "minionslime",
     "move": (me) => {
       if (!isOnLand(me)) {
@@ -1540,12 +1568,12 @@ const enemyData = {
   },
   "danmaku_yellow": { // danmaku (yellow)
     "type": "danmaku",
-    "w" : 16,
-    "h" : 16,
-    "box" : [3, 3, 12, 12],
-    "hit" : [3, 3, 12, 12],
-    "hp" : 1,
-    "img" : imgDanmakuYellow,
+    "w": 16,
+    "h": 16,
+    "box": [3, 3, 12, 12],
+    "hit": [3, 3, 12, 12],
+    "hp": 1,
+    "img": imgDanmakuYellow,
     "anime": "danmakuyellow",
     "move": (me) => {
       if (isOnLand(me) || isTouchingLeftWall(me) || isTouchingRightWall(me) || isHeading(me)) {
@@ -1566,12 +1594,12 @@ const enemyData = {
   },
   "danmaku_white": { // danmaku (white)
     "type": "danmaku",
-    "w" : 16,
-    "h" : 16,
-    "box" : [5, 5, 10, 10],
-    "hit" : [5, 5, 10, 10],
-    "hp" : 1,
-    "img" : imgDanmakuWhite,
+    "w": 16,
+    "h": 16,
+    "box": [5, 5, 10, 10],
+    "hit": [5, 5, 10, 10],
+    "hp": 1,
+    "img": imgDanmakuWhite,
     "anime": "danmakuwhite",
     "move": (me) => {
       if (isOnLand(me) || isTouchingLeftWall(me) || isTouchingRightWall(me) || isHeading(me)) {
@@ -1582,13 +1610,13 @@ const enemyData = {
         // びっくりブロック◊にぶつかったら破壊
         for (let i = 0; i < 4; i++) {
           let hitX = i < 2 ? me.lTopX() - 1 : me.rBottomX() + 1;
-          let hitY = i % 2 === 0 ? me.lTopY() - 1: me.rBottomY() + 1;
+          let hitY = i % 2 === 0 ? me.lTopY() - 1 : me.rBottomY() + 1;
           if (getMapSubType(hitX, hitY) != "bomb") continue;
           replaceMap(Math.floor(hitX / gridSize), Math.floor(hitY / gridSize), '.');
           createGimmick("bakufu", Math.floor(hitX / gridSize) * 16, Math.floor(hitY / gridSize) * 16, 0, 0);
         }
       }
-      else  if (me.anitype != "vanish") {
+      else if (me.anitype != "vanish") {
         me.changeAnime("shot");
       }
       if (me.isEndAnime()) {
@@ -1599,12 +1627,12 @@ const enemyData = {
   },
   "danmaku_red": { // danmaku (red)
     "type": "danmaku",
-    "w" : 16,
-    "h" : 16,
-    "box" : [5, 5, 10, 10],
-    "hit" : [5, 5, 10, 10],
-    "hp" : 1,
-    "img" : imgDanmakuRed,
+    "w": 16,
+    "h": 16,
+    "box": [5, 5, 10, 10],
+    "hit": [5, 5, 10, 10],
+    "hp": 1,
+    "img": imgDanmakuRed,
     "anime": "danmakured",
     "move": (me) => {
       if (isOnLand(me) || isTouchingLeftWall(me) || isTouchingRightWall(me) || isHeading(me)) {
@@ -1624,34 +1652,34 @@ const enemyData = {
   },
   "bomb_bakuhu": { // 爆弾から発生する爆風
     "type": "danmaku",
-    "w" : 32,
-    "h" : 32,
+    "w": 32,
+    "h": 32,
     "box": [8, 8, 23, 23],
     "hit": [8, 8, 23, 23],
-    "hp" : 1,
+    "hp": 1,
     "img": imgBombEffect,
     "anime": "bomb_bakuhu",
     "move": (me) => {
-      if (me.isParamEmpty()){
+      if (me.isParamEmpty()) {
         me.setParam(0, 0);
         me.startAnime(randInt(0, 1) === 0 ? "type_1" : "type_2");
       }
-      if (me.incParam(0) > 4){
+      if (me.incParam(0) > 4) {
         me.isNoHit = true;
       }
-      if (me.isEndAnime()){
+      if (me.isEndAnime()) {
         me.hp = 0;
       }
     }
   },
   "watage_satelite": { // ボスわたげの周囲のビット
     "type": "normal",
-    "w" : 16,
-    "h" : 16,
-    "box" : [3, 3, 12, 12],
-    "hit" : [3, 3, 12, 12],
-    "hp" : 1,
-    "img" : imgWatageSatelite,
+    "w": 16,
+    "h": 16,
+    "box": [3, 3, 12, 12],
+    "hit": [3, 3, 12, 12],
+    "hp": 1,
+    "img": imgWatageSatelite,
     "anime": "watage_satelite",
     "move": (me) => {
       if (me.isParamEmpty()) {
@@ -1665,22 +1693,22 @@ const enemyData = {
   },
   //-------------------------------BOSS----------------------------------
   // big pumpkin
-  "p": { 
+  "p": {
     "type": "boss",
-    "w" : 64,
-    "h" : 64,
-    "box" : [3, 16, 60, 63],
-    "hit" : [3, 16, 60, 63],
-    "hp" : 160,
-    "img" : imgBigPumpkin,
+    "w": 64,
+    "h": 64,
+    "box": [3, 16, 60, 63],
+    "hit": [3, 16, 60, 63],
+    "hp": 160,
+    "img": imgBigPumpkin,
     "anime": "bigpumpkin",
     "move": (me) => {
       me.isNoHit = true; // 戦闘中以外衝突判定しない
-      switch(bossBattlePhase) {
-        case "none" :
+      switch (bossBattlePhase) {
+        case "none":
           me.y = -64; // 画面外に移動
           break;
-        case "entrance" :
+        case "entrance":
           if (!isOnLand(me)) {
             me.dy += (me.dy > 0) ? 0.25 : 0.125;
           }
@@ -1690,8 +1718,8 @@ const enemyData = {
           }
           me.changeAnime("laugh");
           moveAndCheckCollisionWithMap(me);
-          break; 
-        case "fight" :
+          break;
+        case "fight":
           me.isNoHit = false;
           if (me.isParamEmpty()) {
             me.setParam(0, 160); // 地面での待機時間
@@ -1739,7 +1767,7 @@ const enemyData = {
             });
           }
           break;
-        case "defeated" :
+        case "defeated":
           me.reaction = me.getParam(0);
           me.setParam(0, me.getParam(0) + 1);
           if (me.getParam(0) % 8 === 1) {
@@ -1762,28 +1790,28 @@ const enemyData = {
   },
   "R": { // denshi renji
     "type": "boss",
-    "w" : 96,
-    "h" : 48,
-    "box" : [36, 18, 88, 47],
-    "hit" : [36, 18, 88, 47],
-    "hp" : 200,
-    "img" : imgRenchin,
+    "w": 96,
+    "h": 48,
+    "box": [36, 18, 88, 47],
+    "hit": [36, 18, 88, 47],
+    "hp": 200,
+    "img": imgRenchin,
     "anime": "renchin",
     "move": (me) => {
       const halfHp = 100;
       me.isNoHit = true; // 戦闘中以外衝突判定しない
-      switch(bossBattlePhase) {
-        case "none" :
+      switch (bossBattlePhase) {
+        case "none":
           me.isInvincible = true;
           me.changeAnime("default");
           break;
-        case "entrance" :
+        case "entrance":
           initBossHpBar(me.hp);
           bossBattlePhase = "fight";
           me.changeAnime("stand");
           moveAndCheckCollisionWithMap(me);
-          break; 
-        case "fight" :
+          break;
+        case "fight":
           me.isNoHit = false;
           if (me.param.length === 0) {
             me.setParam(0, 100); // 待機時間
@@ -1869,7 +1897,7 @@ const enemyData = {
             if (me.isEndAnime() && me.anitype === "open_1") {
               me.changeAnime(me.hp > halfHp ? "open_2" : "open_2_red");
             }
-            if (me.anitype === "open_2" || me.anitype === "open_2_red"){
+            if (me.anitype === "open_2" || me.anitype === "open_2_red") {
               me.hltx = me.isEndAnime() ? 36 : 16; // 扉によるダメージ
               me.isInvincible = false;
             }
@@ -1898,7 +1926,7 @@ const enemyData = {
             });
           }
           break;
-        case "defeated" :
+        case "defeated":
           me.reaction = me.getParam(0);
           me.setParam(0, me.getParam(0) + 1);
           if (me.getParam(0) % 8 === 1) {
@@ -1921,12 +1949,12 @@ const enemyData = {
   },
   "V": { // Big watage
     "type": "boss",
-    "w" : 96,
-    "h" : 96,
-    "box" : [16, 16, 79, 79],
-    "hit" : [20, 20, 75, 75],
-    "hp" : 300,
-    "img" : imgBigWatage,
+    "w": 96,
+    "h": 96,
+    "box": [16, 16, 79, 79],
+    "hit": [20, 20, 75, 75],
+    "hp": 300,
+    "img": imgBigWatage,
     "anime": "bigwatage",
     "move": (me) => {
       me.isNoHit = true; // 戦闘中以外衝突判定しない
@@ -1934,7 +1962,7 @@ const enemyData = {
         me.setParam(0, 0); // 時間カウンター
         me.setParam(1, createEnemy("watage_satelite", me.x + me.w / 2 - 8, me.y, 0, 0)); // 衛星（上から時計回り）
         me.setParam(2, createEnemy("watage_satelite", me.x + me.w - 8, me.y + me.h / 2 - 8, 0, 0));
-        me.setParam(3, createEnemy("watage_satelite", me.x + me.w / 2 - 8 , me.y + me.h - 8, 0, 0));
+        me.setParam(3, createEnemy("watage_satelite", me.x + me.w / 2 - 8, me.y + me.h - 8, 0, 0));
         me.setParam(4, createEnemy("watage_satelite", me.x, me.y + me.h / 2 - 8, 0, 0));
         me.setParam(5, 0); // 行動タイムカウンター
         me.setParam(6, "wait") // 行動タグ
@@ -1945,26 +1973,26 @@ const enemyData = {
         me.setParam(11, 240); // 待機カウントの上限値
         me.setParam(12, 0); // 行動回数カウンター
       }
-      switch(bossBattlePhase) {
-        case "none" :
+      switch (bossBattlePhase) {
+        case "none":
           me.y = -128;
           me.changeAnime("default");
           break;
-        case "entrance" :
+        case "entrance":
           me.y += 2;
           if (me.y >= me.getParam(9)) {
             initBossHpBar(me.hp);
             bossBattlePhase = "fight";
-            me.y = me.getParam(9); 
+            me.y = me.getParam(9);
           }
-          break; 
-        case "fight" :
+          break;
+        case "fight":
           me.isNoHit = false;
           me.incParam(5);
           let isMoveEnd = false;
           if (me.getParam(6) === "wait") {
             me.x = me.getParam(8);
-            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 24;
+            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120) / 120)) * 24;
             if (me.getParam(5) >= me.getParam(11)) {
               if (me.incParam(12) % 3 === 1) {
                 me.setParam(6, "gather");
@@ -1993,51 +2021,51 @@ const enemyData = {
           else if (me.getParam(6) === "spread") {
             me.setParam(7, 100 - Math.abs(me.getParam(5) - 100));
             if (me.getParam(5) >= 200) isMoveEnd = true;
-            
+
           }
-          else if (me.getParam(6) === "guru_l") {  
-            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 140;
-            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 80;
+          else if (me.getParam(6) === "guru_l") {
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240) / 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960) / 960)) * 140;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240) / 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960) / 960)) * 80;
             if (me.getParam(5) >= 480) isMoveEnd = true;
-            
+
           }
           else if (me.getParam(6) === "guru_r") {
-            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 140;
-            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960)/ 960)) * 80;
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240) / 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960) / 960)) * 140;
+            me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 240) / 240)) * Math.sin(2 * Math.PI * ((me.getParam(5) % 960) / 960)) * 80;
             if (me.getParam(5) >= 480) isMoveEnd = true;
-            
+
           }
           else if (me.getParam(6) === "attack_l") {
-            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 200)/ 200)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 200)/ 200))) * 98;
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 200) / 200)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 200) / 200))) * 98;
             //me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
             if (me.getParam(5) >= 200) isMoveEnd = true;
           }
           else if (me.getParam(6) === "attack_r") {
-            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 200)/ 200)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 200)/ 200))) * 98;
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 200) / 200)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 200) / 200))) * 98;
             //me.y = me.getParam(9) - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180)) * (1 - Math.cos(2 * Math.PI * ((me.getParam(5) % 180)/ 180))) * 52;
             if (me.getParam(5) >= 200) isMoveEnd = true;
           }
           else if (me.getParam(6) === "eight_l") {
-            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * 120;
-            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 60;
+            me.x = me.getParam(8) - Math.sin(2 * Math.PI * ((me.getParam(5) % 240) / 240)) * 120;
+            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120) / 120)) * 60;
             if (me.getParam(5) >= 240) isMoveEnd = true;
           }
           else if (me.getParam(6) === "eight_r") {
-            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240)/ 240)) * 120;
-            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120)/ 120)) * 60;
+            me.x = me.getParam(8) + Math.sin(2 * Math.PI * ((me.getParam(5) % 240) / 240)) * 120;
+            me.y = me.getParam(9) + Math.sin(2 * Math.PI * ((me.getParam(5) % 120) / 120)) * 60;
             if (me.getParam(5) >= 240) isMoveEnd = true;
           }
           if (isMoveEnd) {
             me.setParam(6, "wait");
             me.setParam(5, 0);
-            me.setParam(11, me. hp <= 100 ? 0 : me.hp <= 200 ? 120 : 240);
+            me.setParam(11, me.hp <= 100 ? 0 : me.hp <= 200 ? 120 : 240);
           }
           // アニメ
           if (me.hp < me.getParam(10)) {
             me.setParam(10, me.hp);
             me.startAnime("damage");
           }
-          else if (me.reaction <= 0){
+          else if (me.reaction <= 0) {
             me.changeAnime(me.hp <= 100 ? "angry" : "default");
           }
           // HPバーの描画
@@ -2050,7 +2078,7 @@ const enemyData = {
             });
           }
           break;
-        case "defeated" :
+        case "defeated":
           me.reaction = me.incParam(0);
           if (me.getParam(0) % 8 === 1) {
             createEffect("explode", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
@@ -2072,7 +2100,7 @@ const enemyData = {
       if (bossBattlePhase != "defeated") {
         me.incParam(0);
         for (let i = 1; i <= 4; i++) {
-          let rad = 2 * Math.PI * ((me.getParam(0) % 160 + i * 40)/ 160);
+          let rad = 2 * Math.PI * ((me.getParam(0) % 160 + i * 40) / 160);
           me.getParam(i).x = me.x + me.w / 2 - 8 + Math.cos(rad) * (48 + me.getParam(7));
           me.getParam(i).y = me.y + me.h / 2 - 8 + Math.sin(rad) * (48 + me.getParam(7));
         }
@@ -2109,8 +2137,8 @@ let createEnemy = (enemyId, x, y, dx, dy) => {
   return newEnemy;
 };
 
-  // ============ //
- //  item data   //
+// ============ //
+//  item data   //
 // ============ //
 let itemData = {
   //--------------------------------- Key ------------------------------
@@ -2118,8 +2146,8 @@ let itemData = {
     "type": "gravity",
     "w": 16,
     "h": 16,
-    "box" : [0, 6, 14, 15],
-    "hit" : [0, 6, 14, 15],
+    "box": [0, 6, 14, 15],
+    "hit": [0, 6, 14, 15],
     "img": imgKey,
     "anime": "key",
     "move": (me) => {
@@ -2132,7 +2160,7 @@ let itemData = {
       collectedKey[0] = true;
       collectedKeyNum++;
       for (let i = 0; i < 4; i++) {
-        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2*Math.PI*(i*2+1)/8) * 4, Math.sin(2*Math.PI*(i*2+1)/8) * 4);
+        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2 * Math.PI * (i * 2 + 1) / 8) * 4, Math.sin(2 * Math.PI * (i * 2 + 1) / 8) * 4);
       }
     }
   },
@@ -2140,8 +2168,8 @@ let itemData = {
     "type": "gravity",
     "w": 16,
     "h": 16,
-    "box" : [0, 6, 14, 15],
-    "hit" : [0, 6, 14, 15],
+    "box": [0, 6, 14, 15],
+    "hit": [0, 6, 14, 15],
     "img": imgKey,
     "anime": "key",
     "move": (me) => {
@@ -2154,7 +2182,7 @@ let itemData = {
       collectedKey[1] = true;
       collectedKeyNum++;
       for (let i = 0; i < 4; i++) {
-        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2*Math.PI*(i*2+1)/8) * 4, Math.sin(2*Math.PI*(i*2+1)/8) * 4);
+        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2 * Math.PI * (i * 2 + 1) / 8) * 4, Math.sin(2 * Math.PI * (i * 2 + 1) / 8) * 4);
       }
     }
   },
@@ -2162,8 +2190,8 @@ let itemData = {
     "type": "gravity",
     "w": 16,
     "h": 16,
-    "box" : [0, 6, 14, 15],
-    "hit" : [0, 6, 14, 15],
+    "box": [0, 6, 14, 15],
+    "hit": [0, 6, 14, 15],
     "img": imgKey,
     "anime": "key",
     "move": (me) => {
@@ -2176,7 +2204,7 @@ let itemData = {
       collectedKey[2] = true;
       collectedKeyNum++;
       for (let i = 0; i < 4; i++) {
-        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2*Math.PI*(i*2+1)/8) * 4, Math.sin(2*Math.PI*(i*2+1)/8) * 4);
+        createEffect("yellow_glitter_slow", me.x + 4, me.y + 4, Math.cos(2 * Math.PI * (i * 2 + 1) / 8) * 4, Math.sin(2 * Math.PI * (i * 2 + 1) / 8) * 4);
       }
     }
   },
@@ -2185,8 +2213,8 @@ let itemData = {
     "type": "medal",
     "w": 32,
     "h": 32,
-    "box" : [6, 6, 25, 25],
-    "hit" : [6, 6, 25, 25],
+    "box": [6, 6, 25, 25],
+    "hit": [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
@@ -2205,7 +2233,7 @@ let itemData = {
       }
       else {
         for (let i = 0; i < 8; i++) {
-          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 4, Math.sin(2*Math.PI*i/8) * 4);
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2 * Math.PI * i / 8) * 4, Math.sin(2 * Math.PI * i / 8) * 4);
         }
       }
     }
@@ -2214,8 +2242,8 @@ let itemData = {
     "type": "medal",
     "w": 32,
     "h": 32,
-    "box" : [6, 6, 25, 25],
-    "hit" : [6, 6, 25, 25],
+    "box": [6, 6, 25, 25],
+    "hit": [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
@@ -2234,7 +2262,7 @@ let itemData = {
       }
       else {
         for (let i = 0; i < 8; i++) {
-          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 4, Math.sin(2*Math.PI*i/8) * 4);
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2 * Math.PI * i / 8) * 4, Math.sin(2 * Math.PI * i / 8) * 4);
         }
       }
     }
@@ -2243,8 +2271,8 @@ let itemData = {
     "type": "medal",
     "w": 32,
     "h": 32,
-    "box" : [6, 6, 25, 25],
-    "hit" : [6, 6, 25, 25],
+    "box": [6, 6, 25, 25],
+    "hit": [6, 6, 25, 25],
     "img": imgMedal,
     "anime": "medal",
     "move": (me) => {
@@ -2279,7 +2307,7 @@ let itemData = {
       }
       else {
         for (let i = 0; i < 8; i++) {
-          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2*Math.PI*i/8) * 4, Math.sin(2*Math.PI*i/8) * 4);
+          createEffect("red_glitter_slow", me.x + 12, me.y + 12, Math.cos(2 * Math.PI * i / 8) * 4, Math.sin(2 * Math.PI * i / 8) * 4);
         }
       }
     }
@@ -2312,22 +2340,22 @@ let createItem = (itemId, x, y) => {
   return newItem;
 };
 
-  // ============== //
- //  gimmick data  //
+// ============== //
+//  gimmick data  //
 // ============== //
 const gimmickData = {
   // 上下に動く床
-  "{" : {
+  "{": {
     "type": "floor",
     "w": 32,
     "h": 32,
-    "box" : [0, 0, 31, 5],
-    "hit" : [0, 0, 31, 5],
+    "box": [0, 0, 31, 5],
+    "hit": [0, 0, 31, 5],
     "img": imgMoveFloor,
     "anime": "movefloor",
     "move": (me) => {
       if (me.isParamEmpty()) {
-        me.setParam(0, me.initParam * 60);  
+        me.setParam(0, me.initParam * 60);
       }
       me.setParam(0, (me.getParam(0) + 1) % 240);
       me.dy = (Math.cos(2 * Math.PI * (me.getParam(0) + 1) / 240) - Math.cos(2 * Math.PI * me.getParam(0) / 240)) * 32;
@@ -2337,18 +2365,18 @@ const gimmickData = {
     },
   },
   // 左右に動く床（壁で跳ね返る）
-  "}" : {
+  "}": {
     "type": "floor",
     "w": 48,
     "h": 16,
-    "box" : [0, 0, 46, 5],
-    "hit" : [0, 0, 46, 5],
+    "box": [0, 0, 46, 5],
+    "hit": [0, 0, 46, 5],
     "img": imgCloudLift,
     "anime": "cloudlift",
     "move": (me) => {
       if (me.isParamEmpty()) {
         me.setParam(0, 0);
-        me.direction = me.initParam === 0 ? "left" : "right";  
+        me.direction = me.initParam === 0 ? "left" : "right";
       }
       if (isTouchingLeftWall(me)) {
         me.direction = "right";
@@ -2362,12 +2390,12 @@ const gimmickData = {
     }
   },
   // 動く床を同じ行に発生させる装置
-  "Æ" : { // alt + shift + * 
+  "Æ": { // alt + shift + * 
     "type": "floorgen",
     "w": 0,
     "h": 0,
-    "box" : [0, 0, 0, 0],
-    "hit" : [0, 0, 0, 0],
+    "box": [0, 0, 0, 0],
+    "hit": [0, 0, 0, 0],
     "img": null,
     "anime": null,
     "move": (me) => {
@@ -2385,12 +2413,12 @@ const gimmickData = {
       }
     }
   },
-  "æ" : { // alt + * 
+  "æ": { // alt + * 
     "type": "floorgen",
     "w": 0,
     "h": 0,
-    "box" : [0, 0, 0, 0],
-    "hit" : [0, 0, 0, 0],
+    "box": [0, 0, 0, 0],
+    "hit": [0, 0, 0, 0],
     "img": null,
     "anime": null,
     "move": (me) => {
@@ -2409,12 +2437,12 @@ const gimmickData = {
     }
   },
   // 左（右）に動き続ける床（Æ,æから発生）
-  "minicloud" : {
+  "minicloud": {
     "type": "floor",
     "w": 32,
     "h": 16,
-    "box" : [0, 0, 31, 5],
-    "hit" : [0, 0, 31, 5],
+    "box": [0, 0, 31, 5],
+    "hit": [0, 0, 31, 5],
     "img": imgCloudLiftSmall,
     "anime": "cloudliftsmall",
     "move": (me) => {
@@ -2426,12 +2454,12 @@ const gimmickData = {
     }
   },
   // 爆風（びっくりブロック破壊時に発生）
-  "bakufu" : {
+  "bakufu": {
     "type": "explode",
     "w": 16,
     "h": 16,
-    "box" : [0, 0, 15, 15],
-    "hit" : [0, 0, 15, 15],
+    "box": [0, 0, 15, 15],
+    "hit": [0, 0, 15, 15],
     "img": null,
     "anime": null,
     "move": (me) => {
@@ -2484,8 +2512,8 @@ let createGimmick = (gimmickId, x, y) => {
   return newGimmick;
 };
 
-  // ============== //
- //  effect data   //
+// ============== //
+//  effect data   //
 // ============== //
 let effectData = {
   "explode": {
@@ -2558,6 +2586,20 @@ let effectData = {
     "anime": "miniblock",
     "move": "gravity"
   },
+  "afterimage_l": {
+    "w": 16,
+    "h": 16,
+    "img": imgAfterimage,
+    "anime": "afterimage_l",
+    "move": "behind"
+  },
+  "afterimage_r": {
+    "w": 16,
+    "h": 16,
+    "img": imgAfterimage,
+    "anime": "afterimage_r",
+    "move": "behind"
+  },
   "satelite_fade": {
     "w": 16,
     "h": 16,
@@ -2570,7 +2612,7 @@ let effectData = {
 let effectKeyList = Object.keys(effectData);
 
 let createEffect = (effectId, x, y, dx, dy) => {
-  let newEffect = new Sprite (
+  let newEffect = new Sprite(
     effectId,
     x,
     y,
@@ -2587,7 +2629,7 @@ let createEffect = (effectId, x, y, dx, dy) => {
 };
 
 let createEffectSub = (effectId, x, y, dx, dy) => {
-  let newEffect = new Sprite (
+  let newEffect = new Sprite(
     effectId,
     x,
     y,
@@ -2603,8 +2645,8 @@ let createEffectSub = (effectId, x, y, dx, dy) => {
   return newEffect;
 };
 
-  //---------------//
- //   shop/tool   //
+//---------------//
+//   shop/tool   //
 //---------------//
 let shopScene = "enter";
 let merchan;
@@ -2618,125 +2660,125 @@ let isAlreadyBought = (toolId) => { // 購入済みかどうか確かめる
 };
 
 const toolData = {
-  "lifeup1" : {
+  "lifeup1": {
     anime: "lifeup",
     price: 10,
     name: "ライフアップ",
     explain_merchan: "最大HPが1増えるよー",
     explain_normal: "最大HP+1",
-    sell_condition : () => {
+    sell_condition: () => {
       return true;
     },
     effect: () => {
       plcMaxHp += 1;
     }
   },
-  "lifeup2" : {
+  "lifeup2": {
     anime: "lifeup",
     price: 200,
     name: "ライフアップ",
     explain_merchan: "最大HPが1増えるよー",
     explain_normal: "最大HP+1",
-    sell_condition : () => {
+    sell_condition: () => {
       return (saveDataObject.progress > 1 && isAlreadyBought("lifeup1"));
     },
     effect: () => {
       plcMaxHp += 1;
     }
   },
-  "lifeup3" : {
+  "lifeup3": {
     anime: "lifeup",
     price: 1000,
     name: "ライフアップ",
     explain_merchan: "最大HPが1増えるよー",
     explain_normal: "最大HP+1",
-    sell_condition : () => {
+    sell_condition: () => {
       return (saveDataObject.progress > 2 && isAlreadyBought("lifeup2"));
     },
     effect: () => {
       plcMaxHp += 1;
     }
   },
-  "shotup1" : {
+  "shotup1": {
     anime: "shotup",
     price: 300,
     name: "ショット威力アップ",
     explain_merchan: "与えるダメージが増えるよー",
     explain_normal: "与ダメージ増加",
-    sell_condition : () => {
+    sell_condition: () => {
       return true;
     },
     effect: () => {
       shotPower += 1;
     }
   },
-  "dummy1" : {
+  "dummy1": {
     anime: "default",
     price: 999999,
     name: "ダミーアイテム",
     explain_merchan: "なにこれー？",
     explain_normal: "なんじゃこりゃ",
-    sell_condition : () => {
+    sell_condition: () => {
       return false;
     },
     effect: () => {
     }
   },
-  "dummy2" : {
+  "dummy2": {
     anime: "default",
     price: 999999,
     name: "ダミーアイテム",
     explain_merchan: "なにこれー？",
     explain_normal: "なんじゃこりゃ",
-    sell_condition : () => {
+    sell_condition: () => {
       return false;
     },
     effect: () => {
     }
   },
-  "dummy3" : {
+  "dummy3": {
     anime: "default",
     price: 999999,
     name: "ダミーアイテム",
     explain_merchan: "なにこれー？",
     explain_normal: "なんじゃこりゃ",
-    sell_condition : () => {
+    sell_condition: () => {
       return false;
     },
     effect: () => {
     }
   },
-  "dummy4" : {
+  "dummy4": {
     anime: "default",
     price: 999999,
     name: "ダミーアイテム",
     explain_merchan: "なにこれー？",
     explain_normal: "なんじゃこりゃ",
-    sell_condition : () => {
+    sell_condition: () => {
       return false;
     },
     effect: () => {
     }
   },
-  "dummy5" : {
+  "dummy5": {
     anime: "default",
     price: 999999,
     name: "ダミーアイテム",
     explain_merchan: "なにこれー？",
     explain_normal: "なんじゃこりゃ",
-    sell_condition : () => {
+    sell_condition: () => {
       return false;
     },
     effect: () => {
     }
   },
-  "dummy6" : {
+  "dummy6": {
     anime: "default",
     price: 999999,
     name: "ダミーアイテム",
     explain_merchan: "なにこれー？",
     explain_normal: "なんじゃこりゃ",
-    sell_condition : () => {
+    sell_condition: () => {
       return false;
     },
     effect: () => {
@@ -2758,8 +2800,8 @@ let applyToolEffect = (toolId) => {
   toolData[toolId].effect();
 };
 
-  // --------------//
- // get key event //
+// --------------//
+// get key event //
 // --------------//
 // grobal variables for key inputs
 let keyInput = [];
@@ -2795,7 +2837,7 @@ window.onkeydown = function (e) {
     if (keyInput.indexOf("q") == -1) keyInput.push("q");
   }
   // prevent default key input
-  if (!e.metaKey && !e.shiftKey && !e.ctrlKey){
+  if (!e.metaKey && !e.shiftKey && !e.ctrlKey) {
     e.preventDefault();
   }
 };
@@ -2834,32 +2876,32 @@ window.onkeyup = function (e) {
     if (idx != -1) keyInput.splice(idx, 1);
   }
   // prevent default key input
-  if (!e.metaKey && !e.shiftKey && !e.ctrlKey){
+  if (!e.metaKey && !e.shiftKey && !e.ctrlKey) {
     e.preventDefault();
   }
 };
 
 // ボタンが押下されているか調べる
-let isKeyPressed = function(key) {
+let isKeyPressed = function (key) {
   if (!acceptKeyInput) return false;
   return (keyPressed.indexOf(key) != -1);
 };
 
 // "今のフレームで"ボタンが押下されたか調べる
-let isKeyPressedNow = function(key) {
+let isKeyPressedNow = function (key) {
   if (!acceptKeyInput) return false;
   return (keyPressed.indexOf(key) != -1 && keyPressedPrevious.indexOf(key) === -1);
 };
 
-   //=====================//
-  //  Scene List         //
- //=====================//
+//=====================//
+//  Scene List         //
+//=====================//
 let sceneList = {
   ////---------------//
   ///    title      ///
   //---------------////
   "title": {
-    "init" : async () => {
+    "init": async () => {
       // drawing
       backgCtx.fillStyle = "#2a2349";
       backgCtx.fillRect(0, 0, backgLay.width, backgLay.height);
@@ -2877,7 +2919,7 @@ let sceneList = {
       setOverlayScene("transout");
       return 0;
     },
-    "update" : () => {
+    "update": () => {
       // draw animation
       plc.updateAnime();
       plc.drawShadow(charaCtx, Math.floor((charaLay.width - plc.w) / 2 + 2), Math.floor((charaLay.height - plc.h) / 2 + 2));
@@ -2894,7 +2936,7 @@ let sceneList = {
         useriCtx.fillStyle = "#c16c5b";
         useriCtx.fillRect(0, 220, dataResetCount * 2, 8);
         useriCtx.fillStyle = "#bebbb2";
-        useriCtx.fillText("X長押しでデータ消去", 0, 204); 
+        useriCtx.fillText("X長押しでデータ消去", 0, 204);
         if (dataResetCount > 160) {
           collectedCoins = 0;
           dataResetCount = 0;
@@ -2910,13 +2952,13 @@ let sceneList = {
   ////---------------//
   ///  stageselect  ///
   //---------------////
-  "stageselect" : {
-    "init" : async () => {
+  "stageselect": {
+    "init": async () => {
       // load save data
       await readSaveData(currentSaveData);
       modifySaveData();
       collectedCoins = saveDataObject["coins"];
-      ssCursorL = new Sprite("c",  3 * gridSize, 6 * gridSize, 32, 64, imgSSCursorL, animeData["sscursor"]);
+      ssCursorL = new Sprite("c", 3 * gridSize, 6 * gridSize, 32, 64, imgSSCursorL, animeData["sscursor"]);
       ssCursorR = new Sprite("c", 15 * gridSize, 6 * gridSize, 32, 64, imgSSCursorR, animeData["sscursor"]);
       // パラメータを装備アイテム適用前のデフォルト値に設定
       plcMaxHp = 3;
@@ -2939,7 +2981,7 @@ let sceneList = {
       setOverlayScene("transout");
       return 0;
     },
-    "update" : () => {
+    "update": () => {
       // drawing
       useriCtx.fillStyle = "#fff9e4";
       useriCtx.textAlign = "left";
@@ -2978,7 +3020,7 @@ let sceneList = {
       // ---- medal
       if (stageId < stageData.length) {
         for (let i = 0; i < 3; i++) {
-          useriCtx.drawImage(imgSSMedal, isMedalcollected(stageId, i) * 32, 0, 32, 32, 112 + 32 * i , 186, 32, 32);
+          useriCtx.drawImage(imgSSMedal, isMedalcollected(stageId, i) * 32, 0, 32, 32, 112 + 32 * i, 186, 32, 32);
         }
       }
       // ---- heart & coins
@@ -3025,8 +3067,8 @@ let sceneList = {
   ////---------------//
   /// shop          ///
   //---------------////
-  "shop" : {
-    "init" : async () => {
+  "shop": {
+    "init": async () => {
       // シーンリセット
       shopScene = "enter";
       shopCursor = 0;
@@ -3049,7 +3091,7 @@ let sceneList = {
       setOverlayScene("transout");
       return 0;
     },
-    "update" : async () => {
+    "update": async () => {
       let serifuX = 16;
       let serifuY = 32;
       let toolOnCursor = shelf[shopCursor] === "no_item" ? -1 : toolData[shelf[shopCursor]];
@@ -3092,7 +3134,7 @@ let sceneList = {
       else if (shopScene === "choose") { // シーン：商品選択
         merchan.changeAnime("normal");
         if (toolOnCursor === -1) {
-          charaCtx.fillText("そこには何もないよー", serifuX, serifuY);  
+          charaCtx.fillText("そこには何もないよー", serifuX, serifuY);
         }
         else {
           charaCtx.fillText(toolOnCursor.name, serifuX, serifuY);
@@ -3114,12 +3156,12 @@ let sceneList = {
       else if (shopScene === "select") { // シーン：購入確認
         charaCtx.fillText(toolOnCursor.name + "は" + toolOnCursor.price + "コインだよー どうする？", serifuX, serifuY);
         charaCtx.fillText("Z:買う    X:やめる", serifuX, serifuY + 16);
-        if (isKeyPressedNow("z")) { 
+        if (isKeyPressedNow("z")) {
           if (saveDataObject["coins"] < toolOnCursor.price) {
             shopScene = "tarinai";
           }
           else { // 購入処理はここで行う
-            saveDataObject["tool"][shelf[shopCursor]] = { is_activated : true };
+            saveDataObject["tool"][shelf[shopCursor]] = { is_activated: true };
             saveDataObject["coins"] -= toolOnCursor.price;
             shelf[shopCursor] = "no_item";
             shopScene = "okaiage";
@@ -3156,8 +3198,8 @@ let sceneList = {
   ////---------------//
   /// tool list     ///
   //---------------////
-  "toollist" : {
-    "init" : async () => {
+  "toollist": {
+    "init": async () => {
       // 変数リセット
       toolCursor = 0;
       cursorSprite = new Sprite("tool_cursor", 24, 120, 48, 48, imgToolCursor, animeData["toolcursor"]);
@@ -3173,7 +3215,7 @@ let sceneList = {
       setOverlayScene("transout");
       return 0;
     },
-    "update" : () => {
+    "update": () => {
       // 装備アイテムリスト
       charaCtx.fillStyle = "#32535f";
       for (let i = 0; i < toolDataKeys.length; i++) {
@@ -3210,7 +3252,7 @@ let sceneList = {
       cursorSprite.drawAnime(charaCtx, (toolCursor % 5) * 48 + 40, Math.floor(toolCursor / 5) * 48 + 56);
       // カーソル操作（ゴミ実装注意！！）
       if (isKeyPressedNow("u") || isKeyPressedNow("d")) {
-        toolCursor = (toolCursor + 5) % 10; 
+        toolCursor = (toolCursor + 5) % 10;
       }
       else if (isKeyPressedNow("l")) {
         toolCursor--;
@@ -3223,7 +3265,7 @@ let sceneList = {
         if (toolCursor === 10) toolCursor = 5;
       }
       else if (isKeyPressedNow("z") && (isAlreadyBought(toolDataKeys[toolCursor]))) {
-         saveDataObject["tool"][toolDataKeys[toolCursor]].is_activated = !saveDataObject["tool"][toolDataKeys[toolCursor]].is_activated;
+        saveDataObject["tool"][toolDataKeys[toolCursor]].is_activated = !saveDataObject["tool"][toolDataKeys[toolCursor]].is_activated;
       }
       else if (isKeyPressedNow("x")) {
         writeSaveData(currentSaveData);
@@ -3234,8 +3276,8 @@ let sceneList = {
   ////---------------//
   /// game          ///
   //---------------////
-  "game" : {
-    "init" : async () => {
+  "game": {
+    "init": async () => {
       // reset data
       shotArray = [];
       enemyArray = [];
@@ -3255,7 +3297,7 @@ let sceneList = {
         await getLevelData(levelName);
       }
       catch {
-        console.log("エラー：ステージ", levelName , "が見つかりません!")
+        console.log("エラー：ステージ", levelName, "が見つかりません!")
         await getLevelData("test");
       }
       // respawn plc
@@ -3272,6 +3314,7 @@ let sceneList = {
       plc.ry = 0;
       plc.direction = "right";
       plc.reaction = 0;
+      isDashing = false;
       // create Character Objects
       let newCharacter;
       for (let y = 0; y < mapData.length; y++) {
@@ -3301,7 +3344,7 @@ let sceneList = {
           if (x + 1 >= mapData[y].length) continue;
           if ('0' <= mapData[y][x + 1] && mapData[y][x + 1] <= '9') {
             newCharacter.initParam = parseInt(mapData[y][x + 1]);
-          }  
+          }
         }
       }
       // マップの更新情報を反映
@@ -3325,7 +3368,7 @@ let sceneList = {
           x: randInt(0, mapWidth * gridSize),
           y: randInt(0, mapHeight * gridSize),
           dx: randInt(-50, 0) / 100,
-          isFront: (i % 2 === 0) 
+          isFront: (i % 2 === 0)
         };
       }
       // reset magma rising
@@ -3336,16 +3379,16 @@ let sceneList = {
       setOverlayScene("transout");
       return 0;
     },
-    "update" : () => {
+    "update": () => {
       const plcMaxSpeedX = 1.25;
       if (!stopFlag) {
         //============================= move character ================================
         // gimmick move
         plc.riding = null;
-        enemyArray.forEach( (enemy) => {enemy.riding = null;} );
-        itemArray.forEach( (item) => {item.riding = null;} );
+        enemyArray.forEach((enemy) => { enemy.riding = null; });
+        itemArray.forEach((item) => { item.riding = null; });
         gimmickArray.forEach((vehicle) => {
-          if (gimmickData[vehicle.id].type === "floor"){
+          if (gimmickData[vehicle.id].type === "floor") {
             plc.checkRiding(vehicle);
             enemyArray.forEach((enemy) => {
               if (enemyData[enemy.id].type === "normal") enemy.checkRiding(vehicle);
@@ -3390,7 +3433,7 @@ let sceneList = {
         });
         // magma move
         magmaTopY -= magmaSpeed;
-        
+
         //============================ erase character ================================
         // erase enemy
         enemyArray = enemyArray.filter((e) => {
@@ -3416,36 +3459,51 @@ let sceneList = {
         // hit wall -> stop
         if ((isTouchingLeftWall(plc) && plc.dx < 0) || (isTouchingRightWall(plc) && plc.dx > 0)) {
           plc.dx = 0;
+          if (isDashing) {
+            isDashing = false;
+            plc.dy = -2.0;
+            plc.y -= 1; // 跳ね返らせるために地面から少し浮かせる
+            plc.dx = plc.direction === "left" ? 1.0 : -1.0;
+            quakeTimeX = 20;
+            for (let i = 0; i < 4; i++) {
+              createEffect("star", plc.lTopX() + ((plc.rbx - plc.ltx) - 8) / 2, plc.lTopY() + ((plc.rby - plc.lty) - 8) / 2, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 100) * -0.03);
+            }
+          }
         }
         if (isHeading(plc) && plc.dy < 0) {
           plc.dy = 0;
         }
         // key inputs
-        if (isOnLand(plc) || plc.riding != null) {
+        if (isOnLand(plc) || plc.riding != null) { // 地上 or リフト上
           plc.dy = 0;
           isJumping = false;
           coyoteTime = 7;
           let accel = 0.125; // 加速度
           let decay = 0.0625; // 速度減衰量
           // 氷の上は滑りやすい
-          if (getMapSubType(plc.lTopX(), plc.rBottomY() + 0.0625) === "ice" || getMapSubType(plc.rBottomX(), plc.rBottomY() + 0.0625) === "ice" ) {
+          if (getMapSubType(plc.lTopX(), plc.rBottomY() + 0.0625) === "ice" || getMapSubType(plc.rBottomX(), plc.rBottomY() + 0.0625) === "ice") {
             accel /= 8;
             decay /= 8;
           }
-          if (isKeyPressed("l")) {
-            if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - accel, -plcMaxSpeedX);
-            plc.direction = "left";
-          }
-          else if (isKeyPressed("r")) {
-            if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + accel, plcMaxSpeedX);
-            plc.direction = "right";
+          if (isDashing) { // ダッシュ効果中（左右キー無効）
+            plc.dx = plc.direction === "left" ? -3.00 : 3.00;
           }
           else {
-            plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - decay > 0 ? Math.abs(plc.dx) - decay : 0);
+            if (isKeyPressed("l")) {
+              if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - accel, -plcMaxSpeedX);
+              plc.direction = "left";
+            }
+            else if (isKeyPressed("r")) {
+              if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + accel, plcMaxSpeedX);
+              plc.direction = "right";
+            }
+            else {
+              plc.dx = Math.sign(plc.dx) * (Math.abs(plc.dx) - decay > 0 ? Math.abs(plc.dx) - decay : 0);
+            }
+            // 最高速を超えている場合は減衰させる
+            if (plc.dx < -plcMaxSpeedX) plc.dx = -plcMaxSpeedX;
+            if (plc.dx > plcMaxSpeedX) plc.dx = plcMaxSpeedX;
           }
-          // 最高速を超えている場合は減衰させる
-          if (plc.dx < -plcMaxSpeedX) plc.dx = -plcMaxSpeedX;
-          if (plc.dx >  plcMaxSpeedX) plc.dx =  plcMaxSpeedX;
           // 地形効果から受ける移動量を計算
           if (plc.riding === null) {
             movesAffectedByMap(plc);
@@ -3466,32 +3524,36 @@ let sceneList = {
             });
           }
         }
-        else {
+        else { // 空中
           // 慣性を移動速度に反映
           plc.dx += plc.px;
           plc.dy += plc.py;
           if (plc.dy >= 0) { // 動く足場の慣性は落下時にのみ適用
             plc.dy += plc.ry;
           }
-          // 慣性リセット
-          plc.px = 0;
+          // 地形x以外の慣性リセット
           plc.py = 0;
           plc.ry = 0;
           if (coyoteTime <= 0) {
             plc.rx = 0;
           }
+          // コヨーテタイムカウントダウン
           coyoteTime--;
-          // 左右移動
-          if (isKeyPressed("l")) {
-            if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.0625, -plcMaxSpeedX);
-            plc.direction = "left";
+          if (isDashing) { // ダッシュ効果中（左右キー無効）
+            plc.dx = plc.direction === "left" ? -3.00 : 3.00;
           }
-          else if (isKeyPressed("r")) {
-            if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + 0.0625, plcMaxSpeedX);
-            plc.direction = "right";
-          }
-          else if (isGensui){ // キーが押されていなければ減衰
-            plc.dx = plc.dx > 0 ? plc.dx - 0.03125 : plc.dx < 0 ? plc.dx + 0.03125 : 0;
+          else {
+            // 地形x慣性リセット
+            plc.px = 0;
+            // 左右移動
+            if (isKeyPressed("l")) {
+              if (plc.dx > -plcMaxSpeedX) plc.dx = Math.max(plc.dx - 0.0625, -plcMaxSpeedX);
+              plc.direction = "left";
+            }
+            else if (isKeyPressed("r")) {
+              if (plc.dx < plcMaxSpeedX) plc.dx = Math.min(plc.dx + 0.0625, plcMaxSpeedX);
+              plc.direction = "right";
+            }
           }
           if (isKeyPressed("z") && isJumping) {
             plc.dy += 0.0625;
@@ -3508,7 +3570,7 @@ let sceneList = {
           coyoteTime = 0;
         }
         // create shot
-        if (isKeyPressedNow("x") && shotArray.length < shotMax) {
+        if (isKeyPressedNow("x") && shotArray.length < shotMax && !isDashing) {
           let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
           newShot.dx = plc.direction === "left" ? -2 : 2;
           newShot.direction = plc.direction;
@@ -3563,9 +3625,9 @@ let sceneList = {
               else if (hitMapSubType === "lock" && collectedKeyNum > 0) {
                 collectedKeyNum--;
                 replaceMap(hitMapX, hitMapY, '.');
-                changedMapList.push( { level: levelName, x: hitMapX, y: hitMapY, replaceTo: '.'} );
+                changedMapList.push({ level: levelName, x: hitMapX, y: hitMapY, replaceTo: '.' });
                 for (let j = 0; j < 4; j++) {
-                  createEffect("yellow_glitter_slow", shotArray[i].x + 8, shotArray[i].y + 8, Math.cos(2*Math.PI*(j*2+1)/8) * 4, Math.sin(2*Math.PI*(j*2+1)/8) * 4);
+                  createEffect("yellow_glitter_slow", shotArray[i].x + 8, shotArray[i].y + 8, Math.cos(2 * Math.PI * (j * 2 + 1) / 8) * 4, Math.sin(2 * Math.PI * (j * 2 + 1) / 8) * 4);
                 }
               }
               // ベルトコンベア切り替え
@@ -3613,9 +3675,19 @@ let sceneList = {
             stopFlag = true;
           }
         }
+        // dash bash & effect
+        if (isDashing) {
+          enemyArray.forEach((e) => {
+            if (!e.isHit(plc) || e.isNoHitWithPlc) return;
+            e.hp -= 99;
+          });
+          if (timeCounter % 4 === 0) {
+            createEffect(plc.direction === "left" ? "afterimage_l" : "afterimage_r", plc.x, plc.y, 0, 0);
+          }
+        }
         // damage
         if (plc.reaction > 0) plc.reaction--;
-        if (plc.reaction <= 0) {
+        if (plc.reaction <= 0 && !isDashing) {
           let isDamaged = (getMapSubType(plc.x + gridSize / 2, plc.y + gridSize / 2) === "damage");
           enemyArray.forEach((e) => {
             isDamaged |= (e.isHit(plc) && !e.isNoHitWithPlc);
@@ -3651,14 +3723,14 @@ let sceneList = {
         }
         // limit speed
         if (plc.dx < -4.0) plc.dx = -4.0;
-        if (plc.dx >  4.0) plc.dx =  4.0;
-        if (plc.dy >  4.0) plc.dy =  4.0;
+        if (plc.dx > 4.0) plc.dx = 4.0;
+        if (plc.dy > 4.0) plc.dy = 4.0;
 
         // update player position
         moveAndCheckCollisionWithMap(plc);
-        
+
       } // stop flag が立ってない時の処理 ここまで！
-      
+
       else if (plc.hp <= 0) { // ミス！
         if (plc.reaction > 0) plc.reaction--;
         if (++yarareAnimeCounter < 20) {
@@ -3714,7 +3786,7 @@ let sceneList = {
       // ******************
       // ---- drawing -----
       // ******************
-      
+
       if (!stopFlag) {
         // update enemy and shot anime
         enemyArray.forEach((e) => {
@@ -3728,7 +3800,7 @@ let sceneList = {
         });
         gimmickArray.forEach((e) => {
           e.updateAnime();
-        });       
+        });
         effectArray.forEach((e) => {
           e.updateAnime();
         })
@@ -3775,10 +3847,13 @@ let sceneList = {
       // カメラ位置を整数値に変換
       cameraX = Math.floor(cameraX);
       cameraY = Math.floor(cameraY);
-      
+
       // change player animation
-      if (!stopFlag || sceneOverLay === "pause"){
-        if (isOnLand(plc) || plc.riding != null) {
+      if (!stopFlag || sceneOverLay === "pause") {
+        if (isDashing) {
+          plc.changeAnime(plc.direction === "left" ? "dash_l" : "dash_r");
+        }
+        else if (isOnLand(plc) || plc.riding != null) {
           if (plc.dx === 0) {
             plc.changeAnime(plc.direction === "left" ? "stand_l" : "stand_r");
           }
@@ -3803,7 +3878,7 @@ let sceneList = {
       }
       // update player anime
       if (sceneOverLay != "pause") plc.updateAnime();
-      
+
       // 雪の座標を更新，後ろの雪を描画
       charaCtx.fillStyle = "#bebbb2";
       snowEffect.forEach((e) => {
@@ -3892,7 +3967,7 @@ let sceneList = {
       enemyArray.forEach((e => {
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        let shake = e.reaction > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1)  : 0;
+        let shake = e.reaction > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1) : 0;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX + (e.type === "wall_stuck" ? 0 : shake)), Math.floor(e.y - cameraY + (e.type === "wall_stuck" ? shake : 0)));
       }));
       shotArray.forEach((e => {
@@ -3912,7 +3987,7 @@ let sceneList = {
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
       if (Math.floor(plc.reaction / 3) * 3 % 6 === 0 || plc.hp <= 0) plc.drawAnime(charaCtx, Math.floor(plc.x - cameraX), Math.floor(plc.y - cameraY));
-      
+
       // 手前の雪を描画
       charaCtx.fillStyle = "#fff9e4";
       snowEffect.forEach((e) => {
@@ -3929,7 +4004,7 @@ let sceneList = {
         for (let x = 0; x <= charaLay.width / gridSize; x++) {
           charaCtx.drawImage(imgMagma[0], (Math.floor(mapAnimeCount / magmaDulation) % magmaFrame) * 16, 0, 16, 16, Math.floor(x * gridSize - cameraX % gridSize), Math.floor(magmaTopY - cameraY), gridSize, gridSize);
         }
-        for (let y = 1; y <= (cameraY + charaLay.height - magmaTopY)/ gridSize; y++) {
+        for (let y = 1; y <= (cameraY + charaLay.height - magmaTopY) / gridSize; y++) {
           for (let x = 0; x <= charaLay.width / gridSize; x++) {
             charaCtx.drawImage(imgMagma[0], (Math.floor(mapAnimeCount / magmaDulation) % magmaFrame + magmaFrame) * 16, 0, 16, 16, Math.floor(x * gridSize - cameraX % gridSize), Math.floor(magmaTopY - cameraY) + y * gridSize, gridSize, gridSize);
           }
@@ -4005,7 +4080,7 @@ let sceneList = {
         useriCtx.fillStyle = "#c16c5b";
         useriCtx.fillRect(0, 224, Math.ceil(320 * (bossHpBarRed / bossMaxHp)), 12);
       }
-      
+
       // time counter
       timeCounter++;
       // ポーズ画面
@@ -4018,11 +4093,11 @@ let sceneList = {
   },
 };
 
-   //=======================//
-  //  Over Lay Scene List  //
- //=======================//
+//=======================//
+//  Over Lay Scene List  //
+//=======================//
 let sceneOverLayList = {
-  
+
   // sub scene: transin（トランジション開始）
   "transin": {
     init: () => {
@@ -4079,7 +4154,7 @@ let sceneOverLayList = {
   },
 
   // pause
-  "pause" : {
+  "pause": {
     init: () => {
 
     },
@@ -4125,30 +4200,30 @@ let sceneOverLayList = {
         useriCtx.fillStyle = "#c16c5b";
         useriCtx.fillRect(0, 220, backToSelectCount * 4, 8);
         useriCtx.fillStyle = "#bebbb2";
-        useriCtx.fillText("ステージを脱出！", 0, 204); 
+        useriCtx.fillText("ステージを脱出！", 0, 204);
       }
     }
   },
 
   // none（何もしない，でもこの処理は必要）
-  "none" : {
+  "none": {
     init: () => {
       return 0;
     },
-    update: () => {}
+    update: () => { }
   }
 };
 
-     //=====================//
-    //                     //
-   //  G A M E   L O O P  //
-  //                     //
- //=====================//
+//=====================//
+//                     //
+//  G A M E   L O O P  //
+//                     //
+//=====================//
 let gameLoop = async () => {
   // reset canvas
-  charaCtx.clearRect(0,0,640,480);
-  useriCtx.clearRect(0,0,640,480);
-  transCtx.clearRect(0,0,640,480);
+  charaCtx.clearRect(0, 0, 640, 480);
+  useriCtx.clearRect(0, 0, 640, 480);
+  transCtx.clearRect(0, 0, 640, 480);
   // get key input
   keyPressedPrevious = keyPressed.slice(); // storage previous key input
   keyPressed = keyInput.slice();
@@ -4157,11 +4232,11 @@ let gameLoop = async () => {
   // scene (over lay)
   if (overLayInitFlag) {
     overLayInitFlag = false;
-    sceneOverLayList[sceneOverLay]["init"]();  
+    sceneOverLayList[sceneOverLay]["init"]();
   }
   sceneOverLayList[sceneOverLay]["update"]();
   if (initFlag) {
-    backgCtx.clearRect(0,0,640,480);
+    backgCtx.clearRect(0, 0, 640, 480);
     initFlag = false;
     nowLoading = await sceneList[scene]["init"]();
   }
@@ -4170,8 +4245,8 @@ let gameLoop = async () => {
   }
 };
 
-  //-----------------//
- // Onload function //
+//-----------------//
+// Onload function //
 //-----------------//
 window.onload = () => {
   scene = "title";
@@ -4191,7 +4266,7 @@ window.onload = () => {
   // create Player Character
   plc = new CharacterSprite("player", "player", 0, 0, 16, 16, 3, 3, 12, 15, 3, 3, 12, 12, plcMaxHp, imgPlayer, animeData["player"]);
   // start game loop
-  setInterval(gameLoop, 1000/60); // 60fps
+  setInterval(gameLoop, 1000 / 60); // 60fps
 };
 
 // load font
