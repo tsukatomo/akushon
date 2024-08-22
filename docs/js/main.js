@@ -825,7 +825,7 @@ let isResumedNow = false;
 let backToSelectCount = 0;
 
 // get map type from pixel coordinate (output: type of mapchip Object)
-// 注意：一方通行床はy座標がグリッド上部の時しか検出しません
+// 注意：一方通行床は上4ドット分のみ検出
 let getMapType = (x, y) => {
   let mapX = Math.floor(x / gridSize);
   let mapY = Math.floor(y / gridSize);
@@ -855,8 +855,8 @@ let getMapSubType = (x, y) => {
 };
 
 // replace map data
-let replaceMap = (x, y, newMapchip) => {
-  mapData[y] = mapData[y].substring(0, x) + newMapchip + mapData[y].substring(x + 1, mapData[y].length);
+let replaceMap = (mapX, mapY, newMapchip) => {
+  mapData[mapY] = mapData[mapY].substring(0, mapX) + newMapchip + mapData[mapY].substring(mapX + 1, mapData[mapY].length);
 };
 
 // キャラクターの接地判定
@@ -937,6 +937,42 @@ let movesAffectedByMap = (character) => {
   else {
     character.px = 0;
     character.py = 0;
+  }
+};
+
+// ピクセル座標（x,y）のマップチップが攻撃を受けたときの効果
+let attackToMap = (x, y) => {
+  let mapX = Math.floor(x / gridSize);
+  let mapY = Math.floor(y / gridSize);
+  let subType = getMapSubType(x, y);
+  // ブロック
+  if (subType === "block") {
+    replaceMap(mapX, mapY, '.');
+  }
+  else if (subType === "block_coin") {
+    replaceMap(mapX, mapY, '¥');
+  }
+  else if (subType === "block_heart") {
+    replaceMap(mapX, mapY, '?');
+  }
+  else if (subType === "block_door") {
+    replaceMap(mapX, mapY, '∑');
+  }
+  // びっくりブロック◊
+  else if (subType === "bomb") {
+    replaceMap(mapX, mapY, '.');
+    createGimmick("bakufu", mapX * gridSize, mapY * gridSize, 0, 0); // 誘爆ギミック発動
+  }
+  // ベルトコンベア切り替えスイッチ
+  else if (subType === "reverse_switch") {
+    for (let my = 0; my < mapData.length; my++) {
+      for (let mx = 0; mx < mapData[my].length; mx++) {
+        if (mapData[my][mx] === "≥") replaceMap(mx, my, "≤");
+        else if (mapData[my][mx] === "≤") replaceMap(mx, my, "≥");
+        else if (mapData[my][mx] === "»") replaceMap(mx, my, "«");
+        else if (mapData[my][mx] === "«") replaceMap(mx, my, "»");
+      }
+    }
   }
 };
 
@@ -3601,44 +3637,16 @@ let sceneList = {
               shotArray[i].changeAnime("vanish");
               shotArray[i].param[0] = 0;
               // 地形破壊
+              attackToMap(shotArray[i].x + 8, shotArray[i].y + 8);
+              // 解錠
               let hitMapX = Math.floor((shotArray[i].x + 8) / gridSize);
               let hitMapY = Math.floor((shotArray[i].y + 8) / gridSize);
-              let hitMapSubType = getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8);
-              if (hitMapSubType === "block") {
-                replaceMap(hitMapX, hitMapY, '.');
-              }
-              else if (hitMapSubType === "block_coin") {
-                replaceMap(hitMapX, hitMapY, '¥');
-              }
-              else if (hitMapSubType === "block_heart") {
-                replaceMap(hitMapX, hitMapY, '?');
-              }
-              else if (hitMapSubType === "block_door") {
-                replaceMap(hitMapX, hitMapY, '∑');
-              }
-              // びっくりブロック◊
-              else if (hitMapSubType === "bomb") {
-                replaceMap(hitMapX, hitMapY, '.');
-                createGimmick("bakufu", hitMapX * 16, hitMapY * 16, 0, 0);
-              }
-              // 解錠
-              else if (hitMapSubType === "lock" && collectedKeyNum > 0) {
+              if (getMapSubType(shotArray[i].x + 8, shotArray[i].y + 8) === "lock" && collectedKeyNum > 0) {
                 collectedKeyNum--;
                 replaceMap(hitMapX, hitMapY, '.');
                 changedMapList.push({ level: levelName, x: hitMapX, y: hitMapY, replaceTo: '.' });
                 for (let j = 0; j < 4; j++) {
                   createEffect("yellow_glitter_slow", shotArray[i].x + 8, shotArray[i].y + 8, Math.cos(2 * Math.PI * (j * 2 + 1) / 8) * 4, Math.sin(2 * Math.PI * (j * 2 + 1) / 8) * 4);
-                }
-              }
-              // ベルトコンベア切り替え
-              else if (hitMapSubType === "reverse_switch") {
-                for (let y = 0; y < mapData.length; y++) {
-                  for (let x = 0; x < mapData[y].length; x++) {
-                    if (mapData[y][x] === "≥") replaceMap(x, y, "≤");
-                    else if (mapData[y][x] === "≤") replaceMap(x, y, "≥");
-                    else if (mapData[y][x] === "»") replaceMap(x, y, "«");
-                    else if (mapData[y][x] === "«") replaceMap(x, y, "»");
-                  }
                 }
               }
             }
