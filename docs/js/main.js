@@ -468,6 +468,7 @@ const mapChip = {
   "¬": { id: [36], dulation: 1, type: "wall", subtype: "none" }, // alt + l
   "¡": { id: [37], dulation: 1, type: "wall", subtype: "ice" }, // alt + 1
   "◊": { id: [38, 39], dulation: 8, type: "wall", subtype: "bomb" }, // alt + shift + v
+  "√": { id: [38, 39], dulation: 8, type: "wall", subtype: "bomb_fast" }, // alt + v
   "=": { id: [40], dulation: 1, type: "bridge", subtype: "ice" },
   "©": { id: [41], dulation: 1, type: "wall", subtype: "none" }, // alt + g
   "•": { id: [42], dulation: 1, type: "wall", subtype: "none" }, // alt + 8
@@ -823,6 +824,8 @@ let bossHpBarReduceCounter = 100;
 let timeCounter = 0;
 let isResumedNow = false;
 let backToSelectCount = 0;
+let hitStop = 0;
+let keyInputStorage = []; // ヒットストップ中の入力を保管（z,xのみ）
 
 // get map type from pixel coordinate (output: type of mapchip Object)
 // 注意：一方通行床は上4ドット分のみ検出
@@ -941,27 +944,39 @@ let movesAffectedByMap = (character) => {
 };
 
 // ピクセル座標（x,y）のマップチップが攻撃を受けたときの効果
+// 地形破壊時は true を返す
 let attackToMap = (x, y) => {
+  let isDestroying = false;
   let mapX = Math.floor(x / gridSize);
   let mapY = Math.floor(y / gridSize);
   let subType = getMapSubType(x, y);
   // ブロック
   if (subType === "block") {
     replaceMap(mapX, mapY, '.');
+    isDestroying = true;
   }
   else if (subType === "block_coin") {
     replaceMap(mapX, mapY, '¥');
+    isDestroying = true;
   }
   else if (subType === "block_heart") {
     replaceMap(mapX, mapY, '?');
+    isDestroying = true;
   }
   else if (subType === "block_door") {
     replaceMap(mapX, mapY, '∑');
+    isDestroying = true;
   }
-  // びっくりブロック◊
+  // びっくりブロック◊√
   else if (subType === "bomb") {
     replaceMap(mapX, mapY, '.');
     createGimmick("bakufu", mapX * gridSize, mapY * gridSize, 0, 0); // 誘爆ギミック発動
+    isDestroying = true;
+  }
+  else if (subType === "bomb_fast") {
+    replaceMap(mapX, mapY, '.');
+    createGimmick("bakufu", mapX * gridSize, mapY * gridSize, 0, 0).initParam = 6; // 誘爆ギミック発動（ちょっと速い）
+    isDestroying = true;
   }
   // ベルトコンベア切り替えスイッチ
   else if (subType === "reverse_switch") {
@@ -974,6 +989,14 @@ let attackToMap = (x, y) => {
       }
     }
   }
+  //破壊時、エフェクト発生
+  if (isDestroying) {
+    createEffect("miniexplode", mapX * gridSize, mapY * gridSize, 0, 0)
+    for (let i = 0; i < 2; i++) {
+      createEffect("miniblock", x, y, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 300) * -0.01);
+    }
+  }
+  return isDestroying;
 };
 
 // 地形と重力の影響を受ける物体の速度(dx, dy, px, py, rx, ry)を更新
@@ -2500,6 +2523,7 @@ const gimmickData = {
     "anime": null,
     "move": (me) => {
       me.isNoHit = true;
+      if (me.initParam === 0) me.initParam = 8; // 次の爆風の発生までのタイムラグ
       if (me.isParamEmpty()) {
         me.setParam(0, 0);
         createEffect("miniexplode", me.x, me.y, 0, 0)
@@ -2507,14 +2531,14 @@ const gimmickData = {
           createEffect("miniblock", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 150) * 0.01 * (i % 2 * 2 - 1), randInt(50, 300) * -0.01);
         }
       }
-      if (me.incParam(0) === 8) {
+      if (me.incParam(0) === me.initParam) {
         me.hp = 0;
         let neighborX = [0, 1, 0, -1];
         let neighborY = [1, 0, -1, 0];
         for (let i = 0; i < 4; i++) {
           let neighborMapchip = getMapSubType(me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]);
-          if (neighborMapchip != "hard" && neighborMapchip != "hard_coin" && neighborMapchip != "bomb") continue;
-          createGimmick("bakufu", me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]);
+          if (neighborMapchip != "hard" && neighborMapchip != "hard_coin" && neighborMapchip != "bomb" && neighborMapchip != "bomb_fast") continue;
+          createGimmick("bakufu", me.x + 16 * neighborX[i], me.y + 16 * neighborY[i]).initParam = me.initParam;
           replaceMap(me.x / 16 + neighborX[i], me.y / 16 + neighborY[i], neighborMapchip === "hard_coin" ? '¥' : '.');
         }
       }
@@ -3417,7 +3441,7 @@ let sceneList = {
     },
     "update": () => {
       const plcMaxSpeedX = 1.25;
-      if (!stopFlag) {
+      if (!stopFlag && hitStop <= 0) {
         //============================= move character ================================
         // gimmick move
         plc.riding = null;
@@ -3495,7 +3519,7 @@ let sceneList = {
         // hit wall -> stop
         if ((isTouchingLeftWall(plc) && plc.dx < 0) || (isTouchingRightWall(plc) && plc.dx > 0)) {
           plc.dx = 0;
-          if (isDashing) {
+          if (isDashing) { // ダッシュ効果時
             isDashing = false;
             plc.dy = -2.0;
             plc.y -= 1; // 跳ね返らせるために地面から少し浮かせる
@@ -3600,13 +3624,13 @@ let sceneList = {
           }
         }
         // jump
-        if (isKeyPressedNow("z") && coyoteTime > 0) {
+        if ((isKeyPressedNow("z") || keyInputStorage.indexOf("z") != -1) && coyoteTime > 0) {
           plc.dy = -2.5;
           isJumping = true;
           coyoteTime = 0;
         }
         // create shot
-        if (isKeyPressedNow("x") && shotArray.length < shotMax && !isDashing) {
+        if ((isKeyPressedNow("x") || keyInputStorage.indexOf("x") != -1) && shotArray.length < shotMax && !isDashing) {
           let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
           newShot.dx = plc.direction === "left" ? -2 : 2;
           newShot.direction = plc.direction;
@@ -3685,10 +3709,24 @@ let sceneList = {
         }
         // dash bash & effect
         if (isDashing) {
+          plc.reaction = 0;
+          // 地形破壊
+          let isDestroying = false;
+          isDestroying |= attackToMap((plc.lTopX() + plc.rBottomX()) / 2, plc.rBottomY() - gridSize);
+          isDestroying |= attackToMap((plc.direction === "left" ? plc.lTopX() - 1: plc.rBottomX() + 1) + plc.dx + plc.px + plc.rx, plc.rBottomY() + plc.dy + plc.py + plc.ry - gridSize);
+          isDestroying |= attackToMap((plc.direction === "left" ? plc.lTopX() - 1: plc.rBottomX() + 1) + plc.dx + plc.px + plc.rx, plc.rBottomY() + plc.dy + plc.py + plc.ry);
+          if (isDestroying) {
+            quakeTimeY = 10;
+            hitStop = 4;
+          }
+          // 敵破壊
           enemyArray.forEach((e) => {
             if (!e.isHit(plc) || e.isNoHitWithPlc) return;
             e.hp -= 99;
+            hitStop = 4;
+            quakeTimeY = 10;
           });
+          // 残像エフェクト
           if (timeCounter % 4 === 0) {
             createEffect(plc.direction === "left" ? "afterimage_l" : "afterimage_r", plc.x, plc.y, 0, 0);
           }
@@ -3737,6 +3775,9 @@ let sceneList = {
         // update player position
         moveAndCheckCollisionWithMap(plc);
 
+        // キー入力バッファをリセット
+        keyInputStorage = [];
+
       } // stop flag が立ってない時の処理 ここまで！
 
       else if (plc.hp <= 0) { // ミス！
@@ -3769,7 +3810,7 @@ let sceneList = {
         }
       }
 
-      else if (collectedMedal[2]) {
+      else if (collectedMedal[2]) { // 3枚目のメダル獲得 = クリア
         shotArray.length = 0;
         plc.reaction = 0;
         if (++clearAnimeCounter === 180) {
@@ -3789,6 +3830,18 @@ let sceneList = {
           writeSaveData(currentSaveData);
           setTransition("stageselect");
         }
+      }
+
+      else if (hitStop > 0) { // ヒットストップ中
+        // ストップ中の入力を保管
+        if (isKeyPressedNow("z")) {
+          keyInputStorage.push("z");
+        }
+        if (isKeyPressedNow("x")) {
+          keyInputStorage.push("x");
+        }
+        // ストップカウンター減少
+        hitStop--;
       }
 
       // ******************
@@ -4201,7 +4254,7 @@ let sceneOverLayList = {
       let displayText = "- P A U S E -";
       let displaySize = useriCtx.measureText(displayText);
       useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 64);
-      displayText = "Q: 再開    X長押し: ステージを出る";
+      displayText = "[Q] 再開    [X長押し] ステージを出る";
       displaySize = useriCtx.measureText(displayText);
       useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 112);
       if (backToSelectCount > 0) {
@@ -4236,13 +4289,13 @@ let gameLoop = async () => {
   keyPressedPrevious = keyPressed.slice(); // storage previous key input
   keyPressed = keyInput.slice();
   // in game
-  // scene
   // scene (over lay)
   if (overLayInitFlag) {
     overLayInitFlag = false;
     sceneOverLayList[sceneOverLay]["init"]();
   }
   sceneOverLayList[sceneOverLay]["update"]();
+  // scene
   if (initFlag) {
     backgCtx.clearRect(0, 0, 640, 480);
     initFlag = false;
