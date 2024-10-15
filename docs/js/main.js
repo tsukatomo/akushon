@@ -414,8 +414,9 @@ let animeData = {
   "tool": {
     "lifeup": { frames: 1, dulation: 8, img: [0], repeat: true },
     "shotup": { frames: 1, dulation: 8, img: [1], repeat: true },
-    "bottle": { frames: 1, dulation: 8, img: [2], repeat: true },
-    "default": { frames: 1, dulation: 8, img: [3], repeat: true }
+    "lengthup": { frames: 1, dulation: 8, img: [2], repeat: true },
+    "bottle": { frames: 1, dulation: 8, img: [3], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [4], repeat: true }
   },
   "toolcursor": {
     "default": { frames: 4, dulation: 8, img: [0, 1, 2, 1], repeat: true }
@@ -787,6 +788,7 @@ class CharacterSprite extends Sprite {
 
 let plc;
 let plcMaxHp = 4;
+const defaultPlcMaxHp = 3;
 let enemyArray = [];
 let shotArray = [];
 let itemArray = [];
@@ -794,8 +796,11 @@ let gimmickArray = [];
 let effectArray = [];
 let effectSubArray = []; // stopFlag が true の時に動くエフェクト
 let doorArray = []; // ドア情報を格納
-const shotMax = 5;
+const shotMax = 8;
 let shotPower = 2;
+let shotVanishTime = 30;
+const defaultShotPower = 2;
+const defaultShotVanishTime = 30;      
 let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
 let isJumping = false;
 let isDashing = false;
@@ -2735,7 +2740,7 @@ const toolData = {
   },
   "lifeup2": {
     anime: "lifeup",
-    price: 200,
+    price: 100,
     name: "ライフアップ",
     explain_merchan: "最大HPが1増えるよー",
     explain_normal: "最大HP+1",
@@ -2748,7 +2753,7 @@ const toolData = {
   },
   "lifeup3": {
     anime: "lifeup",
-    price: 1000,
+    price: 500,
     name: "ライフアップ",
     explain_merchan: "最大HPが1増えるよー",
     explain_normal: "最大HP+1",
@@ -2761,7 +2766,7 @@ const toolData = {
   },
   "shotup1": {
     anime: "shotup",
-    price: 300,
+    price: 200,
     name: "ショット威力アップ",
     explain_merchan: "与えるダメージが増えるよー",
     explain_normal: "与ダメージ増加",
@@ -2772,16 +2777,17 @@ const toolData = {
       shotPower += 1;
     }
   },
-  "dummy1": {
-    anime: "default",
-    price: 999999,
-    name: "ダミーアイテム",
-    explain_merchan: "なにこれー？",
-    explain_normal: "なんじゃこりゃ",
+  "lengthup": {
+    anime: "lengthup",
+    price: 400,
+    name: "ショット飛距離アップ",
+    explain_merchan: "射程が少し伸びるよー",
+    explain_normal: "射程強化",
     sell_condition: () => {
-      return false;
+      return (saveDataObject.progress > 2);
     },
     effect: () => {
+      shotVanishTime += 10;
     }
   },
   "dummy2": {
@@ -3021,8 +3027,9 @@ let sceneList = {
       ssCursorL = new Sprite("c", 3 * gridSize, 6 * gridSize, 32, 64, imgSSCursorL, animeData["sscursor"]);
       ssCursorR = new Sprite("c", 15 * gridSize, 6 * gridSize, 32, 64, imgSSCursorR, animeData["sscursor"]);
       // パラメータを装備アイテム適用前のデフォルト値に設定
-      plcMaxHp = 3;
-      shotPower = 2;
+      plcMaxHp = defaultPlcMaxHp;
+      shotPower = defaultShotPower;
+      shotVanishTime = defaultShotVanishTime;
       // カーソル位置がおかしかったら修正
       if (stageId > saveDataObject.progress) {
         stageId = 0;
@@ -3644,7 +3651,7 @@ let sceneList = {
           shotArray[i].x += shotArray[i].dx;
           shotArray[i].param[0]++;
           if (shotArray[i].anitype === "shot") {
-            let isShotVanish = shotArray[i].param[0] >= 30; // 自然消滅
+            let isShotVanish = shotArray[i].param[0] >= shotVanishTime; // 自然消滅
             isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"; // 壁に激突
             // 敵にヒット
             enemyArray.forEach((e) => {
