@@ -45,8 +45,6 @@ let imgElectroJar = [new Image(), new Image()];
 imgElectroJar[0].src = "./img/electrojar.png";
 let imgTulip = [new Image(), new Image()];
 imgTulip[0].src = "./img/tulip.png";
-let imgBomb = [new Image(), new Image()];
-imgBomb[0].src = "./img/the_bomb2.png";
 let imgMinionSlime = [new Image(), new Image()];
 imgMinionSlime[0].src = "./img/minionslime.png";
 let imgDanmakuYellow = [new Image(), new Image()];
@@ -65,6 +63,8 @@ let imgRenchin = [new Image(), new Image()];
 imgRenchin[0].src = "./img/renchin.png";
 let imgBigWatage = [new Image(), new Image()];
 imgBigWatage[0].src = "./img/bigwatage.png";
+let imgRedDragon = [new Image(), new Image()];
+imgRedDragon[0].src = "./img/red_dragon.png";
 
 // item
 let imgKey = [new Image(), new Image()];
@@ -155,7 +155,6 @@ let shadowList = [
   imgSlimeLauncher,
   imgElectroJar,
   imgTulip,
-  imgBomb,
   imgMinionSlime,
   imgDanmakuYellow,
   imgDanmakuWhite,
@@ -164,6 +163,7 @@ let shadowList = [
   imgBigPumpkin,
   imgRenchin,
   imgBigWatage,
+  imgRedDragon,
   imgKey,
   imgMedal,
   imgMoveFloor,
@@ -291,14 +291,6 @@ let animeData = {
     "stop_d": { frames: 1, dulation: 8, img: [7], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true },
   },
-  "bomb": {
-    "count_4": { frames: 2, dulation: 6, img: [0, 1], repeat: true },
-    "count_3": { frames: 2, dulation: 6, img: [2, 3], repeat: true },
-    "count_2": { frames: 2, dulation: 6, img: [4, 5], repeat: true },
-    "count_1": { frames: 2, dulation: 6, img: [6, 7], repeat: true },
-    "bomb!": { frames: 1, dulation: 8, img: [8], repeat: false },
-    "default": { frames: 1, dulation: 8, img: [9], repeat: true }
-  },
   "bomb_bakuhu": {
     "type_1": { frames: 8, dulation: 4, img: [0, 1, 2, 3, 4, 5, 6, 7], repeat: false },
     "type_2": { frames: 8, dulation: 4, img: [8, 9, 10, 11, 12, 13, 14, 15], repeat: false },
@@ -346,6 +338,17 @@ let animeData = {
     "damage": { frames: 2, dulation: 4, img: [2, 1], repeat: false },
     "yarare": { frames: 1, dulation: 8, img: [3], repeat: true },
     "angry": { frames: 1, dulation: 8, img: [4], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "reddragon": {
+    "habataki_l": { frames: 6, dulation: 6, img: [0, 1, 2, 3, 4, 5], repeat: true },
+    "breath_l": { frames: 6, dulation: 6, img: [6, 7, 8, 9, 10, 11], repeat: false },
+    "habataki_r": { frames: 6, dulation: 6, img: [12, 13, 14, 15, 16, 17], repeat: true },
+    "breath_r": { frames: 6, dulation: 6, img: [18, 19, 20, 21, 22, 23], repeat: false },
+    "yarare_l": { frames: 1, dulation: 8, img: [24], repeat: true },
+    "yarare_r": { frames: 1, dulation: 8, img: [25], repeat: true },
+    "rotate_l2r": { frames: 3, dulation: 4, img: [26, 27, 28], repeat: false },
+    "rotate_r2l": { frames: 3, dulation: 4, img: [28, 27, 26], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "key": {
@@ -1494,105 +1497,6 @@ const enemyData = {
       }
     }
   },
-  // 爆弾
-  "b": { // bomb TODO: Infinite respawn
-    "type": "normal",
-    "w": 32,
-    "h": 32,
-    "box": [6, 11, 25, 30],
-    "hit": [8, 12, 23, 27],
-    "hp": 9999,
-    "img": imgBomb,
-    "anime": "bomb",
-    "move": (me) => {
-      if (me.isParamEmpty()) {
-        me.setParam(0, 0); // カウントダウン
-        me.setParam(1, "normal"); // 状態
-        me.isNoHitWithPlc = true;
-      }
-      // カウントダウン
-      if (me.getParam(1) === "fire") {
-        me.incParam(0);
-        me.changeAnime(me.getParam(0) > 180 ? "count_1" : me.getParam(0) > 120 ? "count_2" : me.getParam(0) > 60 ? "count_3" : "count_4");
-      }
-      // 爆発
-      if (me.getParam(0) > 240 && me.getParam(1) === "fire") {
-        me.isNoHitWithShot = true;
-        me.type = "danmaku";
-        me.startAnime("bomb!");
-        me.setParam(1, "bomb");
-        me.setParam(0, 0);
-        quakeTimeY = 20;
-        for (let i = 0; i < 8; i++) {
-          createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
-        }
-        // 自機と衝突判定のある爆風を発生
-        createEnemy("bomb_bakuhu", me.lTopX() - 20, me.lTopY() - 20, 0, 0);
-        createEnemy("bomb_bakuhu", me.rBottomX() - 12, me.lTopY() - 20, 0, 0);
-        createEnemy("bomb_bakuhu", me.lTopX() - 20, me.rBottomY() - 12, 0, 0);
-        createEnemy("bomb_bakuhu", me.rBottomX() - 12, me.rBottomY() - 12, 0, 0);
-        // 爆弾の衝突判定を拡張
-        [me.hltx, me.hlty, me.hrbx, me.hrby] = [me.hltx - 16, me.hlty - 16, me.hrbx + 16, me.hrby + 16];
-        // 敵を破壊
-        enemyArray.forEach((e) => {
-          if (me.isHit(e) && e.type != "danmaku") {
-            e.hp -= 50;
-          }
-        });
-      }
-      // 爆発後
-      if (me.getParam(1) === "bomb") {
-        me.incParam(0);
-        if (me.getParam(0) < 30) { // 爆発エフェクト
-          if (me.getParam(0) % 6 === 0) {
-            createEnemy("bomb_bakuhu", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
-          }
-          else if (me.getParam(0) % 6 === 3) {
-            createEnemy("bomb_bakuhu", randInt((me.hLTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
-          }
-        }
-        else { // スプライト消去
-          me.hp = 0;
-        }
-      }
-      // 移動
-      if (me.getParam(1) === "bomb") {
-        me.dx = 0;
-        me.dy = 0;
-        me.px = 0;
-        me.py = 0;
-        me.rx = 0;
-        me.ry = 0;
-      }
-      else {
-        if (isOnLand(me)) {
-          me.dx = 0;
-          me.dy = 0;
-        }
-        else {
-          me.dy += 0.125;
-          if (me.dy > 4) me.dy = 4;
-          if (isTouchingLeftWall(me) && me.dx < 0) me.dx = - me.dx;
-          if (isTouchingRightWall(me) && me.dx > 0) me.dx = - me.dx;
-        }
-        // ショットとの衝突
-        shotArray.forEach((e) => {
-          if (!e.isHit(me)) return;
-          if (me.getParam(1) === "normal") me.setParam(1, "fire");
-          me.dy = -3.5;
-          me.dx = 1.0 * (e.direction === "right" ? 1 : -1);
-        });
-        if (isHeading(me)) me.dy = -me.dy;
-        me.px = 0;
-        me.py = 0;
-        me.rx = 0;
-        me.ry = 0;
-        me.rideOn();
-        movesAffectedByMap(me);
-        moveAndCheckCollisionWithMap(me);
-      }
-    }
-  },
   "minion": { // Minion Slime
     "type": "normal",
     "w": 16,
@@ -1712,28 +1616,6 @@ const enemyData = {
         me.hp = 0;
       }
       moveAndCheckCollisionWithMap(me);
-    }
-  },
-  "bomb_bakuhu": { // 爆弾から発生する爆風
-    "type": "danmaku",
-    "w": 32,
-    "h": 32,
-    "box": [8, 8, 23, 23],
-    "hit": [8, 8, 23, 23],
-    "hp": 1,
-    "img": imgBombEffect,
-    "anime": "bomb_bakuhu",
-    "move": (me) => {
-      if (me.isParamEmpty()) {
-        me.setParam(0, 0);
-        me.startAnime(randInt(0, 1) === 0 ? "type_1" : "type_2");
-      }
-      if (me.incParam(0) > 4) {
-        me.isNoHit = true;
-      }
-      if (me.isEndAnime()) {
-        me.hp = 0;
-      }
     }
   },
   "watage_satelite": { // ボスわたげの周囲のビット
@@ -2170,6 +2052,157 @@ const enemyData = {
         }
       }
     }
+  },
+  "d": { // red dragon
+    "type": "boss",
+    "w": 80,
+    "h": 80,
+    "box": [24, 12, 55, 56],
+    "hit": [24, 12, 55, 56],
+    "hp": 300,
+    "img": imgRedDragon,
+    "anime": "reddragon",
+    "move": (me) => {
+      let directionLX = cameraX + gridSize * 14; // 左向きのときのドラゴンの静止座標
+      let directionRX = cameraX + gridSize * 1; // 右向きのときのドラゴンの静止座標    
+      me.isNoHit = true; // 戦闘中以外衝突判定しない
+      if (me.isParamEmpty()) { // 変数初期化
+        me.setParam(0, 0); // 時間カウンター !!メモ：この個別パラメータはボスキャラ共通ですぞ!!
+        me.setParam(1, "wait"); // 行動タグ
+        me.setParam(2, 0); // 行動カウンター
+        me.setParam(3, me.x); // 初期位置x
+        me.setParam(4, me.y); // 初期位置y
+        me.setParam(5, 0); // 火吹きカウンター
+        me.setParam(10, me.hp); // HP変動チェック
+      }
+      switch (bossBattlePhase) {
+        case "none":
+          me.x = directionLX;
+          me.y = -128;
+          me.direction = "left";
+          me.changeAnime("habataki_l");
+          break;
+        case "entrance":
+          me.y += 2;
+          if (me.y >= me.getParam(4)) {
+            initBossHpBar(me.hp);
+            bossBattlePhase = "fight";
+            me.y = me.getParam(4);
+          }
+          break;
+        case "fight":
+          me.isNoHit = false;
+          me.incParam(2);
+          if (me.getParam(1) === "wait") {
+            me.changeAnime(me.direction === "left" ? "habataki_l" : "habataki_r");
+            me.x = me.direction === "left" ? directionLX : directionRX;
+            me.y = me.getParam(4);
+            if (me.getParam(2) > 200) {
+              if (me.getParam(5) >= 3) {
+                me.setParam(1, me.direction === "left" ? "fly_to_l" : "fly_to_r");
+                me.setParam(2, 0);
+                me.setParam(5, 0); // 火吹き回数リセット
+              }
+              else {
+                me.setParam(1, "breath");
+                me.setParam(2, 0);
+              }
+            }
+          }
+          else if (me.getParam(1) === "breath") { // 火吹き
+            if (me.getParam(2) === 1) me.startAnime(me.direction === "left" ? "breath_l" : "breath_r");
+            if (me.getParam(2) === 20) { // 火吹き開始後20Fで弾幕放出
+              let fireSpd = 1.25; // 弾幕の速さ
+              let mouthX = me.direction === "left" ? 4 : 59; // ドラゴンの口の位置（弾幕放出箇所）
+              let mouthY = 20;
+              let theta = Math.atan2(plc.y - me.y - mouthY, plc.x - me.x - mouthX); // 真ん中の弾幕の射出角度
+              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta) * fireSpd, Math.sin(theta) * fireSpd);
+              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta - Math.PI / 4) * fireSpd, Math.sin(theta - Math.PI / 4) * fireSpd);
+              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta - Math.PI / 8) * fireSpd, Math.sin(theta - Math.PI / 8) * fireSpd);
+              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta + Math.PI / 4) * fireSpd, Math.sin(theta + Math.PI / 4) * fireSpd);
+              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta + Math.PI / 8) * fireSpd, Math.sin(theta + Math.PI / 8) * fireSpd);
+            }
+            if (me.getParam(2) >= 36) {
+              me.setParam(2, 0);
+              if (me.incParam(5) >= 3) {
+                console.log(me.getParam(5));
+                me.setParam(1, "wait");
+              }
+              else {
+                me.setParam(1, "breath");
+              }
+            }
+          }
+          else if (me.getParam(1) === "fly_to_l") { // 上空へ退避（右から左）
+            //me.direction = me.x > (directionLX + directionRX) / 2 ? "left" : "right";
+            if (me.isEndAnime()) {
+              me.direction = "right";
+              me.changeAnime("habataki_r");
+            }
+            if (me.getParam(2) === 75) {
+              me.changeAnime("rotate_l2r");  
+            }
+            me.x = Math.cos(2 * Math.PI * me.getParam(2) / 300) * (directionLX - directionRX) / 2 + (directionLX + directionRX) / 2;
+            me.y = -Math.pow(Math.sin(2 * Math.PI * me.getParam(2) / 300), 2) * 72 + me.getParam(4);
+            if (me.getParam(2) > 150) {
+              me.y = me.getParam(4);
+              me.setParam(2, 0);
+              me.setParam(1, "breath");
+            }
+          }
+          else if (me.getParam(1) === "fly_to_r") { // 上空へ退避（左から右）
+            if (me.isEndAnime()) {
+              me.direction = "left";
+              me.changeAnime("habataki_l");
+            }
+            if (me.getParam(2) === 75) {
+              me.changeAnime("rotate_r2l");  
+            }
+            me.x = -Math.cos(2 * Math.PI * me.getParam(2) / 300) * (directionLX - directionRX) / 2 + (directionLX + directionRX) / 2;
+            me.y = -Math.pow(Math.sin(2 * Math.PI * me.getParam(2) / 300), 2) * 72 + me.getParam(4);
+            if (me.getParam(2) > 150) {
+              me.y = me.getParam(4);
+              me.setParam(2, 0);
+              me.setParam(1, "breath");
+            }
+          }
+          // 被弾アニメ
+          if (me.hp < me.getParam(10)) {
+            me.setParam(10, me.hp);
+          }
+          else if (me.reaction <= 0) {
+            
+          }
+          // HPバーの描画
+          updateBossHpBar(me.hp);
+          if (me.hp <= 0) { // ぐえ〜〜
+            bossBattlePhase = "defeated";
+            me.setParam(0, 0);
+            enemyArray.forEach((e) => {
+              e.hp = 0;
+            });
+          }
+          break;
+        case "defeated":
+          me.reaction = me.incParam(0);
+          me.y += 0.25;
+          if (me.getParam(0) % 8 === 1) {
+            createEffect("explode", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+            createEffect("explode", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
+          }
+          me.changeAnime(me.direction === "left" ? "yarare_l" : "yarare_r");
+          if (me.getParam(0) > 200) {
+            for (let i = 0; i < 16; i++) {
+              createEffect("star", me.lTopX() + ((me.rbx - me.ltx) - 8) / 2, me.lTopY() + ((me.rby - me.lty) - 8) / 2, randInt(0, 250) * 0.01 * (i % 2 * 2 - 1), randInt(50, 450) * -0.01);
+            }
+            quakeTimeY = 20;
+            bossBattlePhase = "end";
+          }
+          break;
+        default:
+          break;
+      }
+    }
   }
 };
 
@@ -2341,7 +2374,9 @@ let itemData = {
     "anime": "medal",
     "move": (me) => {
       if (me.param.length === 0) { // ボス戦が終わるまで画面上方で待機
-        me.y = -64;
+        me.setParam(0, me.x);
+        me.setParam(1, me.y);
+        me.y = me.y - 480;
         me.dy = 0;
         me.param.push(0);
         me.isNoHit = true;
@@ -2350,10 +2385,8 @@ let itemData = {
         me.isNoHit = false;
       }
       if (!me.isNoHit) {
-        if (me.dy < 4.0) me.dy += 0.125;
-        if (me.y >= 72) {
-          me.dy -= 0.25;
-          if (me.dy < 0) me.dy = 0;
+        if (me.y < me.getParam(1)) {
+          me.y += (me.getParam(1) - me.y) / 24;
         }
         if (mapAnimeCount % 5 === 1 && !isMedalcollected(stageId, 2)) {
           createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
@@ -2362,7 +2395,6 @@ let itemData = {
       if (isMedalcollected(stageId, 2)) {
         me.changeAnime("collected");
       }
-      me.y += me.dy;
     },
     "obtained": (me) => {
       collectedMedal[2] = true;
