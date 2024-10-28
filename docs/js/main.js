@@ -39,6 +39,8 @@ let imgFlyingCamera = [new Image(), new Image()];
 imgFlyingCamera[0].src = "./img/flying_camera.png";
 let imgSlime = [new Image(), new Image()];
 imgSlime[0].src = "./img/slime.png";
+let imgMetalSlime = [new Image(), new Image()];
+imgMetalSlime[0].src = "./img/metalslime.png";
 let imgSlimeLauncher = [new Image(), new Image()];
 imgSlimeLauncher[0].src = "./img/slimelauncher.png";
 let imgElectroJar = [new Image(), new Image()];
@@ -152,6 +154,7 @@ let shadowList = [
   imgWatage,
   imgFlyingCamera,
   imgSlime,
+  imgMetalSlime,
   imgSlimeLauncher,
   imgElectroJar,
   imgTulip,
@@ -349,6 +352,8 @@ let animeData = {
     "yarare_r": { frames: 1, dulation: 8, img: [25], repeat: true },
     "rotate_l2r": { frames: 3, dulation: 4, img: [26, 27, 28], repeat: false },
     "rotate_r2l": { frames: 3, dulation: 4, img: [28, 27, 26], repeat: false },
+    "upperbreath_l": { frames: 12, dulation: 6, img: [29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], repeat: false },
+    "upperbreath_r": { frames: 12, dulation: 6, img: [41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52], repeat: false },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "key": {
@@ -1298,6 +1303,55 @@ const enemyData = {
       moveAndCheckCollisionWithMap(me);
     }
   },
+  "M": { // Metal Slime
+    "type": "normal",
+    "w": 32,
+    "h": 32,
+    "box": [8, 16, 23, 31],
+    "hit": [8, 16, 23, 31],
+    "hp": 9999,
+    "img": imgMetalSlime,
+    "anime": "slime",
+    "move": (me) => {
+      // 初期パラメータから移動方向を決定（指定なし(0):左/ 1:右）
+      if (me.initParam === 0) {
+        me.direction = "left";
+        me.changeAnime("turn_to_l");
+      }
+      else if (me.initParam === 1) {
+        me.direction = "right";
+        me.changeAnime("turn_to_r");
+      }
+      me.initParam = -1;
+      me.isInvincible = true; // 常時無敵
+      if (!isOnLand(me)) {
+        me.dy += 0.125;
+        me.rx = 0;
+        me.ry = 0;
+      }
+      else {
+        me.dy = 0;
+        me.px = 0;
+        me.py = 0;
+        me.rideOn();
+        movesAffectedByMap(me);
+      }
+      if (me.dy > 4) me.dy = 4;
+      if (((isOnLand(me) && getMapType(me.lTopX(), me.rBottomY() + 1) === "none" && me.px === 0) || isTouchingLeftWall(me) || me.px > 0) && me.anitype === "walk_l") {
+        me.direction = "right";
+        me.changeAnime("turn_to_r");
+      }
+      else if ((((isOnLand(me) && getMapType(me.rBottomX(), me.rBottomY() + 1) === "none" && me.px === 0) || isTouchingRightWall(me) || me.px < 0) && me.anitype === "walk_r")) {
+        me.direction = "left";
+        me.changeAnime("turn_to_l");
+      }
+      if (me.isEndAnime()) {
+        me.changeAnime(me.direction === "left" ? "walk_l" : "walk_r");
+      }
+      me.dx = 0.325 * (me.anitype === "walk_l" ? -1 : me.anitype === "walk_r" ? 1 : 0);
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
   "f": { // flying camera
     "type": "flight",
     "w": 16,
@@ -2064,15 +2118,28 @@ const enemyData = {
     "anime": "reddragon",
     "move": (me) => {
       let directionLX = cameraX + gridSize * 14; // 左向きのときのドラゴンの静止座標
-      let directionRX = cameraX + gridSize * 1; // 右向きのときのドラゴンの静止座標    
+      let directionRX = cameraX + gridSize * 1; // 右向きのときのドラゴンの静止座標
+      let actionPattern = [
+        [["fly", 160], ["breath", 36], ["wait", 72], ["breath", 36], ["wait", 180]],
+        [["fly", 160], ["breath", 36], ["wait", 108], ["upperbreath", 72], ["wait", 144]],
+        [["fly", 160], ["upperbreath", 72], ["wait", 144]],
+        [["fly", 120], ["breath", 36], ["breath", 36], ["wait", 108], ["upperbreath", 72], ["wait", 144]],
+        [["fly", 120], ["upperbreath", 72], ["wait", 72], ["breath", 36], ["breath", 36], ["wait", 180]],
+        [["fly", 120], ["upperbreath", 72], ["wait", 18]],
+        [["fly", 90], ["wait", 36], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 72], ["upperbreath_2", 72], ["wait", 144]],
+        [["fly", 90], ["wait", 36], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 72], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 180]],
+        [["fly", 90], ["wait", 36], ["upperbreath_2", 72], ["wait", 36], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 180]],
+        [["fly", 90], ["wait", 36], ["upperbreath_2", 72], ["wait", 36], ["upperbreath", 72], ["wait", 36], ["upperbreath_2", 72], ["wait", 180]],
+        [["fly", 90]]
+      ]
       me.isNoHit = true; // 戦闘中以外衝突判定しない
       if (me.isParamEmpty()) { // 変数初期化
         me.setParam(0, 0); // 時間カウンター !!メモ：この個別パラメータはボスキャラ共通ですぞ!!
         me.setParam(1, "wait"); // 行動タグ
-        me.setParam(2, 0); // 行動カウンター
+        me.setParam(2, 0); // 行動時間カウンター
         me.setParam(3, me.x); // 初期位置x
-        me.setParam(4, me.y); // 初期位置y
-        me.setParam(5, 0); // 火吹きカウンター
+        me.setParam(4, me.y); // 初期位置y        
+        me.setParam(5, [["wait", 144], ["breath", 36], ["wait", 144]]); // 行動パターン配列
         me.setParam(10, me.hp); // HP変動チェック
       }
       switch (bossBattlePhase) {
@@ -2091,80 +2158,85 @@ const enemyData = {
           }
           break;
         case "fight":
+          // 無敵解除
           me.isNoHit = false;
-          me.incParam(2);
+          // 行動パターン変更
+          if (me.incParam(0) > me.getParam(2)){
+            if (me.getParam(5).length === 0) { // 行動パターン配列が空になったら更新
+              let patternId = me.hp > 200 ? randInt(0, 2) : me.hp > 100 ? randInt(3, 5) : randInt(6, 10);
+              me.setParam(5, actionPattern[patternId]);
+            }
+            me.setParam(0, 0);
+            let nextMove = me.getParam(5).shift();
+            me.setParam(1, nextMove[0]);
+            me.setParam(2, nextMove[1]);
+            // 受け取った行動タグが "fly" の場合、現在の向きを基に "fly_to_l" か "fly_to_r" に変更
+            if (me.getParam(1) === "fly") {
+              me.setParam(1, me.direction === "left" ? "fly_to_l" : "fly_to_r");
+            }
+          }
           if (me.getParam(1) === "wait") {
             me.changeAnime(me.direction === "left" ? "habataki_l" : "habataki_r");
             me.x = me.direction === "left" ? directionLX : directionRX;
             me.y = me.getParam(4);
-            if (me.getParam(2) > 200) {
-              if (me.getParam(5) >= 3) {
-                me.setParam(1, me.direction === "left" ? "fly_to_l" : "fly_to_r");
-                me.setParam(2, 0);
-                me.setParam(5, 0); // 火吹き回数リセット
-              }
-              else {
-                me.setParam(1, "breath");
-                me.setParam(2, 0);
-              }
-            }
           }
           else if (me.getParam(1) === "breath") { // 火吹き
-            if (me.getParam(2) === 1) me.startAnime(me.direction === "left" ? "breath_l" : "breath_r");
-            if (me.getParam(2) === 20) { // 火吹き開始後20Fで弾幕放出
+            if (me.getParam(0) === 1) me.startAnime(me.direction === "left" ? "breath_l" : "breath_r");
+            if (me.getParam(0) === 20) { // 火吹き開始後20Fで弾幕放出
               let fireSpd = 1.25; // 弾幕の速さ
               let mouthX = me.direction === "left" ? 4 : 59; // ドラゴンの口の位置（弾幕放出箇所）
               let mouthY = 20;
               let theta = Math.atan2(plc.y - me.y - mouthY, plc.x - me.x - mouthX); // 真ん中の弾幕の射出角度
               createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta) * fireSpd, Math.sin(theta) * fireSpd);
-              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta - Math.PI / 4) * fireSpd, Math.sin(theta - Math.PI / 4) * fireSpd);
-              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta - Math.PI / 8) * fireSpd, Math.sin(theta - Math.PI / 8) * fireSpd);
-              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta + Math.PI / 4) * fireSpd, Math.sin(theta + Math.PI / 4) * fireSpd);
-              createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta + Math.PI / 8) * fireSpd, Math.sin(theta + Math.PI / 8) * fireSpd);
-            }
-            if (me.getParam(2) >= 36) {
-              me.setParam(2, 0);
-              if (me.incParam(5) >= 3) {
-                console.log(me.getParam(5));
-                me.setParam(1, "wait");
+              if (me.hp > 200) {
+                createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta - Math.PI / 6) * fireSpd, Math.sin(theta - Math.PI / 6) * fireSpd);
+                createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta + Math.PI / 6) * fireSpd, Math.sin(theta + Math.PI / 6) * fireSpd);
               }
               else {
-                me.setParam(1, "breath");
+                createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta - Math.PI / 4) * fireSpd, Math.sin(theta - Math.PI / 4) * fireSpd);
+                createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta - Math.PI / 8) * fireSpd, Math.sin(theta - Math.PI / 8) * fireSpd);
+                createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta + Math.PI / 4) * fireSpd, Math.sin(theta + Math.PI / 4) * fireSpd);
+                createEnemy("danmaku_red", me.x + mouthX, me.y + mouthY, Math.cos(theta + Math.PI / 8) * fireSpd, Math.sin(theta + Math.PI / 8) * fireSpd);
               }
             }
           }
+          else if (me.getParam(1) === "upperbreath") { // 上むき火吹き
+            if (me.getParam(0) === 1) me.startAnime(me.direction === "left" ? "upperbreath_l" : "upperbreath_r");
+            if (20 <= me.getParam(0) && me.getParam(0) < 60 && me.getParam(0) % 10 === 0 ) { // 火吹き開始後20F後、8Fごとに射出
+              let mouthX = me.direction === "left" ? 16 : 47; // ドラゴンの口の位置（弾幕放出箇所）
+              let mouthY = 0;
+              createEnemy("danmaku_yellow", me.x + mouthX, me.y + mouthY, (3.00 - Math.floor(me.getParam(0) / 10) * 0.5) * (me.direction === "left" ? -1 : 1), -2.00);
+            }
+          }
+          else if (me.getParam(1) === "upperbreath_2") { // 上むき火吹き(強化)
+            if (me.getParam(0) === 1) me.startAnime(me.direction === "left" ? "upperbreath_l" : "upperbreath_r");
+            if (20 < me.getParam(0) && me.getParam(0) < 60 && me.getParam(0) % 6 === 0 ) { // 火吹き開始後20F後、6Fごとに射出
+              let mouthX = me.direction === "left" ? 16 : 47; // ドラゴンの口の位置（弾幕放出箇所）
+              let mouthY = 0;
+              createEnemy("danmaku_yellow", me.x + mouthX, me.y + mouthY, (3.75 - Math.floor(me.getParam(0) / 6) * 0.38) * (me.direction === "left" ? -1 : 1), -2.25);
+            }
+          }
           else if (me.getParam(1) === "fly_to_l") { // 上空へ退避（右から左）
-            //me.direction = me.x > (directionLX + directionRX) / 2 ? "left" : "right";
             if (me.isEndAnime()) {
               me.direction = "right";
               me.changeAnime("habataki_r");
             }
-            if (me.getParam(2) === 75) {
+            if (me.getParam(0) === Math.floor(me.getParam(2) / 2)) {
               me.changeAnime("rotate_l2r");  
             }
-            me.x = Math.cos(2 * Math.PI * me.getParam(2) / 300) * (directionLX - directionRX) / 2 + (directionLX + directionRX) / 2;
-            me.y = -Math.pow(Math.sin(2 * Math.PI * me.getParam(2) / 300), 2) * 72 + me.getParam(4);
-            if (me.getParam(2) > 150) {
-              me.y = me.getParam(4);
-              me.setParam(2, 0);
-              me.setParam(1, "breath");
-            }
+            me.x = Math.cos(2 * Math.PI * me.getParam(0) / (me.getParam(2) * 2)) * (directionLX - directionRX) / 2 + (directionLX + directionRX) / 2;
+            me.y = -Math.pow(Math.sin(2 * Math.PI * me.getParam(0) / (me.getParam(2) * 2)), 2) * 72 + me.getParam(4);
           }
           else if (me.getParam(1) === "fly_to_r") { // 上空へ退避（左から右）
             if (me.isEndAnime()) {
               me.direction = "left";
               me.changeAnime("habataki_l");
             }
-            if (me.getParam(2) === 75) {
+            if (me.getParam(0) === Math.floor(me.getParam(2) / 2)) {
               me.changeAnime("rotate_r2l");  
             }
-            me.x = -Math.cos(2 * Math.PI * me.getParam(2) / 300) * (directionLX - directionRX) / 2 + (directionLX + directionRX) / 2;
-            me.y = -Math.pow(Math.sin(2 * Math.PI * me.getParam(2) / 300), 2) * 72 + me.getParam(4);
-            if (me.getParam(2) > 150) {
-              me.y = me.getParam(4);
-              me.setParam(2, 0);
-              me.setParam(1, "breath");
-            }
+            me.x = -Math.cos(2 * Math.PI * me.getParam(0) / (me.getParam(2) * 2)) * (directionLX - directionRX) / 2 + (directionLX + directionRX) / 2;
+            me.y = -Math.pow(Math.sin(2 * Math.PI * me.getParam(0) / (me.getParam(2) * 2)), 2) * 72 + me.getParam(4);
           }
           // 被弾アニメ
           if (me.hp < me.getParam(10)) {
@@ -2185,7 +2257,6 @@ const enemyData = {
           break;
         case "defeated":
           me.reaction = me.incParam(0);
-          me.y += 0.25;
           if (me.getParam(0) % 8 === 1) {
             createEffect("explode", randInt(me.lTopX() - 32, (me.lTopX() + me.rBottomX()) / 2 - 16), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
             createEffect("explode", randInt((me.lTopX() + me.rBottomX()) / 2 - 16, me.rBottomX()), randInt(me.lTopY() - 32, me.rBottomY()), 0, 0);
@@ -4298,9 +4369,9 @@ let sceneOverLayList = {
       useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 112);
       if (backToSelectCount > 0) {
         useriCtx.fillStyle = "#c16c5b";
-        useriCtx.fillRect(0, 220, backToSelectCount * 4, 8);
+        useriCtx.fillRect(0, 188, backToSelectCount * 4, 8);
         useriCtx.fillStyle = "#bebbb2";
-        useriCtx.fillText("ステージを脱出！", 0, 204);
+        useriCtx.fillText("ステージを脱出！", 0, 172);
       }
     }
   },
