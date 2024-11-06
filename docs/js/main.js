@@ -47,6 +47,8 @@ let imgElectroJar = [new Image(), new Image()];
 imgElectroJar[0].src = "./img/electrojar.png";
 let imgTulip = [new Image(), new Image()];
 imgTulip[0].src = "./img/tulip.png";
+let imgMechapenter = [new Image(), new Image()];
+imgMechapenter[0].src = "./img/mechapenter.png";
 let imgMinionSlime = [new Image(), new Image()];
 imgMinionSlime[0].src = "./img/minionslime.png";
 let imgDanmakuYellow = [new Image(), new Image()];
@@ -55,6 +57,10 @@ let imgDanmakuWhite = [new Image(), new Image()];
 imgDanmakuWhite[0].src = "./img/danmaku_white.png";
 let imgDanmakuRed = [new Image(), new Image()];
 imgDanmakuRed[0].src = "./img/danmaku_red.png";
+let imgHammer = [new Image(), new Image()];
+imgHammer[0].src = "./img/hammer.png";
+let imgChest = [new Image(), new Image()];
+imgChest[0].src = "./img/chestbox.png";
 let imgWatageSatelite = [new Image(), new Image()];
 imgWatageSatelite[0].src = "./img/bigwatage_satelite.png";
 
@@ -73,6 +79,8 @@ let imgKey = [new Image(), new Image()];
 imgKey[0].src = "./img/key.png";
 let imgMedal = [new Image(), new Image()];
 imgMedal[0].src = "./img/medal.png";
+let imgCoin = [new Image(), new Image()];
+imgCoin[0].src = "./img/coin.png";
 
 // gimmick
 let imgMoveFloor = [new Image(), new Image()];
@@ -158,10 +166,13 @@ let shadowList = [
   imgSlimeLauncher,
   imgElectroJar,
   imgTulip,
+  imgMechapenter,
   imgMinionSlime,
   imgDanmakuYellow,
   imgDanmakuWhite,
   imgDanmakuRed,
+  imgHammer,
+  imgChest,
   imgWatageSatelite,
   imgBigPumpkin,
   imgRenchin,
@@ -169,6 +180,7 @@ let shadowList = [
   imgRedDragon,
   imgKey,
   imgMedal,
+  imgCoin,
   imgMoveFloor,
   imgCloudLift,
   imgCloudLiftSmall,
@@ -275,6 +287,17 @@ let animeData = {
     "launch_fast": { frames: 4, dulation: 2, img: [0, 0, 1, 2], repeat: false },
     "default": { frames: 1, dulation: 8, img: [2], repeat: true }
   },
+  "mechapenter": {
+    "wait_l": { frames: 4, dulation: 6, img: [0, 1, 2, 3], repeat: true },
+    "prepare_l": { frames: 2, dulation: 6, img: [5, 4], repeat: true },
+    "throw_l": { frames: 6, dulation: 4, img: [6, 7, 8, 9, 10, 11], repeat: false },
+    "damage_l": { frames: 1, dulation: 8, img: [12], repeat: true },
+    "wait_r": { frames: 4, dulation: 6, img: [13, 14, 15, 16], repeat: true },
+    "prepare_r": { frames: 2, dulation: 6, img: [18, 17], repeat: true },
+    "throw_r": { frames: 6, dulation: 4, img: [19, 20, 21, 22, 23, 24], repeat: false },
+    "damage_r": { frames: 1, dulation: 8, img: [25], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
   "minionslime": {
     "walk_l": { frames: 2, dulation: 6, img: [0, 1], repeat: true },
     "walk_r": { frames: 2, dulation: 6, img: [2, 3], repeat: true },
@@ -312,6 +335,17 @@ let animeData = {
   "danmakured": {
     "shot": { frames: 4, dulation: 3, img: [0, 1, 2, 3], repeat: true },
     "vanish": { frames: 3, dulation: 3, img: [4, 5, 6], repeat: false },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "hammer": {
+    "stop": { frames: 1, dulation: 8, img: [0], repeat: true },
+    "spin_ccw": { frames: 4, dulation: 4, img: [1, 2, 3, 0], repeat: true },
+    "spin_cw": { frames: 4, dulation: 4, img: [3, 2, 1, 0], repeat: true },
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "chest": {
+    "close": { frames: 1, dulation: 8, img: [0], repeat: true },
+    "open": { frames: 1, dulation: 8, img: [1], repeat: true },
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "watage_satelite": {
@@ -362,6 +396,9 @@ let animeData = {
   "medal": {
     "collected": { frames: 5, dulation: 6, img: [5, 6, 7, 8, 9], repeat: true },
     "default": { frames: 5, dulation: 6, img: [0, 1, 2, 3, 4], repeat: true }
+  },
+  "coin": {
+    "default": { frames: 4, dulation: 8, img: [0, 1, 2, 3], repeat: true }
   },
   "movefloor": {
     "default": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true }
@@ -631,6 +668,8 @@ class Sprite {
     this.direction = "right";
     this.anitype = "default";
     this.anicount = 0;
+    // falseのとき、表示されない
+    this.isVisible = true;
     // speed
     this.dx = 0;
     this.dy = 0;
@@ -749,6 +788,9 @@ class CharacterSprite extends Sprite {
     this.riding = null;
     this.rx = 0;
     this.ry = 0;
+    // 初期位置のマップチップ座標（マップ読み込み時に設定、途中で召喚される物体には非設定）
+    this.firstMapX = 0;
+    this.firstMapY = 0;
   };
 
   lTopX() { return this.x + this.ltx; };
@@ -1551,6 +1593,112 @@ const enemyData = {
       }
     }
   },
+  "H": { // mechapenter
+    "type": "normal",
+    "w": 32,
+    "h": 48,
+    "box": [2, 24, 29, 47],
+    "hit": [8, 24, 23, 47],
+    "hp": 20,
+    "img": imgMechapenter,
+    "anime": "mechapenter",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, "wait"); // キャラクターの状態
+        me.setParam(1, 48); // 待機カウンター
+        me.changeAnime("wait_l");
+        if (me.initParam === 1) me.x += 8; // 初期パラメータを1にすると半マスずれる
+      }
+      updateVelocity(me);
+      moveAndCheckCollisionWithMap(me);
+      if ((me.y + 16 > cameraY && me.y + me.h < cameraY + 240) || me.getParam(0) === "prepare") {
+        me.incParam(1);
+      }
+      if (me.getParam(0) === "wait") {
+        me.direction = plc.x <= me.x + 8 ? "left" : "right";
+        if (me.reaction > 0) {
+          me.changeAnime(me.direction === "left" ? "damage_l" : "damage_r");
+        }
+        else {
+          me.changeAnime(me.direction === "left" ? "wait_l" : "wait_r");
+        }
+        if (Math.abs(me.x - plc.x + 8) < 200 && me.getParam(1) > 96) {
+          me.setParam(1, 0);
+          me.changeAnime(me.direction === "left" ? "prepare_l" : "prepare_r");
+          me.setParam(0, "prepare");
+        }
+      }
+      if (me.getParam(0) === "prepare" && me.getParam(1) > 32) {
+        me.setParam(1, 0);
+        me.changeAnime(me.direction === "left" ? "throw_l" : "throw_r");
+        me.setParam(0, "throw");
+        createEnemy("hammer", me.direction === "left" ? me.x + 18 : me.x - 3 , me.y + 8, me.direction === "left" ? -1.5 : 1.5, -2.0).isInvincible = true;  
+      }
+      if (me.isEndAnime()) {
+        me.setParam(0, "wait");
+      }
+    }
+  },
+  "O": { // chest box
+    "type": "normal",
+    "w": 16,
+    "h": 16,
+    "box": [0, 4, 15, 15],
+    "hit": [2, 4, 13, 15],
+    "hp": 999,
+    "img": imgChest,
+    "anime": "chest",
+    "move": (me) => {
+      if (me.isParamEmpty()){
+        me.isNoHitWithPlc = true;
+        me.setParam(0, 0);
+        me.setParam(1, 10);
+        me.changeAnime("close");
+      }
+      if (me.isNoHitWithShot) { // 開封時、一定間隔でコインをばら撒く
+        me.incParam(0);
+        if (me.getParam(0) > 29 && me.getParam(0) % 20 === 0 && me.getParam(1) > 0) {
+          createItem("coin", me.x, me.y - 8, randInt(-10, 10) * 0.1, -2.5);
+          me.decParam(1) <= 0
+        }
+      }
+      else { // 未開封時
+        if (mapAnimeCount % 20 === 1) { // 光エフェクト
+          createEffect("yellow_glitter", randInt(me.lTopX() - 8, me.rBottomX()), randInt(me.lTopY() - 8, me.rBottomY()), 0, 0);
+        }
+        if (me.hp < 999) { // 攻撃を喰らったら開封→無敵に
+          me.isNoHitWithShot = true;
+          me.isInvincible = true;
+          me.changeAnime("open");
+          changedMapList.push({ level: levelName, x: me.firstMapX, y: me.firstMapY, replaceTo: 'o' }); // マップデータを空き箱に変更
+        }
+      }
+      movesAffectedByMap(me);
+      updateVelocity(me);
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
+  "o": { // chest box (empty)
+    "type": "normal",
+    "w": 16,
+    "h": 16,
+    "box": [0, 4, 15, 15],
+    "hit": [2, 4, 13, 15],
+    "hp": 999,
+    "img": imgChest,
+    "anime": "chest",
+    "move": (me) => {
+      if (me.isParamEmpty()){
+        me.isNoHit = true;
+        me.setParam(0, 0);
+        me.setParam(1, 10);
+        me.changeAnime("open");
+      }
+      movesAffectedByMap(me);
+      updateVelocity(me);
+      moveAndCheckCollisionWithMap(me);
+    }
+  },
   "minion": { // Minion Slime
     "type": "normal",
     "w": 16,
@@ -1673,7 +1821,7 @@ const enemyData = {
     }
   },
   "watage_satelite": { // ボスわたげの周囲のビット
-    "type": "normal",
+    "type": "notdropout",
     "w": 16,
     "h": 16,
     "box": [3, 3, 12, 12],
@@ -1688,6 +1836,52 @@ const enemyData = {
       }
       if (me.incParam(0) % 8 === 0) {
         createEffect("satelite_fade", me.x, me.y, 0, 0);
+      }
+    }
+  },
+  "hammer": { // ハンマー
+    "type": "normal",
+    "w": 16,
+    "h": 16,
+    "box": [3, 3, 12, 12],
+    "hit": [3, 3, 12, 12],
+    "hp": 1,
+    "img": imgHammer,
+    "anime": "hammer",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.isInvincible = true;
+        me.setParam(0, "bounce") // バウンドするか否か 
+        me.setParam(1, 0); // 持続時間
+      }
+      me.changeAnime(me.dx < 0 ? "spin_ccw" : "spin_cw");
+      me.dy += 0.125;
+      me.incParam(1);
+      if (isTouchingLeftWall(me) && me.dx <= 0 && me.getParam(0) === "bounce") {
+        me.dx = -me.dx;
+      }
+      if (isTouchingRightWall(me) && me.dx >= 0 && me.getParam(0) === "bounce") {
+        me.dx = -me.dx;
+      }
+      if (isOnLand(me)) {
+        if (me.getParam(1) < 240) {
+          me.dy = -2
+        }
+        else {
+          me.setParam(0, "not_bounce");
+        }
+      }
+      if (me.getParam(0) === "bounce") {
+        if (me.dy > 4.0) me.dy = 4.0;
+        moveAndCheckCollisionWithMap(me); 
+      }
+      else {
+        me.x += me.dx;
+        me.y += me.dy;
+        if (me.y < cameraY - 16 || me.y > cameraY + 300) { // Y軸がカメラから外れたら消滅（画面外からの奇襲防止）
+          me.isVisible = false;
+          me.isNoHit = true;
+        }
       }
     }
   },
@@ -2479,11 +2673,36 @@ let itemData = {
       }
     }
   },
+  //--------------------------------- Drop Item ------------------------------
+  "coin" : {
+    "type": "bounce",
+    "w": 16,
+    "h": 16,
+    "box": [3, 3, 12, 12],
+    "hit": [3, 3, 12, 12],
+    "img": imgCoin,
+    "anime": "coin",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 400);
+      }
+      me.decParam(0);
+      if (me.getParam(0) <= 0) {
+        me.hp = 0;
+      }
+      else if (me.getParam(0) < 100) {
+        me.isVisible = (me.getParam(0) % 4 < 2);
+      }
+    },
+    "obtained": (me) => {
+      collectedCoins += 1;
+    }
+  }
 };
 
 let itemKeyList = Object.keys(itemData);
 
-let createItem = (itemId, x, y) => {
+let createItem = (itemId, x, y, dx, dy) => {
   let newItem = new CharacterSprite(
     itemId, // id
     itemData[itemId].type, // type
@@ -2503,6 +2722,8 @@ let createItem = (itemId, x, y) => {
     itemData[itemId].img, // sprite sheet
     animeData[itemData[itemId].anime]
   );
+  newItem.dx = dx;
+  newItem.dy = dy;
   itemArray.push(newItem);
   return newItem;
 };
@@ -3470,6 +3691,11 @@ let sceneList = {
         console.log("エラー：ステージ", levelName, "が見つかりません!")
         await getLevelData("test");
       }
+      // マップの更新情報を反映
+      changedMapList.forEach((e) => {
+        if (e.level != levelName) return;
+        replaceMap(e.x, e.y, e.replaceTo);
+      });
       // respawn plc
       if (plc.hp <= 0) {
         plc.hp = plcMaxHp;
@@ -3489,6 +3715,8 @@ let sceneList = {
       let newCharacter;
       for (let y = 0; y < mapData.length; y++) {
         for (let x = 0; x < mapData[y].length; x++) {
+          // refresh
+          newCharacter = null;
           // player
           if (mapData[y][x] === levelStart) {
             plc.x = x * gridSize;
@@ -3500,7 +3728,7 @@ let sceneList = {
           }
           // item
           if (itemKeyList.indexOf(mapData[y][x]) != -1) {
-            newCharacter = createItem(mapData[y][x], x * gridSize, y * gridSize);
+            newCharacter = createItem(mapData[y][x], x * gridSize, y * gridSize, 0, 0);
           }
           // gimmick
           if (gimmickKeyList.indexOf(mapData[y][x]) != -1) {
@@ -3510,6 +3738,10 @@ let sceneList = {
           if (enemyKeyList.indexOf(mapData[y][x]) != -1) {
             newCharacter = createEnemy(mapData[y][x], x * gridSize, y * gridSize, 0, 0);
           }
+          if (newCharacter === null) continue;
+          // set default position data to character
+          newCharacter.firstMapX = x;
+          newCharacter.firstMapY = y;
           // add initial parameter (look next mapchip)
           if (x + 1 >= mapData[y].length) continue;
           if ('0' <= mapData[y][x + 1] && mapData[y][x + 1] <= '9') {
@@ -3517,11 +3749,6 @@ let sceneList = {
           }
         }
       }
-      // マップの更新情報を反映
-      changedMapList.forEach((e) => {
-        if (e.level != levelName) return;
-        replaceMap(e.x, e.y, e.replaceTo);
-      });
       // initialize camera position
       cameraX = Math.floor(plc.x - charaLay.width / 2 + 8);
       cameraY = Math.floor(plc.y - charaLay.height / 2 + 8);
@@ -3572,7 +3799,7 @@ let sceneList = {
         // enemy move
         enemyArray.forEach((e) => {
           enemyData[e.id].move(e);
-          if (e.y > mapHeight * gridSize + 64) e.hp = 0; // 落下死
+          if (e.y > mapHeight * gridSize + 64 && e.type != "notdropout") e.hp = 0; // 落下死
           if (e.hp <= 0 && !e.isType("boss") && !e.isType("danmaku")) { // やられた時 (ボスと弾幕を除く)
             if (e.y > mapHeight * gridSize) return;
             createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty) - 32) / 2, 0, 0);
@@ -3584,8 +3811,12 @@ let sceneList = {
         // item move
         itemArray.forEach((e) => {
           itemData[e.id].move(e);
-          if (e.type === "gravity") {
+          if (e.type === "gravity" || e.type === "bounce") {
             updateVelocity(e);
+            if (e.type === "bounce" && isOnLand(e)) {
+              e.dx = 0;
+              e.dy = -1.25;
+            }
             moveAndCheckCollisionWithMap(e);
           }
         });
@@ -3977,7 +4208,7 @@ let sceneList = {
         })
         // update camera position
         cameraX = plc.x - charaLay.width / 2 + 8;
-        cameraY = plc.y - charaLay.height / 2 + 8;
+        cameraY = plc.y - charaLay.height / 2;
         if (bossBattlePhase != "none") { // ボスバトル開戦後はx軸固定
           cameraX = mapWidth * gridSize - charaLay.width;
         }
@@ -4064,33 +4295,39 @@ let sceneList = {
       });
 
       // draw character shadow
-      itemArray.forEach((e => {
-        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
-        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
-      }));
       gimmickArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX - gosaX + 1), Math.floor(e.y - cameraY + 1));
       }));
       enemyArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         let shake = e.reaction-- > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1) : 0;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1 + (e.type === "wall_stuck" ? 0 : shake)), Math.floor(e.y - cameraY + 1 + (e.type === "wall_stuck" ? shake : 0)));
       }));
+      itemArray.forEach((e => {
+        if (!e.isVisible) return;
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
+      }));
       shotArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
       }));
       effectArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
       }));
       effectSubArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawShadow(charaCtx, Math.floor(e.x - cameraX + 1), Math.floor(e.y - cameraY + 1));
@@ -4120,39 +4357,46 @@ let sceneList = {
 
       // draw character
       effectArray.forEach((e => {
+        if (!e.isVisible) return;
         if (effectData[e.id].move != "behind") return; // behind
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
-      itemArray.forEach((e => {
-        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
-        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
-        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
-      }));
       gimmickArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX - gosaX), Math.floor(e.y - cameraY));
       }));
       enemyArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         let shake = e.reaction > 0 ? (((Math.floor(e.reaction / 2) * 2) % 4) - 1) : 0;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX + (e.type === "wall_stuck" ? 0 : shake)), Math.floor(e.y - cameraY + (e.type === "wall_stuck" ? shake : 0)));
       }));
+      itemArray.forEach((e => {
+        if (!e.isVisible) return;
+        if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
+        if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
+        e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
+      }));
       shotArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
       effectArray.forEach((e => {
+        if (!e.isVisible) return;
         if (effectData[e.id].move === "behind") return; // behindじゃない
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
       }));
       effectSubArray.forEach((e => {
+        if (!e.isVisible) return;
         if (e.x + e.w < cameraX || cameraX + charaLay.width < e.x) return;
         if (e.y + e.h < cameraY || cameraY + charaLay.height < e.y) return;
         e.drawAnime(charaCtx, Math.floor(e.x - cameraX), Math.floor(e.y - cameraY));
@@ -4390,6 +4634,7 @@ let sceneOverLayList = {
 //  G A M E   L O O P  //
 //                     //
 //=====================//
+
 let gameLoop = async () => {
   // reset canvas
   charaCtx.clearRect(0, 0, 640, 480);
