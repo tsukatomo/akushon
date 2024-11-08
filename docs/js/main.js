@@ -486,7 +486,7 @@ const mapChip = {
   "-": { id: [5], dulation: 1, type: "bridge", subtype: "none" },
   "]": { id: [6], dulation: 1, type: "bridge", subtype: "none" },
   "+": { id: [7], dulation: 1, type: "wall", subtype: "hard" },
-  "¢": { id: [7], dulation: 1, type: "wall", subtype: "hard_coin" },
+  "¢": { id: [7], dulation: 1, type: "wall", subtype: "hard_coin" }, // alt + 4
   "^": { id: [8], dulation: 1, type: "none", subtype: "damage" },
   "~": { id: [9], dulation: 1, type: "none", subtype: "damage" },
   "¥": { id: [10, 11, 12, 13], dulation: 8, type: "none", subtype: "coin" },
@@ -520,6 +520,7 @@ const mapChip = {
   "•": { id: [42], dulation: 1, type: "wall", subtype: "none" }, // alt + 8
   "<": { id: [43, 44, 45, 46], dulation: 2, type: "wall", subtype: "left_dash_floor" },
   ">": { id: [47, 48, 49, 50], dulation: 2, type: "wall", subtype: "right_dash_floor" },
+  "¶": { id: [51, 52, 53, 54], dulation: 6, type: "none", subtype: "damage" }, // alt + 7
 };
 const mapChipList = Object.keys(mapChip);
 
@@ -1728,6 +1729,9 @@ const enemyData = {
       else if ((isTouchingRightWall(me) || me.px < 0) && me.anitype === "walk_r") {
         me.direction = "left";
       }
+      if (getMapSubType(me.x + 8, me.y + 8) === "damage") { // die when they touch damage mapchip
+        me.hp = 0;
+      }
       if (!isOnLand(me)) {
         me.changeAnime(me.direction === "left" ? "fall_l" : "fall_r");
       }
@@ -2319,13 +2323,14 @@ const enemyData = {
         [["fly", 160], ["upperbreath", 72], ["wait", 144]],
         [["fly", 120], ["breath", 36], ["breath", 36], ["wait", 108], ["upperbreath", 72], ["wait", 144]],
         [["fly", 120], ["upperbreath", 72], ["wait", 72], ["breath", 36], ["breath", 36], ["wait", 180]],
-        [["fly", 120], ["upperbreath", 72], ["wait", 18]],
-        [["fly", 90], ["wait", 36], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 72], ["upperbreath_2", 72], ["wait", 144]],
+        [["fly", 120], ["minionbreath", 72], ["wait", 144]],
+        [["fly", 90], ["wait", 36], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 36], ["minionbreath", 72], ["wait", 144]],
         [["fly", 90], ["wait", 36], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 72], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 180]],
         [["fly", 90], ["wait", 36], ["upperbreath_2", 72], ["wait", 36], ["breath", 36], ["breath", 36], ["breath", 36], ["wait", 180]],
         [["fly", 90], ["wait", 36], ["upperbreath_2", 72], ["wait", 36], ["upperbreath", 72], ["wait", 36], ["upperbreath_2", 72], ["wait", 180]],
+        [["fly", 90], ["wait", 36], ["minionbreath", 72], ["wait", 36], ["minionbreath", 72], ["wait", 180]],
         [["fly", 90]]
-      ]
+      ];
       me.isNoHit = true; // 戦闘中以外衝突判定しない
       if (me.isParamEmpty()) { // 変数初期化
         me.setParam(0, 0); // 時間カウンター !!メモ：この個別パラメータはボスキャラ共通ですぞ!!
@@ -2357,7 +2362,7 @@ const enemyData = {
           // 行動パターン変更
           if (me.incParam(0) > me.getParam(2)){
             if (me.getParam(5).length === 0) { // 行動パターン配列が空になったら更新
-              let patternId = me.hp > 200 ? randInt(0, 2) : me.hp > 100 ? randInt(3, 5) : randInt(6, 10);
+              let patternId = me.hp > 200 ? randInt(0, 2) : me.hp > 100 ? randInt(3, 5) : randInt(6, 11);
               me.setParam(5, actionPattern[patternId]);
             }
             me.setParam(0, 0);
@@ -2396,7 +2401,7 @@ const enemyData = {
           }
           else if (me.getParam(1) === "upperbreath") { // 上むき火吹き
             if (me.getParam(0) === 1) me.startAnime(me.direction === "left" ? "upperbreath_l" : "upperbreath_r");
-            if (20 <= me.getParam(0) && me.getParam(0) < 60 && me.getParam(0) % 10 === 0 ) { // 火吹き開始後20F後、8Fごとに射出
+            if (20 <= me.getParam(0) && me.getParam(0) < 60 && me.getParam(0) % 10 === 0 ) { // 火吹き開始後20F後、10Fごとに射出
               let mouthX = me.direction === "left" ? 16 : 47; // ドラゴンの口の位置（弾幕放出箇所）
               let mouthY = 0;
               createEnemy("danmaku_yellow", me.x + mouthX, me.y + mouthY, (3.00 - Math.floor(me.getParam(0) / 10) * 0.5) * (me.direction === "left" ? -1 : 1), -2.00);
@@ -2408,6 +2413,14 @@ const enemyData = {
               let mouthX = me.direction === "left" ? 16 : 47; // ドラゴンの口の位置（弾幕放出箇所）
               let mouthY = 0;
               createEnemy("danmaku_yellow", me.x + mouthX, me.y + mouthY, (3.75 - Math.floor(me.getParam(0) / 6) * 0.38) * (me.direction === "left" ? -1 : 1), -2.25);
+            }
+          }
+          else if (me.getParam(1) === "minionbreath") { // 雑魚召喚
+            if (me.getParam(0) === 1) me.startAnime(me.direction === "left" ? "upperbreath_l" : "upperbreath_r");
+            if (20 <= me.getParam(0) && me.getParam(0) < 60 && me.getParam(0) % 25 === 0 ) { // 25Fごとに射出
+              let mouthX = me.direction === "left" ? 16 : 47; // ドラゴンの口の位置（弾幕放出箇所）
+              let mouthY = 0;
+              createEnemy("P", me.x + mouthX, me.y + mouthY, randInt(3, 16) * 0.125 * (me.direction === "left" ? -1 : 1), -3.50).direction = me.direction;
             }
           }
           else if (me.getParam(1) === "fly_to_l") { // 上空へ退避（右から左）
@@ -2742,12 +2755,13 @@ const gimmickData = {
     "img": imgMoveFloor,
     "anime": "movefloor",
     "move": (me) => {
+      let freq = 240; // 周期（フレーム）
       if (me.isParamEmpty()) {
-        me.setParam(0, me.initParam * 60);
+        me.setParam(0, me.initParam * (freq / 4));
       }
-      me.setParam(0, (me.getParam(0) + 1) % 240);
-      me.dy = (Math.cos(2 * Math.PI * (me.getParam(0) + 1) / 240) - Math.cos(2 * Math.PI * me.getParam(0) / 240)) * 32;
-      //me.dx = (Math.sin(2 * Math.PI * (me.param + 1) / 240) - Math.sin(2 * Math.PI * me.param / 240)) * 32;
+      me.setParam(0, (me.getParam(0) + 1) % freq);
+      me.dy = (Math.cos(2 * Math.PI * (me.getParam(0) + 1) / freq) - Math.cos(2 * Math.PI * me.getParam(0) / freq)) * 32;
+      //me.dx = (Math.sin(2 * Math.PI * (me.param + 1) / freq) - Math.sin(2 * Math.PI * me.param / freq)) * 32;
       me.x += me.dx;
       me.y += me.dy;
     },
@@ -3973,7 +3987,8 @@ let sceneList = {
         // create shot
         if ((isKeyPressedNow("x") || keyInputStorage.indexOf("x") != -1) && shotArray.length < shotMax && !isDashing) {
           let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
-          newShot.dx = plc.direction === "left" ? -2 : 2;
+          newShot.dx = plc.direction === "left" ? -2.0 : 2.0;
+          newShot.dy = plc.ry > 1.0 ? 1.0 : plc.ry < -1.0 ? -1.0 : plc.ry;
           newShot.direction = plc.direction;
           newShot.changeAnime("shot");
           newShot.param.push(0);
@@ -3983,6 +3998,7 @@ let sceneList = {
         for (let i = 0; i < shotArray.length; i++) {
           shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
           shotArray[i].x += shotArray[i].dx;
+          shotArray[i].y += shotArray[i].dy;
           shotArray[i].param[0]++;
           if (shotArray[i].anitype === "shot") {
             let isShotVanish = shotArray[i].param[0] >= shotVanishTime; // 自然消滅
@@ -3999,6 +4015,7 @@ let sceneList = {
             });
             if (isShotVanish) {
               shotArray[i].dx = 0;
+              shotArray[i].dy = 0;
               shotArray[i].changeAnime("vanish");
               shotArray[i].param[0] = 0;
               // 地形破壊
