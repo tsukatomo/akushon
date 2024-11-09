@@ -3987,23 +3987,32 @@ let sceneList = {
         // create shot
         if ((isKeyPressedNow("x") || keyInputStorage.indexOf("x") != -1) && shotArray.length < shotMax && !isDashing) {
           let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
+          newShot.setParam(0, 0); // 残存時間
           newShot.dx = plc.direction === "left" ? -2.0 : 2.0;
-          newShot.dy = plc.ry > 1.0 ? 1.0 : plc.ry < -1.0 ? -1.0 : plc.ry;
+          if (plc.riding != null) {
+            newShot.dy = plc.ry;
+            newShot.setParam(1, plc.riding); // 動く足場から発射されたかどうか
+          }
+          else {
+            newShot.setParam(1, null);
+          }
           newShot.direction = plc.direction;
           newShot.changeAnime("shot");
-          newShot.param.push(0);
           shotArray.push(newShot);
         }
         // move shot
         for (let i = 0; i < shotArray.length; i++) {
-          shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
-          shotArray[i].x += shotArray[i].dx;
-          shotArray[i].y += shotArray[i].dy;
-          shotArray[i].param[0]++;
+          shotArray[i].incParam(0);
           if (shotArray[i].anitype === "shot") {
-            let isShotVanish = shotArray[i].param[0] >= shotVanishTime; // 自然消滅
+            // move shot
+            shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
+            shotArray[i].dy = (shotArray[i].getParam(1) != null ? shotArray[i].getParam(1).dy : 0);
+            shotArray[i].x += shotArray[i].dx;
+            shotArray[i].y += shotArray[i].dy;
+            // check vanishing
+            let isShotVanish = shotArray[i].getParam(0) >= shotVanishTime; // 自然消滅
             isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"; // 壁に激突
-            // 敵にヒット
+            // hit to enemy
             enemyArray.forEach((e) => {
               if (e.isHit(shotArray[i]) && !e.isType("danmaku") && !e.isNoHitWithShot) {
                 isShotVanish = true;
@@ -4014,10 +4023,8 @@ let sceneList = {
               }
             });
             if (isShotVanish) {
-              shotArray[i].dx = 0;
-              shotArray[i].dy = 0;
               shotArray[i].changeAnime("vanish");
-              shotArray[i].param[0] = 0;
+              shotArray[i].setParam(0, 0);
               // 地形破壊
               attackToMap(shotArray[i].x + 8, shotArray[i].y + 8);
               // 解錠
