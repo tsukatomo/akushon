@@ -37,6 +37,8 @@ let imgWatage = [new Image(), new Image()];
 imgWatage[0].src = "./img/watage.png";
 let imgFlyingCamera = [new Image(), new Image()];
 imgFlyingCamera[0].src = "./img/flying_camera.png";
+let imgBigCamera = [new Image(), new Image()];
+imgBigCamera[0].src = "./img/big_camera.png";
 let imgSlime = [new Image(), new Image()];
 imgSlime[0].src = "./img/slime.png";
 let imgMetalSlime = [new Image(), new Image()];
@@ -85,6 +87,8 @@ imgCoin[0].src = "./img/coin.png";
 // gimmick
 let imgMoveFloor = [new Image(), new Image()];
 imgMoveFloor[0].src = "./img/movefloor.png";
+let imgLongFloor = [new Image(), new Image()];
+imgLongFloor[0].src = "./img/longlift.png";
 let imgCloudLift = [new Image(), new Image()];
 imgCloudLift[0].src = "./img/cloudlift.png";
 let imgCloudLiftSmall = [new Image(), new Image()];
@@ -161,6 +165,7 @@ let shadowList = [
   imgPumpkin,
   imgWatage,
   imgFlyingCamera,
+  imgBigCamera,
   imgSlime,
   imgMetalSlime,
   imgSlimeLauncher,
@@ -182,6 +187,7 @@ let shadowList = [
   imgMedal,
   imgCoin,
   imgMoveFloor,
+  imgLongFloor,
   imgCloudLift,
   imgCloudLiftSmall,
   imgMagma,
@@ -403,6 +409,9 @@ let animeData = {
   "movefloor": {
     "default": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true }
   },
+  "longfloor": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },  
   "cloudlift": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
@@ -518,8 +527,8 @@ const mapChip = {
   "=": { id: [40], dulation: 1, type: "bridge", subtype: "ice" },
   "©": { id: [41], dulation: 1, type: "wall", subtype: "none" }, // alt + g
   "•": { id: [42], dulation: 1, type: "wall", subtype: "none" }, // alt + 8
-  "<": { id: [43, 44, 45, 46], dulation: 2, type: "wall", subtype: "left_dash_floor" },
-  ">": { id: [47, 48, 49, 50], dulation: 2, type: "wall", subtype: "right_dash_floor" },
+  ">": { id: [43, 44, 45, 46], dulation: 2, type: "wall", subtype: "right_dash_floor" },
+  "<": { id: [47, 48, 49, 50], dulation: 2, type: "wall", subtype: "left_dash_floor" },
   "¶": { id: [51, 52, 53, 54], dulation: 6, type: "none", subtype: "damage" }, // alt + 7
 };
 const mapChipList = Object.keys(mapChip);
@@ -851,7 +860,8 @@ const shotMax = 8;
 let shotPower = 2;
 let shotVanishTime = 30;
 const defaultShotPower = 2;
-const defaultShotVanishTime = 30;      
+const defaultShotVanishTime = 30;
+let syncShot = true; // shots move with floor       
 let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
 let isJumping = false;
 let isDashing = false;
@@ -869,7 +879,9 @@ let coinCounter = 0;
 let dataResetCount = 0;
 let snowEffect = [];
 let magmaTopY = 9999;
-let magmaSpeed = 0.125;
+let magmaSpeed = 0;
+let magmaDirection = "up";
+let magmaStayCount = 0;
 let bossMaxHp = 0;
 let bossHpBarWhite = 0;
 let bossHpBarWhiteReduceto = 0;
@@ -1435,6 +1447,78 @@ const enemyData = {
             me.startAnime(plc.x < me.x ? "float_l" : "float_r");
           }
         }
+      }
+      me.setParam(2, (me.getParam(2) + 1) % 200);
+      me.setParam(3, me.getParam(3) - 1);
+      me.dx = 0;
+      me.dy = Math.sin(2 * Math.PI * me.getParam(2) / 200) * 16;
+      me.x = me.getParam(0) + me.dx;
+      me.y = me.getParam(1) + me.dy;
+    }
+  },
+  "F": { // big camera
+    "type": "flight",
+    "w": 32,
+    "h": 32,
+    "box": [6, 10, 25, 25],
+    "hit": [6, 10, 25, 25],
+    "hp": 12,
+    "img": imgBigCamera,
+    "anime": "flying_camera",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, me.x + 8 * me.initParam); // 初期座標（X）(initParam=1 で半マス右にずれます)
+        me.setParam(1, me.y); // 初期座標（Y）
+        me.setParam(2, randInt(0, 199)); // 移動時間
+        me.setParam(3, 0); // クールタイム
+        me.setParam(4, 0); // 点滅回数カウント
+        me.setParam(5, 0); // 弾の残数
+        me.setParam(7, 0); // 射出タイムラグ
+        me.changeAnime("float_l");
+      }
+      // 今の目の位置
+      let eyeX = me.x + (me.anitype === "glow_l" || me.anitype === "float_l" ? 0 : 15);
+      let eyeY = me.y + 10;      
+      if (me.isEndAnime()) {
+        if ((me.anitype === "glow_l" || me.anitype === "glow_r")) {
+          me.setParam(4, me.getParam(4) + 1);
+          if (me.getParam(4) >= 3) {
+            me.setParam(3, 60 + randInt(0, 20));
+            me.setParam(4, 0);
+            me.setParam(5, 3);
+            me.setParam(7, 99);
+            me.startAnime(me.anitype === "glow_l" ? "float_l" : "float_r");
+          }
+          else {
+            me.startAnime(plc.x < me.x + 8 ? "glow_l" : "glow_r");
+          }
+        }
+        else {
+          if (me.getParam(3) <= 0 && Math.abs(plc.x - me.x - 8) < 150 && Math.abs(plc.y - me.y - 8) < 150) {
+            if (me.getParam(5) > 0) { // 弾があるときふ振り向かない
+              me.startAnime(me.anitype === "float_l" ? "glow_l" : "glow_r");
+            }
+            else {
+              me.startAnime(plc.x < me.x + 8 ? "glow_l" : "glow_r");
+            }
+          }
+          else {
+            if (me.getParam(5) > 0) { // 弾があるときは振り向かない
+              me.startAnime(me.anitype === "float_l" ? "float_l" : "float_r");
+            }
+            else {
+              me.startAnime(plc.x < me.x + 8 ? "float_l" : "float_r");
+            }
+          }
+        }
+      }
+      if (me.getParam(5) > 0) { // 弾を発射
+        if (me.incParam(7) > 8) {
+          me.decParam(5);
+          me.setParam(7, 0);
+          let theta = Math.atan2(plc.y - eyeY, plc.x - eyeX);
+          createEnemy("danmaku_white", eyeX, eyeY, Math.cos(theta) * 1.75, Math.sin(theta) * 1.75);
+        }        
       }
       me.setParam(2, (me.getParam(2) + 1) % 200);
       me.setParam(3, me.getParam(3) - 1);
@@ -2766,6 +2850,26 @@ const gimmickData = {
       me.y += me.dy;
     },
   },
+  "(": {
+    "type": "floor",
+    "w": 48,
+    "h": 32,
+    "box": [0, 0, 47, 5],
+    "hit": [0, 0, 47, 5],
+    "img": imgLongFloor,
+    "anime": "longfloor",
+    "move": (me) => {
+      let freq = 240; // 周期（フレーム）
+      if (me.isParamEmpty()) {
+        me.setParam(0, me.initParam * (freq / 4));
+      }
+      me.setParam(0, (me.getParam(0) + 1) % freq);
+      me.dy = (Math.cos(2 * Math.PI * (me.getParam(0) + 1) / freq) - Math.cos(2 * Math.PI * me.getParam(0) / freq)) * 32;
+      //me.dx = (Math.sin(2 * Math.PI * (me.param + 1) / freq) - Math.sin(2 * Math.PI * me.param / freq)) * 32;
+      me.x += me.dx;
+      me.y += me.dy;
+    },
+  },
   // 左右に動く床（壁で跳ね返る）
   "}": {
     "type": "floor",
@@ -3783,7 +3887,18 @@ let sceneList = {
         };
       }
       // reset magma rising
-      magmaTopY = mapHeight * gridSize;
+      if (levelSpecial === "magma_flood") {
+        magmaTopY = mapHeight * gridSize;
+      }
+      else if (levelSpecial === "magma_updown") {
+        magmaTopY = 120;
+        magmaSpeed = 0;
+        magmaDirection = "down";
+      }
+      else {
+        magmaTopY = 999999;
+      }
+      
       // reset time counter
       timeCounter = 0;
       // set transition animation
@@ -3831,6 +3946,9 @@ let sceneList = {
               e.dx = 0;
               e.dy = -1.25;
             }
+            if ((isTouchingLeftWall(e) && e.dx < 0) || (isTouchingRightWall(e) && e.dx > 0)) {
+              e.dx = -e.dx;
+            }
             moveAndCheckCollisionWithMap(e);
           }
         });
@@ -3847,8 +3965,36 @@ let sceneList = {
           }
         });
         // magma move
-        magmaTopY -= magmaSpeed;
-
+        if (levelSpecial === "magma_flood") {
+          magmaTopY += magmaTopY - plc.y > 80 ? -1 : -0.125;
+        }
+        else if (levelSpecial === "magma_updown") {
+          if (magmaDirection === "down") {
+            magmaSpeed += 0.01;
+            if (magmaSpeed > 1.0) magmaSpeed = 1.0;
+            if (magmaTopY >= 165) {
+              magmaDirection = "stay";
+              magmaStayCount = 0;
+            }
+          }
+          else if (magmaDirection === "stay") {
+            magmaSpeed -= 0.01;
+            if (magmaSpeed < 0) {
+              magmaSpeed = 0;
+              magmaTopY = Math.floor(magmaTopY); // 小数点誤差を補正
+            }
+            if (++magmaStayCount >= 240) {
+              magmaDirection = "up";
+            }
+          }
+          else if (magmaDirection === "up") {
+            magmaSpeed -= 0.01;
+            if (magmaSpeed < -0.4) magmaSpeed = -0.4
+            if (magmaTopY <= 105) magmaDirection = "down";
+          }
+          magmaTopY += magmaSpeed;
+        }
+        
         //============================ erase character ================================
         // erase enemy
         enemyArray = enemyArray.filter((e) => {
@@ -4008,7 +4154,7 @@ let sceneList = {
             shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
             shotArray[i].dy = (shotArray[i].getParam(1) != null ? shotArray[i].getParam(1).dy : 0);
             shotArray[i].x += shotArray[i].dx;
-            shotArray[i].y += shotArray[i].dy;
+            if (syncShot) shotArray[i].y += shotArray[i].dy; // 足場の動きに追従
             // check vanishing
             let isShotVanish = shotArray[i].getParam(0) >= shotVanishTime; // 自然消滅
             isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"; // 壁に激突
@@ -4119,7 +4265,7 @@ let sceneList = {
           }
         }
         // dive into magma
-        if (plc.y + 10 > magmaTopY && levelSpecial === "magma") { // "10" is a magic number
+        if (plc.y + 10 > magmaTopY && (levelSpecial === "magma_flood" || levelSpecial === "magma_updown")) { // "10" is a magic number
           plc.reaction = invincibleTimeMax;
           plc.hp = 0;
         }
@@ -4437,7 +4583,7 @@ let sceneList = {
       });
 
       // マグマの描画
-      if (levelSpecial === "magma") {
+      if (levelSpecial === "magma_flood" || levelSpecial === "magma_updown") {
         const magmaFrame = 4;
         const magmaDulation = 8;
         for (let x = 0; x <= charaLay.width / gridSize; x++) {
