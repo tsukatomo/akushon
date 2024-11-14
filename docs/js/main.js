@@ -89,6 +89,8 @@ let imgMoveFloor = [new Image(), new Image()];
 imgMoveFloor[0].src = "./img/movefloor.png";
 let imgLongFloor = [new Image(), new Image()];
 imgLongFloor[0].src = "./img/longlift.png";
+let imgFloatFloor = [new Image(), new Image()];
+imgFloatFloor[0].src = "./img/floating_lift.png";
 let imgCloudLift = [new Image(), new Image()];
 imgCloudLift[0].src = "./img/cloudlift.png";
 let imgCloudLiftSmall = [new Image(), new Image()];
@@ -411,6 +413,9 @@ let animeData = {
   },
   "longfloor": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "floatfloor": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },  
   "cloudlift": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
@@ -526,9 +531,10 @@ const mapChip = {
   "√": { id: [38, 39], dulation: 8, type: "wall", subtype: "bomb_fast" }, // alt + v
   "=": { id: [40], dulation: 1, type: "bridge", subtype: "ice" },
   "©": { id: [41], dulation: 1, type: "wall", subtype: "none" }, // alt + g
+  "®": { id: [41], dulation: 1, type: "wall", subtype: "block_coin" }, // alt + r
   "•": { id: [42], dulation: 1, type: "wall", subtype: "none" }, // alt + 8
-  ">": { id: [43, 44, 45, 46], dulation: 2, type: "wall", subtype: "right_dash_floor" },
-  "<": { id: [47, 48, 49, 50], dulation: 2, type: "wall", subtype: "left_dash_floor" },
+  ">": { id: [43, 44, 45, 46], dulation: 3, type: "wall", subtype: "right_dash_floor" },
+  "<": { id: [47, 48, 49, 50], dulation: 3, type: "wall", subtype: "left_dash_floor" },
   "¶": { id: [51, 52, 53, 54], dulation: 6, type: "none", subtype: "damage" }, // alt + 7
 };
 const mapChipList = Object.keys(mapChip);
@@ -830,9 +836,13 @@ class CharacterSprite extends Sprite {
   // 物体に乗っているかチェックし、乗っていたら riding 情報を記録する
   checkRiding(vehicle) {
     if (this.dy < 0) return;
-    if (this.rBottomY() + 1 < vehicle.lTopY() || vehicle.rBottomY() < this.rBottomY() + 1) return;
-    if (this.rBottomX() < vehicle.lTopX() || vehicle.rBottomX() < this.lTopX()) return;
-    this.riding = vehicle;
+    if (this.rBottomY() + 1 < vehicle.hLTopY() || vehicle.hRBottomY() < this.rBottomY() + 1) return;
+    if (this.rBottomX() < vehicle.hLTopX() || vehicle.hRBottomX() < this.lTopX()) return;
+    if (this.riding === null) {
+      this.riding = vehicle;
+      return;
+    }
+    this.riding = this.riding.y < vehicle ? this.riding : vehicle; // 同時に乗っている場合はy座標が小さい乗り物を優先
   };
 
   // 乗り物に追従する
@@ -858,10 +868,10 @@ let effectSubArray = []; // stopFlag が true の時に動くエフェクト
 let doorArray = []; // ドア情報を格納
 const shotMax = 8;
 let shotPower = 2;
-let shotVanishTime = 30;
+let shotVanishTime = 22;
 const defaultShotPower = 2;
-const defaultShotVanishTime = 30;
-let syncShot = true; // shots move with floor       
+const defaultShotVanishTime = 22;
+let syncShot = false; // shots move with floor       
 let coyoteTime = 0; // ku-chu-de jump dekiru yu-yo frame su
 let isJumping = false;
 let isDashing = false;
@@ -2850,6 +2860,7 @@ const gimmickData = {
       me.y += me.dy;
     },
   },
+  // 上下に動く床（大）
   "(": {
     "type": "floor",
     "w": 48,
@@ -2868,6 +2879,40 @@ const gimmickData = {
       //me.dx = (Math.sin(2 * Math.PI * (me.param + 1) / freq) - Math.sin(2 * Math.PI * me.param / freq)) * 32;
       me.x += me.dx;
       me.y += me.dy;
+    },
+  },
+  // マグマに浮かぶ足場
+  ")": {
+    "type": "floor",
+    "w": 48,
+    "h": 32,
+    "box": [0, 0, 47, 31],
+    "hit": [0, 0, 47, 7],
+    "img": imgFloatFloor,
+    "anime": "floatfloor",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, false); // on player
+      }
+      if (me.y > magmaTopY - 21) {
+        me.dy *= 0.98;
+        me.dy -= 0.02 * (me.y - (magmaTopY - 14));
+      }
+      else {
+        me.dy += 0.0625;
+      }
+      if (me.getParam(0) === false && plc.riding === me) {
+        me.dy += 1;
+      }
+      if (isKeyPressedNow("z") && me.getParam(0) === true) {
+        me.dy += 1;
+      }
+      me.setParam(0, plc.riding === me);
+      if (me.dy > 2) me.dy = 2;
+      if (me.dy < -2) me.dy = -2;
+      if (isOnLand(me) && me.dy > 0) me.dy = 0;
+      if (isHeading(me) && me.dy < 0) me.dy = 0;
+      moveAndCheckCollisionWithMap(me);
     },
   },
   // 左右に動く床（壁で跳ね返る）
@@ -3893,7 +3938,7 @@ let sceneList = {
       else if (levelSpecial === "magma_updown") {
         magmaTopY = 120;
         magmaSpeed = 0;
-        magmaDirection = "down";
+        magmaDirection = "stay_top";
       }
       else {
         magmaTopY = 999999;
@@ -3966,7 +4011,7 @@ let sceneList = {
         });
         // magma move
         if (levelSpecial === "magma_flood") {
-          magmaTopY += magmaTopY - plc.y > 80 ? -1 : -0.125;
+          magmaTopY -= 0.5;
         }
         else if (levelSpecial === "magma_updown") {
           if (magmaDirection === "down") {
@@ -3990,7 +4035,20 @@ let sceneList = {
           else if (magmaDirection === "up") {
             magmaSpeed -= 0.01;
             if (magmaSpeed < -0.4) magmaSpeed = -0.4
-            if (magmaTopY <= 105) magmaDirection = "down";
+            if (magmaTopY <= 120) {
+              magmaDirection = "stay_top";
+              magmaStayCount = 0;
+            }
+          }
+          else if (magmaDirection === "stay_top") {
+            magmaSpeed += 0.01;
+            if (magmaSpeed > 0) {
+              magmaSpeed = 0;
+              magmaTopY = Math.floor(magmaTopY); // 小数点誤差を補正
+            }
+            if (++magmaStayCount >= 100) {
+              magmaDirection = "down";
+            }
           }
           magmaTopY += magmaSpeed;
         }
@@ -4134,7 +4192,7 @@ let sceneList = {
         if ((isKeyPressedNow("x") || keyInputStorage.indexOf("x") != -1) && shotArray.length < shotMax && !isDashing) {
           let newShot = new CharacterSprite("shot", "p_shot", plc.x, plc.y, 16, 16, 4, 4, 11, 11, 4, 4, 11, 11, 1, imgShot, animeData["shot"]);
           newShot.setParam(0, 0); // 残存時間
-          newShot.dx = plc.direction === "left" ? -2.0 : 2.0;
+          newShot.dx = plc.direction === "left" ? -4.0 : 4.0;
           if (plc.riding != null) {
             newShot.dy = plc.ry;
             newShot.setParam(1, plc.riding); // 動く足場から発射されたかどうか
@@ -4151,10 +4209,10 @@ let sceneList = {
           shotArray[i].incParam(0);
           if (shotArray[i].anitype === "shot") {
             // move shot
-            shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
+            //shotArray[i].dx += Math.sign(shotArray[i].dx) * 0.0625;
             shotArray[i].dy = (shotArray[i].getParam(1) != null ? shotArray[i].getParam(1).dy : 0);
             shotArray[i].x += shotArray[i].dx;
-            if (syncShot) shotArray[i].y += shotArray[i].dy; // 足場の動きに追従
+            if (syncShot) shotArray[i].y += shotArray[i].dy; // 足場の上下運動に追従
             // check vanishing
             let isShotVanish = shotArray[i].getParam(0) >= shotVanishTime; // 自然消滅
             isShotVanish |= getMapType(shotArray[i].x + 8, shotArray[i].y + 8) === "wall"; // 壁に激突
