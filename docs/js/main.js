@@ -856,6 +856,7 @@ class CharacterSprite extends Sprite {
   };
 };
 
+// global variables
 let plc;
 let plcMaxHp = 4;
 const defaultPlcMaxHp = 3;
@@ -2894,7 +2895,7 @@ const gimmickData = {
       if (me.isParamEmpty()) {
         me.setParam(0, false); // on player
       }
-      if (me.y > magmaTopY - 21) {
+      if (me.y > magmaTopY - 14) {
         me.dy *= 0.98;
         me.dy -= 0.02 * (me.y - (magmaTopY - 14));
       }
@@ -2908,7 +2909,8 @@ const gimmickData = {
         me.dy += 1;
       }
       me.setParam(0, plc.riding === me);
-      if (me.dy > 2) me.dy = 2;
+      if (me.dy > 2 && me.y > magmaTopY - 14) me.dy = 2;
+      if (me.dy > 4) me.dy = 4;
       if (me.dy < -2) me.dy = -2;
       if (isOnLand(me) && me.dy > 0) me.dy = 0;
       if (isHeading(me) && me.dy < 0) me.dy = 0;
@@ -3195,6 +3197,19 @@ let createEffectSub = (effectId, x, y, dx, dy) => {
   newEffect.changeAnime("default");
   effectSubArray.push(newEffect);
   return newEffect;
+};
+
+// update coordinates of effect
+let moveEffect = (effectSprite) => {
+  effectSprite.x += effectSprite.dx;
+  effectSprite.y += effectSprite.dy;
+  if (effectData[effectSprite.id].move === "gravity") {
+    effectSprite.dy += 0.125;
+  }
+  else if (effectData[effectSprite.id].move === "slowy") {
+    effectSprite.dx *= 0.90;
+    effectSprite.dy *= 0.90;
+  }
 };
 
 //---------------//
@@ -3934,10 +3949,12 @@ let sceneList = {
       // reset magma rising
       if (levelSpecial === "magma_flood") {
         magmaTopY = mapHeight * gridSize;
+        magmaSpeed = -0.5;
       }
       else if (levelSpecial === "magma_updown") {
         magmaTopY = 120;
         magmaSpeed = 0;
+        magmaStayCount = 0;
         magmaDirection = "stay_top";
       }
       else {
@@ -3999,19 +4016,14 @@ let sceneList = {
         });
         // effect move
         effectArray.forEach((e) => {
-          e.x += e.dx;
-          e.y += e.dy;
-          if (effectData[e.id].move === "gravity") {
-            e.dy += 0.125;
-          }
-          else if (effectData[e.id].move === "slowy") {
-            e.dx *= 0.90;
-            e.dy *= 0.90;
-          }
+          moveEffect(e);
+        });
+        effectSubArray.forEach((e) => {
+          moveEffect(e);
         });
         // magma move
         if (levelSpecial === "magma_flood") {
-          magmaTopY -= 0.5;
+          magmaTopY += magmaSpeed;
         }
         else if (levelSpecial === "magma_updown") {
           if (magmaDirection === "down") {
@@ -4070,7 +4082,9 @@ let sceneList = {
         effectArray = effectArray.filter((e) => {
           return e.isEndAnime() === false;
         });
-
+        effectSubArray = effectSubArray.filter((e) => {
+          return e.isEndAnime() === false;
+        });
         //============================ player character ================================
         // *********************
         // player character move
@@ -4297,7 +4311,7 @@ let sceneList = {
           });
           // 残像エフェクト
           if (timeCounter % 4 === 0) {
-            createEffect(plc.direction === "left" ? "afterimage_l" : "afterimage_r", plc.x, plc.y, 0, 0);
+            createEffectSub(plc.direction === "left" ? "afterimage_l" : "afterimage_r", plc.x, plc.y, 0, 0);
           }
         }
         // damage
@@ -4364,15 +4378,10 @@ let sceneList = {
         plc.y += plc.dy;
         // effect move
         effectSubArray.forEach((e) => {
-          e.x += e.dx;
-          e.y += e.dy;
-          if (effectData[e.id].move === "gravity") {
-            e.dy += 0.125;
-          }
-          else if (effectData[e.id].move === "slowy") {
-            e.dx *= 0.90;
-            e.dy *= 0.90;
-          }
+          moveEffect(e);
+        });
+        effectSubArray = effectSubArray.filter((e) => {
+          return e.isEndAnime() === false;
         });
         if (yarareAnimeCounter === 180) {
           setTransition("game");
@@ -4508,6 +4517,11 @@ let sceneList = {
       }
       // update player anime
       if (sceneOverLay != "pause") plc.updateAnime();
+      
+      // update sub effect animation
+      effectSubArray.forEach((e) => {
+        e.updateAnime();
+      })
 
       // 雪の座標を更新，後ろの雪を描画
       charaCtx.fillStyle = "#bebbb2";
