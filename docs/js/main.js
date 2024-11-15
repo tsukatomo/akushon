@@ -136,6 +136,10 @@ imgUiCoin.src = "./img/ui_coin.png";
 let imgUiKey = new Image();
 imgUiKey.src = "./img/ui_key.png";
 
+// file select
+let imgBombIcon = [new Image(), new Image()];
+imgBombIcon[0].src = "./img/bomb_icon.png"
+
 // stage select
 let imgThumbnail = new Image();
 imgThumbnail.src = "./img/thumbnail_1.png";
@@ -205,6 +209,7 @@ let shadowList = [
   imgBombEffect,
   imgAfterimage,
   imgMiniBlock,
+  imgBombIcon,
   imgSSCursorL,
   imgSSCursorR,
   imgMerchan,
@@ -467,6 +472,9 @@ let animeData = {
   "watage_satelite_fade": {
     "default": { frames: 4, dulation: 4, img: [4, 1, 2, 3], repeat: false }
   },
+  "bombicon": {
+    "default": { frames: 2, dulation: 4, img: [0, 1], repeat: true }
+  },
   "sscursor": {
     "default": { frames: 4, dulation: 8, img: [0, 1, 2, 1], repeat: true }
   },
@@ -569,7 +577,7 @@ async function getLevelData(levelName) {
 // save data
 const saveDataNameList = ["Akushon1", "Akushon2", "Akushon3"];
 let currentSaveData = "Akushon1";
-let saveDataObject = {
+let saveDataInProgress = {
   "coins": 0,
   "progress": 0,
   "medal": {},
@@ -579,39 +587,149 @@ let saveDataObject = {
 let readSaveData = async (saveDataName) => {
   let saveDataJson = localStorage.getItem(saveDataName);
   if (saveDataJson === null) {
-    console.log("データが存在しません！");
+    console.log("データが存在しません！ データ名：" + saveDataName);
     await createNewSaveData(saveDataName);
     saveDataJson = localStorage.getItem(saveDataName);
   }
-  saveDataObject = JSON.parse(saveDataJson);
+  return JSON.parse(saveDataJson);
 };
 
-let modifySaveData = () => {
+let modifySaveData = (saveDataObject) => {
   if (!saveDataObject.hasOwnProperty("coins")) saveDataObject["coins"] = 0;
   if (!saveDataObject.hasOwnProperty("progress")) saveDataObject["progress"] = 0;
   if (!saveDataObject.hasOwnProperty("medal")) saveDataObject["medal"] = {};
   if (!saveDataObject.hasOwnProperty("tool")) saveDataObject["tool"] = {};
 };
 
-let writeSaveData = async (saveDataName) => {
-  modifySaveData();
+let writeSaveData = async (saveDataName, saveDataObject) => {
+  modifySaveData(saveDataObject);
   localStorage.setItem(saveDataName, JSON.stringify(saveDataObject));
 };
 
 let createNewSaveData = async (saveDataName) => {
-  saveDataObject = {
+  let newSaveData = {
     "coins": 0,
     "progress": 0,
     "medal": {},
     "tool": {}
   };
-  await writeSaveData(saveDataName, saveDataObject);
+  await writeSaveData(saveDataName, newSaveData);
 };
 
-let isMedalcollected = (stageId, medalId) => {
+let isMedalCollected = (stageId, medalId, saveDataObject) => {
   if (!saveDataObject["medal"].hasOwnProperty(stageId)) return false;
+  if (medalId < 0 || saveDataObject["medal"][stageId].length <= medalId) return false;
   return saveDataObject["medal"][stageId][medalId];
-}
+};
+
+let totalMedalNum = (saveDataObject) => {
+  let medalNum = 0;
+  for (let i = 0; i < 10; i++) { // 10 is a magic num
+    for (let j = 0; j < 3; j++) {
+      if (isMedalCollected(i, j, saveDataObject)) medalNum++;
+    }
+  }
+  return medalNum;
+};
+
+// file select
+let saveDataList = [];
+let fsCursorAt = "data_1";
+let fsCursorStrage = "data_1"; // 再度ファイルセレクトに入った時に最後に選んだファイルへカーソルを合わせる
+let fsMode = "select";
+let fsBombIcon;
+let finalConfirm = false;
+let fsMenu = {
+  "data_1": {
+    x: 32,
+    y: 32,
+    w: 256,
+    h: 48,
+    c_up: "back_to_title",
+    c_down: "data_2",
+    c_left: "none",
+    c_right: "none",
+    select: () => {
+      currentSaveData = saveDataNameList[0];
+      fsCursorStrage = "data_1";
+      setTransition("stageselect");
+    },
+    erase: () => {
+      currentSaveData = saveDataNameList[0];
+      fsMode = "final_confirm";
+    }
+  },
+  "data_2": {
+    x: 32,
+    y: 88,
+    w: 256,
+    h: 48,
+    c_up: "data_1",
+    c_down: "data_3",
+    c_left: "none",
+    c_right: "none",
+    select: () => {
+      currentSaveData = saveDataNameList[1];
+      fsCursorStrage = "data_2";
+      setTransition("stageselect");
+    },
+    erase: () => {
+      currentSaveData = saveDataNameList[1];
+      fsMode = "final_confirm";
+    }
+  },
+  "data_3": {
+    x: 32,
+    y: 144,
+    w: 256,
+    h: 48,
+    c_up: "data_2",
+    c_down: "back_to_title",
+    c_left: "none",
+    c_right: "none",
+    select: () => {
+      currentSaveData = saveDataNameList[2];
+      fsCursorStrage = "data_3";
+      setTransition("stageselect");
+    },
+    erase: () => {
+      currentSaveData = saveDataNameList[2];
+      fsMode = "final_confirm";
+    }
+  },
+  "back_to_title": {
+    x: 32,
+    y: 200,
+    w: 120,
+    h: 24,
+    c_up: "data_3",
+    c_down: "data_1",
+    c_left: "erase_file",
+    c_right: "erase_file",
+    select: () => {
+      setTransition("title");
+    },
+    erase: () => {}
+  },
+  "erase_file": {
+    x: 240,
+    y: 200,
+    w: 48,
+    h: 24,
+    c_up: "data_3",
+    c_down: "data_1",
+    c_left: "back_to_title",
+    c_right: "back_to_title",
+    select: () => {
+      fsMode = "erase";
+    },
+    erase: () => {
+      fsMode = "select";
+    }
+  }
+};
+let fsMenuKeyList = Object.keys(fsMenu);
+let fsMenuKeyOfSaveData = ["data_1", "data_2", "data_3"];
 
 // stage select
 let stageId = 0;
@@ -628,7 +746,11 @@ let stageData = [
   {
     name: "こなゆき山",
     level: "3-1",
-  }
+  },
+  {
+    name: "アチアチ洞窟",
+    level: "4-1",
+  },  
 ];
 
 // jump to level (debug)
@@ -651,7 +773,7 @@ let initFlag, overLayInitFlag;
 let nowLoading;
 let sceneAfterTrans;
 let transAnimeCount = 0;
-const transAnimeCountInit = 40;
+const transAnimeCountInit = 30;
 const nokogiri = 32;
 
 let setScene = (nextscene) => {
@@ -862,7 +984,7 @@ class CharacterSprite extends Sprite {
   };
 };
 
-// global variables
+// global variables (in game)
 let plc;
 let plcMaxHp = 4;
 const defaultPlcMaxHp = 3;
@@ -2695,7 +2817,7 @@ let itemData = {
     "anime": "medal",
     "move": (me) => {
       if (collectedMedal[0]) me.hp = 0;
-      if (isMedalcollected(stageId, 0)) {
+      if (isMedalCollected(stageId, 0, saveDataInProgress)) {
         me.changeAnime("collected");
       }
       else if (mapAnimeCount % 5 === 1) {
@@ -2704,7 +2826,7 @@ let itemData = {
     },
     "obtained": (me) => {
       collectedMedal[0] = true;
-      if (isMedalcollected(stageId, 0)) {
+      if (isMedalCollected(stageId, 0, saveDataInProgress)) {
         collectedCoins += 10;
       }
       else {
@@ -2724,7 +2846,7 @@ let itemData = {
     "anime": "medal",
     "move": (me) => {
       if (collectedMedal[1]) me.hp = 0;
-      if (isMedalcollected(stageId, 1)) {
+      if (isMedalCollected(stageId, 1, saveDataInProgress)) {
         me.changeAnime("collected");
       }
       else if (mapAnimeCount % 5 === 1) {
@@ -2733,7 +2855,7 @@ let itemData = {
     },
     "obtained": (me) => {
       collectedMedal[1] = true;
-      if (isMedalcollected(stageId, 1)) {
+      if (isMedalCollected(stageId, 1, saveDataInProgress)) {
         collectedCoins += 10;
       }
       else {
@@ -2767,17 +2889,17 @@ let itemData = {
         if (me.y < me.getParam(1)) {
           me.y += (me.getParam(1) - me.y) / 24;
         }
-        if (mapAnimeCount % 5 === 1 && !isMedalcollected(stageId, 2)) {
+        if (mapAnimeCount % 5 === 1 && !isMedalCollected(stageId, 2, saveDataInProgress)) {
           createEffect("red_glitter", randInt(me.x, me.x + 24), randInt(me.y, me.y + 24), 0, 0);
         }
       }
-      if (isMedalcollected(stageId, 2)) {
+      if (isMedalCollected(stageId, 2, saveDataInProgress)) {
         me.changeAnime("collected");
       }
     },
     "obtained": (me) => {
       collectedMedal[2] = true;
-      if (isMedalcollected(stageId, 2)) {
+      if (isMedalCollected(stageId, 2, saveDataInProgress)) {
         collectedCoins += 10;
       }
       else {
@@ -3253,7 +3375,7 @@ let shopCursor = 0;
 let toolCursor = 0;
 
 let isAlreadyBought = (toolId) => { // 購入済みかどうか確かめる
-  return saveDataObject["tool"].hasOwnProperty(toolId);
+  return saveDataInProgress["tool"].hasOwnProperty(toolId);
 };
 
 const toolData = {
@@ -3277,7 +3399,7 @@ const toolData = {
     explain_merchan: "最大HPが1増えるよー",
     explain_normal: "最大HP+1",
     sell_condition: () => {
-      return (saveDataObject.progress > 1 && isAlreadyBought("lifeup1"));
+      return (saveDataInProgress.progress > 1 && isAlreadyBought("lifeup1"));
     },
     effect: () => {
       plcMaxHp += 1;
@@ -3290,7 +3412,7 @@ const toolData = {
     explain_merchan: "最大HPが1増えるよー",
     explain_normal: "最大HP+1",
     sell_condition: () => {
-      return (saveDataObject.progress > 2 && isAlreadyBought("lifeup2"));
+      return (saveDataInProgress.progress > 2 && isAlreadyBought("lifeup2"));
     },
     effect: () => {
       plcMaxHp += 1;
@@ -3298,7 +3420,7 @@ const toolData = {
   },
   "shotup1": {
     anime: "shotup",
-    price: 200,
+    price: 120,
     name: "ショット威力アップ",
     explain_merchan: "与えるダメージが増えるよー",
     explain_normal: "与ダメージ増加",
@@ -3309,14 +3431,27 @@ const toolData = {
       shotPower += 1;
     }
   },
+  "shotup2": {
+    anime: "shotup",
+    price: 500,
+    name: "ショット威力アップ",
+    explain_merchan: "与えるダメージが増えるよー",
+    explain_normal: "与ダメージ増加",
+    sell_condition: () => {
+      return (saveDataInProgress.progress > 3);
+    },
+    effect: () => {
+      shotPower += 1;
+    }
+  },
   "lengthup": {
     anime: "lengthup",
-    price: 400,
+    price: 300,
     name: "ショット飛距離アップ",
     explain_merchan: "射程が少し伸びるよー",
     explain_normal: "射程強化",
     sell_condition: () => {
-      return (saveDataObject.progress > 2);
+      return (saveDataInProgress.progress > 2);
     },
     effect: () => {
       shotVanishTime += 10;
@@ -3359,18 +3494,6 @@ const toolData = {
     }
   },
   "dummy5": {
-    anime: "default",
-    price: 999999,
-    name: "ダミーアイテム",
-    explain_merchan: "なにこれー？",
-    explain_normal: "なんじゃこりゃ",
-    sell_condition: () => {
-      return false;
-    },
-    effect: () => {
-    }
-  },
-  "dummy6": {
     anime: "default",
     price: 999999,
     name: "ダミーアイテム",
@@ -3526,7 +3649,7 @@ let sceneList = {
       // press z key
       if (isKeyPressedNow("z")) {
         // start game
-        setTransition("stageselect");
+        setTransition("fileselect");
       }
       // erase data
       if (keyInput.indexOf("x") != -1) {
@@ -3547,15 +3670,159 @@ let sceneList = {
       }
     }
   },
+  ////--------------//
+  ///  fileselect  ///
+  //--------------////
+  "fileselect" : {
+    "init": async () => {
+      // load all save data
+      saveDataList = [];
+      let readData = {}
+      for (let i = 0; i < saveDataNameList.length; i++) {
+        readData = await readSaveData(saveDataNameList[i]);
+        saveDataList.push(readData);  
+      }
+      // reset cursor
+      fsCursorAt = fsCursorStrage;
+      fsMode = "select";
+      finalConfirm = false;
+      // create bomb sprite
+      fsBombIcon = new Sprite("bomb", -99, -99, 16, 16, imgBombIcon, animeData["bombicon"]);
+      // draw bg
+      backgCtx.fillStyle = "#2a2349"; // 濃い藍色
+      backgCtx.fillRect(0, 0, 320, 240);
+      setOverlayScene("transout");
+      return 0;
+    },
+    "update" : () => {
+      // cursor move
+      if (fsMode === "select" || fsMode === "erase") {
+        if (isKeyPressedNow("u") && fsMenuKeyList.indexOf(fsMenu[fsCursorAt].c_up) != -1 ) {
+          fsCursorAt = fsMenu[fsCursorAt].c_up;
+        }
+        else if (isKeyPressedNow("d") && fsMenuKeyList.indexOf(fsMenu[fsCursorAt].c_down) != -1 ) {
+          fsCursorAt = fsMenu[fsCursorAt].c_down;
+        }
+        else if (isKeyPressedNow("l") && fsMenuKeyList.indexOf(fsMenu[fsCursorAt].c_left) != -1 ) {
+          fsCursorAt = fsMenu[fsCursorAt].c_left;
+        }
+        else if (isKeyPressedNow("r") && fsMenuKeyList.indexOf(fsMenu[fsCursorAt].c_right) != -1 ) {
+          fsCursorAt = fsMenu[fsCursorAt].c_right;
+        }
+        else if (isKeyPressedNow("z")) {
+          if (fsMode === "select") {
+            fsMenu[fsCursorAt].select();
+          }
+          else if (fsMode === "erase") {
+            fsMenu[fsCursorAt].erase();
+          }
+        }
+        else if (isKeyPressedNow("x")) {
+          if (fsMode === "select") {
+            setTransition("title");
+          }
+          else if (fsMode === "erase") {
+            fsMode = "select";
+          }
+        }
+      }
+      else if (fsMode === "final_confirm") {
+        if (isKeyPressedNow("l") || isKeyPressedNow("r")) {
+          finalConfirm = !finalConfirm;
+        }
+        else if (isKeyPressedNow("z")) {
+          if (finalConfirm) {
+            // erase file!
+            createNewSaveData(currentSaveData);
+            setTransition("fileselect");
+            fsCursorStrage = fsCursorAt;
+          }
+          else {
+            fsMode = "erase";
+          }
+        }
+        else if (isKeyPressedNow("x")) {
+          fsMode = "erase";
+        }
+      }
+      // move force
+      if (fsCursorAt === "back_to_title" && fsMode === "erase") fsCursorAt = "erase_file";
+      // drawing
+      // ---- menu rect ----
+      fsMenuKeyList.forEach((e) => {
+        charaCtx.fillStyle = "#0d080d";
+        charaCtx.fillRect(fsMenu[e].x + 2, fsMenu[e].y + 2, fsMenu[e].w, fsMenu[e].h);
+        charaCtx.fillStyle = (fsMode != "select" && e === "back_to_title") ? "#bebbb2" : fsCursorAt === e ? "#e89973" : "#4180a0"; // gray / pink / blue
+        charaCtx.fillRect(fsMenu[e].x, fsMenu[e].y, fsMenu[e].w, fsMenu[e].h);
+      });
+      // ---- file select ----
+      useriCtx.textAlign = "left";
+      useriCtx.textBaseline = "top";
+      useriCtx.fillStyle = fsMode === "select" ? "#fff9e4" : "#f0bd77"; // white / yellow
+      let displayText = (fsMode === "select") ? "ファイルセレクト" : "！ファイル消去！";
+      let displaySize = useriCtx.measureText(displayText);
+      useriCtx.fillText(displayText, Math.floor((useriLay.width - displaySize.width) / 2), 8);
+      // ---- save data ----
+      useriCtx.fillStyle = "#fff9e4"; // white
+      for (let i = 0; i < fsMenuKeyOfSaveData.length; i++) {
+        if (saveDataList.length < i) { // 該当データがない場合
+          useriCtx.fillText("データなし", 120, fsMenu[fsMenuKeyOfSaveData[i]].h + 16);
+        }
+        else {
+          useriCtx.fillText("ファイル " + (i + 1), 48, fsMenu[fsMenuKeyOfSaveData[i]].y + 16);
+          if (fsMode === "final_confirm" && fsCursorAt === fsMenuKeyOfSaveData[i]) {
+            useriCtx.fillText("このファイルを消す？", 140, fsMenu[fsMenuKeyOfSaveData[i]].y + 8);
+            useriCtx.fillText("消さない", 160, fsMenu[fsMenuKeyOfSaveData[i]].y + 24);
+            useriCtx.fillText("消す！", 244, fsMenu[fsMenuKeyOfSaveData[i]].y + 24);
+          }
+          else {
+            useriCtx.fillText("Stage " + (saveDataList[i].progress + 1), 140, fsMenu[fsMenuKeyOfSaveData[i]].y + 16);
+            useriCtx.fillText(saveDataList[i].coins, 216, fsMenu[fsMenuKeyOfSaveData[i]].y + 8);
+            useriCtx.fillText(totalMedalNum(saveDataList[i]), 216, fsMenu[fsMenuKeyOfSaveData[i]].y + 24);
+            useriCtx.drawImage(imgUiCoin, 196, fsMenu[fsMenuKeyOfSaveData[i]].y + 8)
+            useriCtx.drawImage(imgUiMedal, 0, 0, 16, 16, 196, fsMenu[fsMenuKeyOfSaveData[i]].y + 24, 16, 16)
+          }
+        }
+      }
+      // ---- options ----
+      useriCtx.fillStyle = "#fff9e4"; // white
+      displayText = "タイトルに戻る";
+      displaySize = useriCtx.measureText(displayText);
+      useriCtx.fillText(displayText, Math.floor(fsMenu["back_to_title"].x + (fsMenu["back_to_title"].w - displaySize.width) / 2), fsMenu["back_to_title"].y + 4);
+      displayText = fsMode === "select" ? "消去" : "やめる";
+      displaySize = useriCtx.measureText(displayText);
+      useriCtx.fillText(displayText, Math.floor(fsMenu["erase_file"].x + (fsMenu["erase_file"].w - displaySize.width) / 2), fsMenu["erase_file"].y + 4);
+      // ---- plc / bomb cursor animation ----
+      let fsCursorX, fsCursorY;
+      if (fsMode === "final_confirm") {
+        fsCursorX = finalConfirm ? 224 : 140
+        fsCursorY = fsMenu[fsCursorAt].y + 24;
+      }
+      else {
+        fsCursorX = fsMenu[fsCursorAt].x - 20;
+        fsCursorY = fsMenu[fsCursorAt].y + (fsMenu[fsCursorAt].h - 16) / 2;
+      }
+      if (fsMode === "select") {
+        plc.updateAnime();
+        plc.drawShadow(charaCtx, fsCursorX + 2, fsCursorY + 2);
+        plc.drawAnime(charaCtx, fsCursorX, fsCursorY);
+      }
+      else {
+        fsBombIcon.updateAnime();
+        fsBombIcon.drawShadow(charaCtx, fsCursorX + 2, fsCursorY + 2);
+        fsBombIcon.drawAnime(charaCtx, fsCursorX, fsCursorY);
+      }
+    }
+  },
   ////---------------//
   ///  stageselect  ///
   //---------------////
   "stageselect": {
     "init": async () => {
       // load save data
-      await readSaveData(currentSaveData);
-      modifySaveData();
-      collectedCoins = saveDataObject["coins"];
+      saveDataInProgress = await readSaveData(currentSaveData);
+      modifySaveData(saveDataInProgress);
+      collectedCoins = saveDataInProgress["coins"];
       ssCursorL = new Sprite("c", 3 * gridSize, 6 * gridSize, 32, 64, imgSSCursorL, animeData["sscursor"]);
       ssCursorR = new Sprite("c", 15 * gridSize, 6 * gridSize, 32, 64, imgSSCursorR, animeData["sscursor"]);
       // パラメータを装備アイテム適用前のデフォルト値に設定
@@ -3563,14 +3830,14 @@ let sceneList = {
       shotPower = defaultShotPower;
       shotVanishTime = defaultShotVanishTime;
       // カーソル位置がおかしかったら修正
-      if (stageId > saveDataObject.progress) {
+      if (stageId > saveDataInProgress.progress) {
         stageId = 0;
       }
       // アイテム効果を反映
-      let ownToolKeys = Object.keys(saveDataObject["tool"]);
+      let ownToolKeys = Object.keys(saveDataInProgress["tool"]);
       ownToolKeys.forEach((e) => {
         if (toolDataKeys.indexOf(e) === -1) return; // 変なアイテムが保存されていたら弾く
-        if (!saveDataObject["tool"][e].is_activated) return;
+        if (!saveDataInProgress["tool"][e].is_activated) return;
         applyToolEffect(e);
       });
       plc.hp = plcMaxHp;
@@ -3612,14 +3879,14 @@ let sceneList = {
         ssCursorL.drawShadow(useriCtx, ssCursorL.x + 2, ssCursorL.y + 2);
         ssCursorL.drawAnime(useriCtx, ssCursorL.x, ssCursorL.y);
       }
-      if (stageId < saveDataObject.progress) {
+      if (stageId < saveDataInProgress.progress) {
         ssCursorR.drawShadow(useriCtx, ssCursorR.x + 2, ssCursorR.y + 2);
         ssCursorR.drawAnime(useriCtx, ssCursorR.x, ssCursorR.y);
       }
       // ---- medal
       if (stageId < stageData.length) {
         for (let i = 0; i < 3; i++) {
-          useriCtx.drawImage(imgSSMedal, isMedalcollected(stageId, i) * 32, 0, 32, 32, 112 + 32 * i, 186, 32, 32);
+          useriCtx.drawImage(imgSSMedal, isMedalCollected(stageId, i, saveDataInProgress) * 32, 0, 32, 32, 112 + 32 * i, 186, 32, 32);
         }
       }
       // ---- heart & coins
@@ -3629,14 +3896,14 @@ let sceneList = {
       useriCtx.fillText(Math.ceil(collectedCoins).toString().padStart(4, "0"), gridSize, gridSize - 2);
       useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, 16 - 2, 16, 16);
       // ---- options
-      if (saveDataObject.progress > 0) useriCtx.drawImage(imgOption, useriLay.width - 48, 0);
+      if (saveDataInProgress.progress > 0) useriCtx.drawImage(imgOption, useriLay.width - 48, 0);
       // トランジション中はキー入力無効
       if (sceneOverLay != "none") return;
       // key input
       if (isKeyPressedNow("l") && stageId > 0) { // previous stage
         stageId--;
       }
-      else if (isKeyPressedNow("r") && stageId < saveDataObject.progress) { // next stage
+      else if (isKeyPressedNow("r") && stageId < saveDataInProgress.progress) { // next stage
         stageId++;
       }
       else if (isKeyPressedNow("x")) { // back to title
@@ -3655,10 +3922,10 @@ let sceneList = {
         // start game
         setTransition("game");
       }
-      else if (isKeyPressedNow("u") && saveDataObject.progress > 0) { // shop
+      else if (isKeyPressedNow("u") && saveDataInProgress.progress > 0) { // shop
         setTransition("shop");
       }
-      else if (isKeyPressedNow("d") && saveDataObject.progress > 0) { // tool list
+      else if (isKeyPressedNow("d") && saveDataInProgress.progress > 0) { // tool list
         setTransition("toollist");
       }
     }
@@ -3704,7 +3971,7 @@ let sceneList = {
       useriCtx.textAlign = "left";
       useriCtx.fillStyle = "#fff9e4";
       // お金
-      useriCtx.fillText(saveDataObject["coins"].toString().padStart(4, "0"), gridSize, 0);
+      useriCtx.fillText(saveDataInProgress["coins"].toString().padStart(4, "0"), gridSize, 0);
       useriCtx.drawImage(imgUiCoin, 0, 0, 16, 16, 0, 0, 16, 16);
       // まーちゃん
       merchan.updateAnime();
@@ -3754,14 +4021,14 @@ let sceneList = {
       }
       else if (shopScene === "select") { // シーン：購入確認
         charaCtx.fillText(toolOnCursor.name + "は" + toolOnCursor.price + "コインだよー どうする？", serifuX, serifuY);
-        charaCtx.fillText("Z:買う    X:やめる", serifuX, serifuY + 16);
+        charaCtx.fillText("[Z]買う    [X]やめる", serifuX, serifuY + 16);
         if (isKeyPressedNow("z")) {
-          if (saveDataObject["coins"] < toolOnCursor.price) {
+          if (saveDataInProgress["coins"] < toolOnCursor.price) {
             shopScene = "tarinai";
           }
           else { // 購入処理はここで行う
-            saveDataObject["tool"][shelf[shopCursor]] = { is_activated: true };
-            saveDataObject["coins"] -= toolOnCursor.price;
+            saveDataInProgress["tool"][shelf[shopCursor]] = { is_activated: true };
+            saveDataInProgress["coins"] -= toolOnCursor.price;
             shelf[shopCursor] = "no_item";
             shopScene = "okaiage";
           }
@@ -3788,7 +4055,7 @@ let sceneList = {
         merchan.changeAnime("happy");
         charaCtx.fillText("またねー", serifuX, serifuY);
         if (isKeyPressedNow("z")) {
-          writeSaveData(currentSaveData);
+          writeSaveData(currentSaveData, saveDataInProgress);
           setTransition("stageselect");
         }
       }
@@ -3825,7 +4092,7 @@ let sceneList = {
         }
         else {
           drawToolImage(charaCtx, toolDataKeys[i], toolDrawX, toolDrawY);
-          if (saveDataObject["tool"][toolDataKeys[i]].is_activated) {
+          if (saveDataInProgress["tool"][toolDataKeys[i]].is_activated) {
             useriCtx.drawImage(imgCheckMark, toolDrawX + 24, toolDrawY - 8);
           }
         }
@@ -3838,7 +4105,7 @@ let sceneList = {
         let toolNameSize = useriCtx.measureText(toolData[toolDataKeys[toolCursor]].name);
         useriCtx.fillText(toolData[toolDataKeys[toolCursor]].name, 16, 180);
         useriCtx.fillText(toolData[toolDataKeys[toolCursor]].explain_normal, 16, 196);
-        if (saveDataObject["tool"][toolDataKeys[toolCursor]].is_activated) {
+        if (saveDataInProgress["tool"][toolDataKeys[toolCursor]].is_activated) {
           useriCtx.drawImage(imgCheckMark, 16 + toolNameSize.width + 24, 180);
         }
       }
@@ -3864,10 +4131,10 @@ let sceneList = {
         if (toolCursor === 10) toolCursor = 5;
       }
       else if (isKeyPressedNow("z") && (isAlreadyBought(toolDataKeys[toolCursor]))) {
-        saveDataObject["tool"][toolDataKeys[toolCursor]].is_activated = !saveDataObject["tool"][toolDataKeys[toolCursor]].is_activated;
+        saveDataInProgress["tool"][toolDataKeys[toolCursor]].is_activated = !saveDataInProgress["tool"][toolDataKeys[toolCursor]].is_activated;
       }
       else if (isKeyPressedNow("x")) {
-        writeSaveData(currentSaveData);
+        writeSaveData(currentSaveData, saveDataInProgress);
         setTransition("stageselect");
       }
     }
@@ -4427,19 +4694,19 @@ let sceneList = {
         plc.reaction = 0;
         if (++clearAnimeCounter === 180) {
           // クリアデータを保存してステージセレクトへ
-          saveDataObject["coins"] = collectedCoins;
-          if (saveDataObject["progress"] <= stageId) {
-            saveDataObject["progress"] = stageId + 1;
+          saveDataInProgress["coins"] = collectedCoins;
+          if (saveDataInProgress["progress"] <= stageId) {
+            saveDataInProgress["progress"] = stageId + 1;
           }
-          if (!saveDataObject["medal"].hasOwnProperty(stageId)) {
-            saveDataObject["medal"][stageId] = collectedMedal;
+          if (!saveDataInProgress["medal"].hasOwnProperty(stageId)) {
+            saveDataInProgress["medal"][stageId] = collectedMedal;
           }
           else {
             for (let i = 0; i < collectedMedal.length; i++) {
-              saveDataObject["medal"][stageId][i] |= collectedMedal[i];
+              saveDataInProgress["medal"][stageId][i] |= collectedMedal[i];
             }
           }
-          writeSaveData(currentSaveData);
+          writeSaveData(currentSaveData, saveDataInProgress);
           setTransition("stageselect");
         }
       }
@@ -4718,7 +4985,7 @@ let sceneList = {
       }
       // medals
       for (let i = 0; i < 3; i++) {
-        useriCtx.drawImage(imgUiMedal, (isMedalcollected(stageId, i) || collectedMedal[i]) ? 0 : 16, 0, 16, 16, i * gridSize + useriLay.width - 3 * gridSize, 0, 16, 16);
+        useriCtx.drawImage(imgUiMedal, (isMedalCollected(stageId, i, saveDataInProgress) || collectedMedal[i]) ? 0 : 16, 0, 16, 16, i * gridSize + useriLay.width - 3 * gridSize, 0, 16, 16);
       }
       // coins
       let hopCoinY = 0;
@@ -4859,16 +5126,16 @@ let sceneOverLayList = {
       else if (keyInput.indexOf("x") != -1) { // X長押しでデータを保存してステージセレクトへ
         backToSelectCount++;
         if (backToSelectCount > 80) {
-          saveDataObject["coins"] = collectedCoins;
-          if (!saveDataObject["medal"].hasOwnProperty(stageId)) {
-            saveDataObject["medal"][stageId] = collectedMedal;
+          saveDataInProgress["coins"] = collectedCoins;
+          if (!saveDataInProgress["medal"].hasOwnProperty(stageId)) {
+            saveDataInProgress["medal"][stageId] = collectedMedal;
           }
           else {
             for (let i = 0; i < collectedMedal.length; i++) {
-              saveDataObject["medal"][stageId][i] |= collectedMedal[i];
+              saveDataInProgress["medal"][stageId][i] |= collectedMedal[i];
             }
           }
-          writeSaveData(currentSaveData);
+          writeSaveData(currentSaveData, saveDataInProgress);
           setTransition("stageselect");
         }
       }
