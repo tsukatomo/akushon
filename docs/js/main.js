@@ -89,6 +89,8 @@ let imgMoveFloor = [new Image(), new Image()];
 imgMoveFloor[0].src = "./img/movefloor.png";
 let imgLongFloor = [new Image(), new Image()];
 imgLongFloor[0].src = "./img/longlift.png";
+let imgVeryShortFloor = [new Image(), new Image()];
+imgVeryShortFloor[0].src = "./img/very_short_lift.png";
 let imgFloatFloor = [new Image(), new Image()];
 imgFloatFloor[0].src = "./img/floating_lift.png";
 let imgCloudLift = [new Image(), new Image()];
@@ -190,6 +192,7 @@ let shadowList = [
   imgCoin,
   imgMoveFloor,
   imgLongFloor,
+  imgVeryShortFloor,
   imgCloudLift,
   imgCloudLiftSmall,
   imgMagma,
@@ -412,6 +415,9 @@ let animeData = {
     "default": { frames: 4, dulation: 2, img: [0, 1, 2, 3], repeat: true }
   },
   "longfloor": {
+    "default": { frames: 1, dulation: 8, img: [0], repeat: true }
+  },
+  "veryshortfloor": {
     "default": { frames: 1, dulation: 8, img: [0], repeat: true }
   },
   "floatfloor": {
@@ -1471,15 +1477,15 @@ const enemyData = {
     "type": "flight",
     "w": 32,
     "h": 32,
-    "box": [6, 10, 25, 25],
-    "hit": [6, 10, 25, 25],
+    "box": [6, 8, 25, 23],
+    "hit": [6, 8, 25, 23],
     "hp": 12,
     "img": imgBigCamera,
     "anime": "flying_camera",
     "move": (me) => {
       if (me.isParamEmpty()) {
         me.setParam(0, me.x + 8 * me.initParam); // 初期座標（X）(initParam=1 で半マス右にずれます)
-        me.setParam(1, me.y); // 初期座標（Y）
+        me.setParam(1, me.y - 8); // 初期座標（Y）(半マス上にずれる)
         me.setParam(2, randInt(0, 199)); // 移動時間
         me.setParam(3, 0); // クールタイム
         me.setParam(4, 0); // 点滅回数カウント
@@ -1489,7 +1495,7 @@ const enemyData = {
       }
       // 今の目の位置
       let eyeX = me.x + (me.anitype === "glow_l" || me.anitype === "float_l" ? 0 : 15);
-      let eyeY = me.y + 10;      
+      let eyeY = me.y + 8;      
       if (me.isEndAnime()) {
         if ((me.anitype === "glow_l" || me.anitype === "glow_r")) {
           me.setParam(4, me.getParam(4) + 1);
@@ -1534,7 +1540,7 @@ const enemyData = {
       me.setParam(2, (me.getParam(2) + 1) % 200);
       me.setParam(3, me.getParam(3) - 1);
       me.dx = 0;
-      me.dy = Math.sin(2 * Math.PI * me.getParam(2) / 200) * 16;
+      me.dy = Math.sin(2 * Math.PI * me.getParam(2) / 200) * 8;
       me.x = me.getParam(0) + me.dx;
       me.y = me.getParam(1) + me.dy;
     }
@@ -2942,6 +2948,30 @@ const gimmickData = {
       me.y += me.dy;
     }
   },
+  "…": { // alt + "+"
+    "type": "floor",
+    "w": 16,
+    "h": 16,
+    "box": [0, 0, 16, 5],
+    "hit": [0, 0, 16, 5],
+    "img": imgVeryShortFloor,
+    "anime": "veryshortfloor",
+    "move": (me) => {
+      if (me.isParamEmpty()) {
+        me.setParam(0, 0);
+        me.direction = me.initParam === 0 ? "left" : "right";
+      }
+      if (isTouchingLeftWall(me)) {
+        me.direction = "right";
+      }
+      else if (isTouchingRightWall(me)) {
+        me.direction = "left";
+      }
+      me.dx = me.direction === "left" ? -0.5 : 0.5;
+      me.x += me.dx;
+      me.y += me.dy;
+    }
+  },
   // 動く床を同じ行に発生させる装置
   "Æ": { // alt + shift + * 
     "type": "floorgen",
@@ -3949,7 +3979,7 @@ let sceneList = {
       // reset magma rising
       if (levelSpecial === "magma_flood") {
         magmaTopY = mapHeight * gridSize;
-        magmaSpeed = -0.5;
+        magmaSpeed = -0.25;
       }
       else if (levelSpecial === "magma_updown") {
         magmaTopY = 120;
@@ -3991,6 +4021,7 @@ let sceneList = {
         enemyArray.forEach((e) => {
           enemyData[e.id].move(e);
           if (e.y > mapHeight * gridSize + 64 && e.type != "notdropout") e.hp = 0; // 落下死
+          if (e.hRBottomY() > magmaTopY + 4) e.hp = 0; // マグマ死（+4は猶予）
           if (e.hp <= 0 && !e.isType("boss") && !e.isType("danmaku")) { // やられた時 (ボスと弾幕を除く)
             if (e.y > mapHeight * gridSize) return;
             createEffect("explode", e.lTopX() + ((e.rbx - e.ltx) - 32) / 2, e.lTopY() + ((e.rby - e.lty) - 32) / 2, 0, 0);
@@ -4305,9 +4336,12 @@ let sceneList = {
           // 敵破壊
           enemyArray.forEach((e) => {
             if (!e.isHit(plc) || e.isNoHitWithPlc) return;
-            e.hp -= 99;
+            e.hp = 0;
             hitStop = 4;
             quakeTimeY = 10;
+            if (e.type === "danmaku") {
+              createEffect("miniexplode", e.x, e.y, 0, 0);
+            }
           });
           // 残像エフェクト
           if (timeCounter % 4 === 0) {
